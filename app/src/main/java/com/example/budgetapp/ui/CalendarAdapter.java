@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.RenewalItem;
 import com.example.budgetapp.database.Transaction;
-import com.example.budgetapp.util.AssistantConfig;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -115,7 +114,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         // 基础颜色
         int colorPrimaryText = getThemeColor(context, android.R.attr.textColorPrimary);
         int colorSecondaryText = getThemeColor(context, android.R.attr.textColorSecondary);
-        int themeColor = context.getColor(R.color.app_yellow);
+        int themeColor = context.getColor(R.color.app_blue);
 
         int incomeRed = context.getColor(R.color.income_red);
         int expenseGreen = context.getColor(R.color.expense_green);

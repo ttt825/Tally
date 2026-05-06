@@ -50,7 +50,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_margin="16dp"
-        android:backgroundTint="@color/app_yellow"
+        android:backgroundTint="@color/app_blue"
         android:text="添加规则"
         android:textAllCaps="false"
         android:textColor="@color/real_white"

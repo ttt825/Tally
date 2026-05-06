@@ -119,7 +119,7 @@
             android:layout_weight="1"
             android:text="保 存"
             android:textColor="@color/real_white"
-            android:backgroundTint="@color/app_yellow"
+            android:backgroundTint="@color/app_blue"
             android:layout_marginStart="8dp"
             app:cornerRadius="16dp"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>

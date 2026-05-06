@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.BudgetApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/app_yellow</item>
+        <item name="colorPrimary">@color/app_blue</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowBackground">@color/white</item>
@@ -17,7 +17,7 @@
     <style name="Theme.BudgetApp" parent="Base.Theme.BudgetApp" />
 
     <style name="ThemeOverlay.App.DatePicker" parent="ThemeOverlay.Material3.MaterialCalendar">
-        <item name="colorPrimary">@color/app_yellow</item>
+        <item name="colorPrimary">@color/app_blue</item>
         <item name="colorOnPrimary">#000000</item>
 
 <!--        <item name="android:windowBackground">@color/app_background</item>-->
@@ -36,7 +36,7 @@
     </style>
 
     <style name="Widget.App.DatePicker.Button" parent="Widget.Material3.Button.TextButton">
-        <item name="android:textColor">@color/app_yellow</item>
+        <item name="android:textColor">@color/app_blue</item>
     </style>
 
     <style name="ThemeOverlay.App.NumberPicker" parent="ThemeOverlay.Material3.DynamicColors.DayNight">

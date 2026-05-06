@@ -63,7 +63,7 @@
                         android:text="0.00"
                         android:textSize="32sp"
                         android:textStyle="bold"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:layout_marginTop="8dp"/>
                 </LinearLayout>
 
@@ -183,7 +183,7 @@
             android:src="@drawable/ic_transfer_arrows"
             android:contentDescription="转移资产"
             app:backgroundTint="@color/transfer_fab_bg"
-            app:tint="@color/app_yellow"
+            app:tint="@color/app_blue"
             app:fabSize="mini"
             app:elevation="0dp"
             app:pressedTranslationZ="0dp"
@@ -198,7 +198,7 @@
             android:src="@android:drawable/ic_input_add"
             app:tint="@android:color/white"
             android:contentDescription="添加资产"
-            app:backgroundTint="@color/app_yellow"
+            app:backgroundTint="@color/app_blue"
             app:elevation="0dp"
             app:pressedTranslationZ="0dp"
             app:borderWidth="0dp"

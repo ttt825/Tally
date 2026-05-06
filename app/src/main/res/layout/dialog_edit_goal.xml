@@ -64,7 +64,7 @@
             android:layout_marginTop="12dp"
             android:text="设为优先目标"
             android:textColor="@color/text_primary"
-            android:buttonTint="@color/app_yellow"/>
+            android:buttonTint="@color/app_blue"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -92,7 +92,7 @@
                 android:text="保 存"
                 android:textStyle="bold"
                 android:textColor="@color/text_white"
-                android:backgroundTint="@color/app_yellow"
+                android:backgroundTint="@color/app_blue"
                 app:cornerRadius="16dp"/>
         </LinearLayout>
 
@@ -104,7 +104,7 @@
             android:text="完成目标"
             android:textStyle="bold"
             android:textColor="@color/text_white"
-            android:backgroundTint="@color/app_yellow"
+            android:backgroundTint="@color/app_blue"
             app:cornerRadius="16dp"/>
 
     </LinearLayout>

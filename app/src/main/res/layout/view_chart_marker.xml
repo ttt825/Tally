@@ -57,7 +57,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="净收支: 0"
-            android:textColor="@color/app_yellow"
+            android:textColor="@color/app_blue"
             android:textStyle="bold"
             android:textSize="12sp"/>
         <!-- 这里直接写死一个稍深的黄色 #FBC02D，

@@ -180,7 +180,7 @@
         android:layout_height="56dp"
         android:layout_marginTop="32dp"
         android:text="保存设置"
-        android:backgroundTint="@color/app_yellow"
+        android:backgroundTint="@color/app_blue"
         android:textColor="@color/real_white"
         android:textStyle="bold"
         app:cornerRadius="16dp"

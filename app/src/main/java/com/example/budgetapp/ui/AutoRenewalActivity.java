@@ -312,7 +312,7 @@ public class AutoRenewalActivity extends AppCompatActivity {
 
             // 选中项高亮显示 (黄色)
             if (index == selectedIndex[0]) {
-                item.setTextColor(getResources().getColor(R.color.app_yellow));
+                item.setTextColor(getResources().getColor(R.color.app_blue));
                 item.getPaint().setFakeBoldText(true);
             } else {
                 item.setTextColor(getResources().getColor(R.color.text_primary));

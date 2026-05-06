@@ -52,7 +52,7 @@
                     android:text="0.00"
                     android:textSize="32sp"
                     android:textStyle="bold"
-                    android:textColor="@color/app_yellow"
+                    android:textColor="@color/app_blue"
                     android:layout_marginTop="4dp"/>
 
                 <View
@@ -123,7 +123,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:background="@color/bar_background"
-            app:tabIndicatorColor="@color/app_yellow"
+            app:tabIndicatorColor="@color/app_blue"
             app:tabSelectedTextColor="?android:attr/textColorPrimary"
             app:tabTextColor="@color/text_secondary"
             app:tabRippleColor="@android:color/transparent"
@@ -166,7 +166,7 @@
             android:src="@drawable/ic_history"
             android:contentDescription="历史记录"
             app:backgroundTint="@color/white"
-            app:tint="@color/app_yellow"
+            app:tint="@color/app_blue"
             app:fabSize="mini"
             app:elevation="0dp"
             app:pressedTranslationZ="0dp"
@@ -180,7 +180,7 @@
             android:src="@android:drawable/ic_input_add"
             android:contentDescription="添加目标"
             app:tint="@color/text_white"
-            app:backgroundTint="@color/app_yellow"
+            app:backgroundTint="@color/app_blue"
             app:elevation="0dp"
             app:pressedTranslationZ="0dp"
             app:borderWidth="0dp"

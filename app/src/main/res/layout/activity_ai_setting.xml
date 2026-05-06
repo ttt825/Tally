@@ -145,7 +145,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="默认连接信息"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -218,7 +218,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="文本模型配置"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -322,7 +322,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="视觉模型配置"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -426,7 +426,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="音频模型配置"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -530,7 +530,7 @@
                     app:cornerRadius="16dp"
                     app:strokeColor="@color/button_stroke_yellow_selector"
                     app:strokeWidth="2dp"
-                    app:rippleColor="@color/app_yellow" />
+                    app:rippleColor="@color/app_blue" />
 
                 <Button
                     android:id="@+id/btn_save_ai_config"
@@ -538,7 +538,7 @@
                     android:layout_height="56dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:backgroundTint="@color/app_yellow"
+                    android:backgroundTint="@color/app_blue"
                     android:text="保存配置"
                     android:textAllCaps="false"
                     android:textColor="@color/real_white"

@@ -620,7 +620,7 @@ public class RecordFragment extends Fragment {
 
             // 4. 快捷记账按钮：85%透明度 (216) + 去除阴影
             if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_blue);
                 int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
                 btnQuickRecord.setCompatElevation(0f);
@@ -648,7 +648,7 @@ public class RecordFragment extends Fragment {
             }
 
             if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_blue);
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
                 // 【修改】：恢复为 0f，去掉普通模式下的按钮阴影
                 btnQuickRecord.setCompatElevation(0f);
@@ -1079,7 +1079,7 @@ public class RecordFragment extends Fragment {
 
                 int colorExpense = ContextCompat.getColor(getContext(), R.color.expense_green);
                 int colorIncome = ContextCompat.getColor(getContext(), R.color.income_red);
-                int colorBalance = ContextCompat.getColor(getContext(), R.color.app_yellow);
+                int colorBalance = ContextCompat.getColor(getContext(), R.color.app_blue);
 
                 android.text.SpannableStringBuilder ssb = new android.text.SpannableStringBuilder();
 
@@ -1234,7 +1234,7 @@ public class RecordFragment extends Fragment {
             Runnable updateDotUi = () -> {
                 if (isExcludedFromBudget[0]) {
                     // 已选中：主题色填充（如 app_yellow）
-                    ivExcludeBudget.setColorFilter(ContextCompat.getColor(getContext(), R.color.app_yellow));
+                    ivExcludeBudget.setColorFilter(ContextCompat.getColor(getContext(), R.color.app_blue));
                     ivExcludeBudget.setImageResource(R.drawable.ic_dot_filled);
                 } else {
                     // 未选中：灰色空心
@@ -1434,7 +1434,7 @@ public class RecordFragment extends Fragment {
 
                     String currentSelectedSub = selectedSubCategory[0];
                     int bgDefault = ContextCompat.getColor(getContext(), R.color.cat_unselected_bg);
-                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_yellow);
+                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_blue);
                     int textDefault = ContextCompat.getColor(getContext(), R.color.text_primary);
                     int textChecked = ContextCompat.getColor(getContext(), R.color.cat_selected_text);
 

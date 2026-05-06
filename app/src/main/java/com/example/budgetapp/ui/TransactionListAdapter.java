@@ -96,7 +96,7 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
             holder.tvNote.setAlpha(1.0f);
             if (t.type == 2) {
                 // 🌟 资产转移
-                holder.tvAmount.setTextColor(context.getColor(R.color.app_yellow));
+                holder.tvAmount.setTextColor(context.getColor(R.color.app_blue));
                 holder.tvAmount.setText(displayAmount);
             } else if (t.type == 1) {
                 // 收入

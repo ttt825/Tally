@@ -88,7 +88,7 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="12dp"
-            android:backgroundTint="@color/app_yellow"
+            android:backgroundTint="@color/app_blue"
             android:text="添加"
             android:textColor="@color/real_white"
             android:textSize="14sp"

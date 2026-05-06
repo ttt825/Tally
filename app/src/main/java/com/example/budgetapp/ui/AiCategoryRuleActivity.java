@@ -372,7 +372,7 @@ public class AiCategoryRuleActivity extends AppCompatActivity {
 
             String currentSelectedSub = selectedSubCategory[0];
             int bgDefault = ContextCompat.getColor(this, R.color.cat_unselected_bg);
-            int bgChecked = ContextCompat.getColor(this, R.color.app_yellow);
+            int bgChecked = ContextCompat.getColor(this, R.color.app_blue);
             int textDefault = ContextCompat.getColor(this, R.color.text_primary);
             int textChecked = ContextCompat.getColor(this, R.color.cat_selected_text);
 

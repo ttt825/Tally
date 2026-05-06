@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:textColor="@color/app_yellow"
+            android:textColor="@color/app_blue"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -228,7 +228,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:background="@drawable/bg_bottom_sheet_rounded"
-            android:backgroundTint="@color/app_yellow"
+            android:backgroundTint="@color/app_blue"
             android:paddingHorizontal="14dp"
             android:paddingVertical="8dp"
             android:text="确认入账"

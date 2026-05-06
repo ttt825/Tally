@@ -143,7 +143,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         String displayAmount = showCurrency ? (symbol + " " + amountStr) : amountStr;
 
         if (current.type == 2) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.app_yellow));
+            holder.tvAmount.setTextColor(context.getColor(R.color.app_blue));
             holder.tvAmount.setText(displayAmount);
         } else if (current.type == 1) {
             holder.tvAmount.setTextColor(context.getColor(R.color.income_red));

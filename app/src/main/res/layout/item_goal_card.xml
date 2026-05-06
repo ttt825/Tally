@@ -61,7 +61,7 @@
                 android:text="0%"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/app_yellow"/>
+                android:textColor="@color/app_blue"/>
         </LinearLayout>
 
         <ProgressBar
@@ -71,7 +71,7 @@
             android:layout_height="8dp"
             android:layout_marginTop="8dp"
             android:progressDrawable="@drawable/layer_budget_progress"
-            android:progressTint="@color/app_yellow" />
+            android:progressTint="@color/app_blue" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -533,7 +533,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnUp.setTextSize(13);
             btnUp.setPadding(20, 10, 20, 10);
             if (index > 0) {
-                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_blue));
                 btnUp.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index - 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);
@@ -550,7 +550,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnDown.setTextSize(13);
             btnDown.setPadding(20, 10, 10, 10);
             if (index < sortableList.size() - 1) {
-                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_blue));
                 btnDown.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index + 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);

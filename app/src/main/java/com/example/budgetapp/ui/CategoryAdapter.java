@@ -46,7 +46,7 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         this.selectedCategory = currentCategory;
         this.listener = listener;
         
-        this.selectedColor = ContextCompat.getColor(context, R.color.app_yellow);
+        this.selectedColor = ContextCompat.getColor(context, R.color.app_blue);
         this.selectedTextColor = ContextCompat.getColor(context, R.color.cat_selected_text);
         this.unselectedColor = ContextCompat.getColor(context, R.color.cat_unselected_bg);
         this.unselectedTextColor = ContextCompat.getColor(context, R.color.cat_unselected_text);

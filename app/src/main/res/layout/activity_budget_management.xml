@@ -183,7 +183,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="当月平均每日可用: 0.00"
-                        android:textColor="@color/app_yellow"
+                        android:textColor="@color/app_blue"
                         android:textSize="14sp"
                         android:textStyle="bold"/>
 
@@ -192,7 +192,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:backgroundTint="@color/app_yellow"
+                        android:backgroundTint="@color/app_blue"
                         android:textColor="@color/real_white"
                         android:text="保存设置"
                         app:cornerRadius="12dp"/>

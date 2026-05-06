@@ -145,6 +145,23 @@ public class SettingsActivity extends AppCompatActivity {
             }
     );
 
+    // 1. 定义咔皮记账导入 Launcher (与其它 Launcher 放在类的顶层)
+    private final ActivityResultLauncher<String[]> importKapiLauncher = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(),
+            uri -> {
+                if (uri != null) {
+                    try {
+                        if (financeViewModel == null) return;
+                        BackupData data = BackupManager.importFromKapi(this, uri, allAssets);
+                        processImportedData(data, "咔皮记账");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "咔皮记账导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+    );
+
     private boolean isDuplicateTransaction(Transaction newTx, List<Transaction> existingList) {
         if (existingList == null || existingList.isEmpty()) return false;
         for (Transaction ext : existingList) {
@@ -898,6 +915,16 @@ public class SettingsActivity extends AppCompatActivity {
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
+
+        // 绑定咔皮记账点击事件
+        view.findViewById(R.id.tv_import_kapi).setOnClickListener(v -> {
+            importKapiLauncher.launch(new String[]{
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.ms-excel",
+                    "*/*"
+            });
+            dialog.dismiss();
+        });
 
         view.findViewById(R.id.tv_export).setOnClickListener(v -> {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());

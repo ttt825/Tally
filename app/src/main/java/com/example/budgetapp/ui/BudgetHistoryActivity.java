@@ -325,7 +325,7 @@ public class BudgetHistoryActivity extends AppCompatActivity {
 
                 // 需求：1月份高亮为主题色作为新年标记，其余月份保持默认主文本色
                 if (mItem.month == 1) {
-                    tvTitle.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.app_yellow));
+                    tvTitle.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.app_blue));
                 } else {
                     tvTitle.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.text_primary));
                 }
@@ -333,7 +333,7 @@ public class BudgetHistoryActivity extends AppCompatActivity {
                 String sign = mItem.surplus >= 0 ? "+ " : "";
                 tvSurplus.setText(String.format("%s%.2f", sign, mItem.surplus));
                 tvSurplus.setTextColor(ContextCompat.getColor(BudgetHistoryActivity.this,
-                        mItem.surplus >= 0 ? R.color.app_yellow : R.color.budget_progress_exceed));
+                        mItem.surplus >= 0 ? R.color.app_blue : R.color.budget_progress_exceed));
             } else {
                 GoalItem gItem = (GoalItem) item;
                 TextView tvName = holder.itemView.findViewById(R.id.tv_goal_name);

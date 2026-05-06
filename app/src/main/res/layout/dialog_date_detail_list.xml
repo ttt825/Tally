@@ -38,7 +38,7 @@
             android:layout_height="56dp"
             android:text="+ 添加新记录"
             android:layout_marginTop="12dp"
-            android:backgroundTint="@color/app_yellow"
+            android:backgroundTint="@color/app_blue"
             android:textColor="@color/text_white"
             app:cornerRadius="16dp"/>
     </LinearLayout>

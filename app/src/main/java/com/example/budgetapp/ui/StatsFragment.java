@@ -29,7 +29,6 @@ import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.text.InputFilter;
-import android.text.TextUtils;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -346,7 +345,7 @@ public class StatsFragment extends Fragment {
                 currentDetailChipGroup.removeAllViews();
 
                 int bgDefault = ContextCompat.getColor(requireContext(), R.color.cat_unselected_bg);
-                int bgChecked = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int bgChecked = ContextCompat.getColor(requireContext(), R.color.app_blue);
                 int textDefault = ContextCompat.getColor(requireContext(), R.color.text_primary);
                 int textChecked = ContextCompat.getColor(requireContext(), R.color.cat_selected_text);
                 int[][] states = new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}};
@@ -535,7 +534,7 @@ public class StatsFragment extends Fragment {
 
                     String currentSelectedSub = selectedSubCategory[0];
                     int bgDefault = ContextCompat.getColor(getContext(), R.color.cat_unselected_bg);
-                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_yellow);
+                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_blue);
                     int textDefault = ContextCompat.getColor(getContext(), R.color.text_primary);
                     int textChecked = ContextCompat.getColor(getContext(), R.color.cat_selected_text);
 
@@ -1235,7 +1234,7 @@ public class StatsFragment extends Fragment {
 
             LineDataSet setIn = createLineDataSet(inEntries, "收入", R.color.income_red);
             LineDataSet setOut = createLineDataSet(outEntries, "支出", R.color.expense_green);
-            LineDataSet setNet = createLineDataSet(netEntries, "净收支", R.color.app_yellow);
+            LineDataSet setNet = createLineDataSet(netEntries, "净收支", R.color.app_blue);
             setNet.enableDashedLine(10f, 5f, 0f);
 
             LineData lineData = new LineData(setIn, setOut, setNet);
@@ -1411,7 +1410,7 @@ public class StatsFragment extends Fragment {
             SpannableStringBuilder ssb = new SpannableStringBuilder();
             String[] prefixes = {"最多是", "其次是", "然后是"};
 
-            int yellowColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+            int yellowColor = ContextCompat.getColor(requireContext(), R.color.app_blue);
             int greenColor = ContextCompat.getColor(requireContext(), R.color.expense_green);
             int redColor = ContextCompat.getColor(requireContext(), R.color.income_red);
 
@@ -1495,7 +1494,7 @@ public class StatsFragment extends Fragment {
                 SpannableStringBuilder incomeSsb = new SpannableStringBuilder();
                 String[] prefixes = {"最多是", "其次是", "然后是"};
 
-                int yellowColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int yellowColor = ContextCompat.getColor(requireContext(), R.color.app_blue);
                 int greenColor = ContextCompat.getColor(requireContext(), R.color.expense_green);
                 int redColor = ContextCompat.getColor(requireContext(), R.color.income_red);
 

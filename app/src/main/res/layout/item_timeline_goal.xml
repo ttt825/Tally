@@ -19,7 +19,7 @@
             android:layout_height="16dp"
             android:layout_centerInParent="true"
             android:background="@drawable/bg_calendar_selected"
-            android:backgroundTint="@color/app_yellow" />
+            android:backgroundTint="@color/app_blue" />
     </RelativeLayout>
 
     <androidx.cardview.widget.CardView
@@ -29,7 +29,7 @@
         android:layout_marginVertical="12dp"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="@color/app_yellow">
+        app:cardBackgroundColor="@color/app_blue">
 
         <LinearLayout
             android:layout_width="match_parent"

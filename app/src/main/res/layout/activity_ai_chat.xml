@@ -131,7 +131,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:src="@drawable/ic_quick_voice"
-                android:tint="@color/app_yellow" />
+                android:tint="@color/app_blue" />
 
             <TextView
                 android:id="@+id/tv_recording_hint"
@@ -148,7 +148,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:text="松开手指，取消发送"
-                android:textColor="@color/app_yellow"
+                android:textColor="@color/app_blue"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:visibility="gone" />

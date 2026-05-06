@@ -211,14 +211,16 @@ public class BackupManager {
                 SimpleDateFormat noteDateFmt = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
                 String noteTimePart = noteDateFmt.format(date);
 
+                // 提取备注并拼装记录标识
                 String remarkStr = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
                 t.remark = remarkStr;
 
-                // 如果一木记账的备注为空，则默认使用 "auto"，否则使用原备注
-                String autoPart = TextUtils.isEmpty(remarkStr) ? "auto" : remarkStr;
-
-                // 拼接最终的记录标识：例如 "04-08 20:42 捐赠支持" 或 "04-08 21:35 auto"
-                t.note = noteTimePart + " " + autoPart;
+                // 统一策略：没有备注只保留时间，有备注则加上空格和备注
+                if (TextUtils.isEmpty(remarkStr)) {
+                    t.note = noteTimePart;
+                } else {
+                    t.note = noteTimePart + " " + remarkStr;
+                }
 
                 // 收支类型
                 String typeStr = (typeIdx != -1) ? getCellText(row.getCell(typeIdx)).trim() : "";
@@ -351,11 +353,16 @@ public class BackupManager {
                     t.date = dateObj.getTime();
                 }
 
+                // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
                 t.remark = remark;
-                String noteRemark = TextUtils.isEmpty(remark) ? "auto" : remark;
-                t.note = noteSdf.format(dateObj) + " " + noteRemark; // 格式: 04-23 08:34 备注内容
 
+                // 统一策略：没有备注只保留时间，有备注则加上空格和备注
+                if (TextUtils.isEmpty(remark)) {
+                    t.note = noteSdf.format(dateObj);
+                } else {
+                    t.note = noteSdf.format(dateObj) + " " + remark;
+                }
                 // 类型与金额
                 String typeStr = getCellText(row.getCell(typeIdx)).trim();
                 t.type = "收入".equals(typeStr) ? 1 : 0;
@@ -486,9 +493,13 @@ public class BackupManager {
                 // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
                 t.remark = remark;
-                String noteRemark = TextUtils.isEmpty(remark) ? "auto" : remark;
-                t.note = noteSdf.format(dateObj) + " " + noteRemark; // 格式如: "04-20 00:00 微信转账"
 
+                // 统一策略：没有备注只保留时间，有备注则加上空格和备注
+                if (TextUtils.isEmpty(remark)) {
+                    t.note = noteSdf.format(dateObj);
+                } else {
+                    t.note = noteSdf.format(dateObj) + " " + remark;
+                }
                 // 4. 分类映射 (含动态新增)
                 String category = (catIdx != -1 && catIdx < tokens.size()) ? tokens.get(catIdx).trim() : "";
                 if (TextUtils.isEmpty(category)) category = "其它";
@@ -537,6 +548,149 @@ public class BackupManager {
         result.incomeCategories = incCats;
         result.subCategoryMap = subCatMap;
         return result;
+    }
+
+    // ============================================================================================
+    // 咔皮记账账单导入 (支持 xlsx)
+    // ============================================================================================
+    public static BackupData importFromKapi(Context context, Uri uri, List<AssetAccount> allAssets) throws Exception {
+        List<Transaction> transactions = new ArrayList<>();
+        List<AssetAccount> newAssetsToCreate = new ArrayList<>();
+        Map<String, Integer> newAssetMap = new HashMap<>();
+
+        List<String> expCats = new ArrayList<>(CategoryManager.getExpenseCategories(context));
+        List<String> incCats = new ArrayList<>(CategoryManager.getIncomeCategories(context));
+        Map<String, List<String>> subCatMap = new HashMap<>();
+
+        int maxAssetId = 0;
+        if (allAssets != null) {
+            for (AssetAccount a : allAssets) {
+                if (a.id > maxAssetId) maxAssetId = a.id;
+            }
+        }
+
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri);
+             Workbook workbook = WorkbookFactory.create(inputStream)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            boolean isDataSection = false;
+
+            // 咔皮记账的日期和时间可能是分开的，需要合并解析
+            SimpleDateFormat parserSdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault());
+            SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
+
+            int dateIdx = -1, timeIdx = -1, typeIdx = -1, amountIdx = -1, catIdx = -1, subCatIdx = -1, accountIdx = -1, remarkIdx = -1;
+
+            for (Row row : sheet) {
+                if (row == null) continue;
+
+                if (!isDataSection) {
+                    String firstCell = getCellText(row.getCell(0));
+                    if (firstCell.contains("日期") || firstCell.contains("收支")) {
+                        isDataSection = true;
+                        for (int i = 0; i < row.getLastCellNum(); i++) {
+                            String h = getCellText(row.getCell(i)).trim();
+                            if ("日期".equals(h)) dateIdx = i;
+                            else if ("时间".equals(h)) timeIdx = i;
+                            else if ("类型".equals(h) || "收支类型".equals(h)) typeIdx = i;
+                            else if ("金额".equals(h)) amountIdx = i;
+                            else if ("一级分类".equals(h) || "分类".equals(h)) catIdx = i;
+                            else if ("二级分类".equals(h) || "子分类".equals(h)) subCatIdx = i;
+                            else if ("账户".equals(h)) accountIdx = i;
+                            else if ("备注".equals(h)) remarkIdx = i;
+                        }
+                    }
+                    continue;
+                }
+
+                // 核心必填列
+                if (dateIdx == -1 || amountIdx == -1) continue;
+
+                String dateStr = getCellText(row.getCell(dateIdx)).trim();
+                if (TextUtils.isEmpty(dateStr)) continue;
+
+                String timeStr = (timeIdx != -1) ? getCellText(row.getCell(timeIdx)).trim() : "00:00:00";
+
+                Transaction t = new Transaction();
+
+                // 1. 类型映射
+                String typeStr = (typeIdx != -1) ? getCellText(row.getCell(typeIdx)).trim() : "";
+                t.type = "收入".equals(typeStr) ? 1 : 0;
+
+                // 2. 金额映射
+                t.amount = Math.abs(parseDoubleSafe(getCellText(row.getCell(amountIdx))));
+
+                // 3. 时间与记录标识映射
+                // 咔皮的日期通常是 2026/05/06，时间是 18:58:46
+                String combinedDateTime = dateStr + " " + timeStr;
+                Date dateObj;
+                try {
+                    dateObj = parserSdf.parse(combinedDateTime);
+                    t.date = (dateObj != null) ? dateObj.getTime() : System.currentTimeMillis();
+                } catch (Exception e) {
+                    dateObj = new Date();
+                    t.date = dateObj.getTime();
+                }
+
+                // 提取备注并拼装记录标识
+                String remark = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
+                t.remark = remark;
+
+                // 统一策略：没有备注只保留时间，有备注则加上空格和备注
+                if (TextUtils.isEmpty(remark)) {
+                    t.note = noteSdf.format(dateObj);
+                } else {
+                    t.note = noteSdf.format(dateObj) + " " + remark;
+                }
+
+                // 4. 分类映射
+                String category = (catIdx != -1) ? getCellText(row.getCell(catIdx)).trim() : "";
+                if (TextUtils.isEmpty(category)) category = "其它";
+                String subCategory = (subCatIdx != -1) ? getCellText(row.getCell(subCatIdx)).trim() : "";
+
+                List<String> targetList = (t.type == 1) ? incCats : expCats;
+                if (!targetList.contains(category)) targetList.add(category);
+
+                if (!TextUtils.isEmpty(subCategory)) {
+                    List<String> subs = subCatMap.get(category);
+                    if (subs == null) {
+                        subs = new ArrayList<>(CategoryManager.getSubCategories(context, category));
+                        subCatMap.put(category, subs);
+                    }
+                    if (!subs.contains(subCategory)) subs.add(subCategory);
+                }
+                t.category = category;
+                t.subCategory = subCategory;
+
+                // 5. 账户映射
+                String accountName = (accountIdx != -1) ? getCellText(row.getCell(accountIdx)).trim() : "默认账户";
+                if (TextUtils.isEmpty(accountName)) accountName = "默认账户";
+
+                int matchedId = matchAssetId(accountName, allAssets);
+                if (matchedId == 0) {
+                    if (newAssetMap.containsKey(accountName)) {
+                        t.assetId = newAssetMap.get(accountName);
+                    } else {
+                        maxAssetId++;
+                        AssetAccount newAsset = new AssetAccount(accountName, 0.0, 0);
+                        newAsset.id = maxAssetId;
+                        newAssetsToCreate.add(newAsset);
+                        newAssetMap.put(accountName, maxAssetId);
+                        t.assetId = maxAssetId;
+                    }
+                } else {
+                    t.assetId = matchedId;
+                }
+
+                transactions.add(t);
+            }
+        }
+
+        BackupData data = new BackupData(transactions, newAssetsToCreate);
+        data.expenseCategories = expCats;
+        data.incomeCategories = incCats;
+        data.subCategoryMap = subCatMap;
+        return data;
     }
 
     // ============================================================================================
@@ -628,11 +782,16 @@ public class BackupManager {
                     t.date = dateObj.getTime();
                 }
 
+                // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
                 t.remark = remark;
-                String noteRemark = TextUtils.isEmpty(remark) ? "auto" : remark;
-                t.note = noteSdf.format(dateObj) + " " + noteRemark; // 格式: MM-dd HH:mm 备注
 
+                // 统一策略：没有备注只保留时间，有备注则加上空格和备注
+                if (TextUtils.isEmpty(remark)) {
+                    t.note = noteSdf.format(dateObj);
+                } else {
+                    t.note = noteSdf.format(dateObj) + " " + remark;
+                }
                 // 分类与账户逻辑
                 String category = tokens.get(catIdx).trim();
                 if (TextUtils.isEmpty(category)) category = "其它";

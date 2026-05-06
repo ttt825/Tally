@@ -243,7 +243,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginTop="4dp"
-                    android:textColor="@color/app_yellow"/>
+                    android:textColor="@color/app_blue"/>
             </LinearLayout>
 
             <LinearLayout
@@ -350,7 +350,7 @@
         android:layout_marginBottom="0dp"
         android:src="@drawable/ic_qs_record"
         android:contentDescription="记一笔"
-        app:backgroundTint="@color/app_yellow"
+        app:backgroundTint="@color/app_blue"
         app:tint="@color/real_white"
         app:elevation="0dp"
         app:pressedTranslationZ="0dp"

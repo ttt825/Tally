@@ -167,7 +167,7 @@ public class QuickAddTileService extends TileService {
 
                 Runnable updateDotUi = () -> {
                     if (isExcludedFromBudget[0]) {
-                        ivExcludeBudget.setColorFilter(ContextCompat.getColor(this, R.color.app_yellow));
+                        ivExcludeBudget.setColorFilter(ContextCompat.getColor(this, R.color.app_blue));
                         ivExcludeBudget.setImageResource(R.drawable.ic_dot_filled);
                     } else {
                         ivExcludeBudget.setColorFilter(android.graphics.Color.parseColor("#888888"));
@@ -583,7 +583,7 @@ public class QuickAddTileService extends TileService {
             tvEmpty.setVisibility(View.GONE);
 
             int bgDefault = ContextCompat.getColor(context, R.color.cat_unselected_bg);
-            int bgChecked = ContextCompat.getColor(context, R.color.app_yellow);
+            int bgChecked = ContextCompat.getColor(context, R.color.app_blue);
             int textDefault = ContextCompat.getColor(context, R.color.text_primary);
             int textChecked = ContextCompat.getColor(context, R.color.cat_selected_text);
 

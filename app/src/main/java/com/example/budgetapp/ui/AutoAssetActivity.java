@@ -290,7 +290,7 @@ public class AutoAssetActivity extends AppCompatActivity {
             
             String assetName = getAssetNameById(rule.assetId);
             holder.text2.setText("自动关联 -> " + assetName);
-            holder.text2.setTextColor(ContextCompat.getColor(AutoAssetActivity.this, R.color.app_yellow));
+            holder.text2.setTextColor(ContextCompat.getColor(AutoAssetActivity.this, R.color.app_blue));
 
             // 点击编辑 -> 调用统一弹窗
             holder.itemView.setOnClickListener(v -> showRuleDialog(rule));

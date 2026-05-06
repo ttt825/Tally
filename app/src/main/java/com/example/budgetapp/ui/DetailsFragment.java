@@ -626,7 +626,7 @@ public class DetailsFragment extends Fragment {
 
                     String currentSelectedSub = selectedSubCategory[0];
                     int bgDefault = ContextCompat.getColor(getContext(), R.color.cat_unselected_bg);
-                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_yellow);
+                    int bgChecked = ContextCompat.getColor(getContext(), R.color.app_blue);
                     int textDefault = ContextCompat.getColor(getContext(), R.color.text_primary);
                     int textChecked = ContextCompat.getColor(getContext(), R.color.cat_selected_text);
 

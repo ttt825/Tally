@@ -67,7 +67,7 @@
                 android:layout_height="48dp"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:backgroundTint="@color/app_yellow"
+                android:backgroundTint="@color/app_blue"
                 android:text="确认入账"
                 android:textAllCaps="false"
                 android:textColor="@color/white"

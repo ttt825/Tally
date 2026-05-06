@@ -111,7 +111,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="设置照片路径"
-                android:backgroundTint="@color/app_yellow"
+                android:backgroundTint="@color/app_blue"
                 app:cornerRadius="16dp"
                 android:textColor="@color/real_white"/>
         </LinearLayout>

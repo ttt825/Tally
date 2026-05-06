@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -36,7 +35,6 @@ import com.example.budgetapp.viewmodel.FinanceViewModel;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -487,7 +485,7 @@ public class BudgetFragment extends Fragment {
         String sign = monthRemaining >= 0 ? "+" : ""; // 按照原逻辑保留加号
         tvTotalSurplus.setText(String.format("%s%.2f", sign, monthRemaining));
         tvTotalSurplus.setTextColor(ContextCompat.getColor(requireContext(),
-                monthRemaining >= 0 ? R.color.app_yellow : R.color.budget_progress_exceed));
+                monthRemaining >= 0 ? R.color.app_blue : R.color.budget_progress_exceed));
 
         // 【修复2】更合理的“今日可用”计算：推荐采用“剩余平摊法”
         int remainingDays = today.lengthOfMonth() - today.getDayOfMonth() + 1;
@@ -856,7 +854,7 @@ public class BudgetFragment extends Fragment {
 
             // 3. 添加按钮 (黄底白字)：90%透明度
             if (btnAddGoal != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_blue);
                 int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
                 btnAddGoal.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
             }
@@ -878,7 +876,7 @@ public class BudgetFragment extends Fragment {
                 cardMonthSummary.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.white));
             }
             if (btnAddGoal != null) {
-                btnAddGoal.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.app_yellow)));
+                btnAddGoal.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.app_blue)));
             }
             if (btnHistory != null) {
                 btnHistory.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white)));

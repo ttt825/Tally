@@ -31,7 +31,6 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -39,7 +38,6 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -59,7 +57,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -986,7 +983,7 @@ public class AiChatActivity extends AppCompatActivity {
                     new int[] { -android.R.attr.state_checked } // 未选中状态
             };
             int[] bgColors = new int[] {
-                    getColor(R.color.app_yellow),           // 选中时的黄色背景
+                    getColor(R.color.app_blue),           // 选中时的黄色背景
                     getColor(R.color.cat_unselected_bg)     // 未选中时的灰色背景
             };
             int[] textColors = new int[] {
@@ -1050,7 +1047,7 @@ public class AiChatActivity extends AppCompatActivity {
             tvDetail.setText(detailBuilder.toString());
 
             tvStatus.setText(model.saved ? "已入账" : "待确认");
-            tvStatus.setTextColor(getColor(model.saved ? R.color.expense_green : R.color.app_yellow));
+            tvStatus.setTextColor(getColor(model.saved ? R.color.expense_green : R.color.app_blue));
         }
 
         private void updateTransactionTime(long timestamp) {

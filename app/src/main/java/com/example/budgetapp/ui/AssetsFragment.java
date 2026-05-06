@@ -953,7 +953,7 @@ public class AssetsFragment extends Fragment {
                     }
 
                     if (item.type == 0) {
-                        normalHolder.tvAmount.setTextColor(context.getColor(R.color.app_yellow));
+                        normalHolder.tvAmount.setTextColor(context.getColor(R.color.app_blue));
                     } else if (item.type == 1) {
                         normalHolder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
                     } else {
@@ -1111,7 +1111,7 @@ public class AssetsFragment extends Fragment {
 
             // 3. 添加资产按钮：90%透明度
             if (fabAddAsset != null) {
-                int fabColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_blue);
                 int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
                 fabAddAsset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(translucentFab));
             }
@@ -1130,10 +1130,10 @@ public class AssetsFragment extends Fragment {
                 cardAssetsSummary.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.white));
             }
             if (fabAddAsset != null) {
-                fabAddAsset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_yellow)));
+                fabAddAsset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_blue)));
             }
 
-            fabAddAsset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_yellow)));
+            fabAddAsset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_blue)));
 
             if (fabTransferAsset != null) {
                 int transferColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transfer_fab_bg);

@@ -51,6 +51,7 @@ import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.util.AssistantConfig;
 import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.util.ScreenshotAutoSaveManager;
 import com.example.budgetapp.viewmodel.FinanceViewModel;
 
 import java.io.ByteArrayOutputStream;
@@ -90,6 +91,8 @@ public class AiChatActivity extends AppCompatActivity {
     private AiAccountingClient aiClient;
     private AiConfig aiConfig;
     private ScreenshotOcrHelper ocrHelper;
+    private ScreenshotAutoSaveManager screenshotAutoSaveManager;
+    private String currentScreenshotPath;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<Intent> speechRecognizerLauncher;
@@ -105,6 +108,7 @@ public class AiChatActivity extends AppCompatActivity {
         aiConfig = AiConfig.load(this);
         aiClient.setConfig(aiConfig);
         ocrHelper = new ScreenshotOcrHelper();
+        screenshotAutoSaveManager = new ScreenshotAutoSaveManager(this);
 
         layoutTopNav = findViewById(R.id.layout_top_nav);
         layoutBottomInput = findViewById(R.id.layout_bottom_input);
@@ -427,6 +431,10 @@ public class AiChatActivity extends AppCompatActivity {
             scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
 
             addMessage(ChatMessage.mine("请识别这张截图里的账单。", scaledBitmap));
+            
+            // 保存截图到照片备注目录（如果功能已启用）
+            currentScreenshotPath = screenshotAutoSaveManager.saveScreenshot(scaledBitmap);
+            
             processImageAccounting(scaledBitmap, outputStream.toByteArray(), "image/jpeg");
         } catch (Exception e) {
             Toast.makeText(this, "图片处理失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -549,8 +557,14 @@ public class AiChatActivity extends AppCompatActivity {
     private void addDraftCardsReply(List<TransactionDraft> drafts, List<AssetAccount> assets, String intro) {
         List<DraftCardModel> models = new ArrayList<>();
         for (TransactionDraft draft : drafts) {
+            // 为所有 draft 设置相同的 photoPath（如果有截图）
+            if (currentScreenshotPath != null && !currentScreenshotPath.isEmpty()) {
+                draft.photoPath = currentScreenshotPath;
+            }
             models.add(new DraftCardModel(draft));
         }
+        // 清空缓存的截图路径
+        currentScreenshotPath = null;
         addMessage(ChatMessage.aiDrafts(intro, models, new ArrayList<>(assets)));
     }
 
@@ -1125,6 +1139,10 @@ public class AiChatActivity extends AppCompatActivity {
             if (draft.date <= 0L) {
                 draft.date = System.currentTimeMillis();
             }
+            
+            // 保留 photoPath（如果之前已设置）
+            // draft.photoPath 已经在 addDraftCardsReply() 中设置，这里不需要额外处理
+            
             return draft;
         }
     }

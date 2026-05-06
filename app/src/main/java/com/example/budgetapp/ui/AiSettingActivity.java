@@ -1,14 +1,17 @@
 package com.example.budgetapp.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.graphics.Insets;
@@ -19,6 +22,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.budgetapp.R;
 import com.example.budgetapp.ai.AiAccountingClient;
 import com.example.budgetapp.ai.AiConfig;
+import com.example.budgetapp.util.ScreenshotAutoSaveManager;
 
 public class AiSettingActivity extends AppCompatActivity {
 
@@ -43,6 +47,11 @@ public class AiSettingActivity extends AppCompatActivity {
     private TextView tvVisionStatus;
     private TextView tvAudioStatus;
     private AiAccountingClient aiClient;
+    
+    // 截图自动保存相关
+    private SwitchCompat switchScreenshotAutoSave;
+    private TextView tvScreenshotAutoSaveHint;
+    private ScreenshotAutoSaveManager screenshotAutoSaveManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +64,7 @@ public class AiSettingActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_ai_setting);
         aiClient = new AiAccountingClient();
+        screenshotAutoSaveManager = new ScreenshotAutoSaveManager(this);
 
         View rootView = findViewById(R.id.ai_setting_root);
         ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, windowInsets) -> {
@@ -64,6 +74,12 @@ public class AiSettingActivity extends AppCompatActivity {
         });
 
         initView();
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateScreenshotAutoSaveHint(); // 动态更新状态提示
     }
 
     private void initView() {
@@ -108,6 +124,9 @@ public class AiSettingActivity extends AppCompatActivity {
         etAudioApiKey.setText(config.audioApiKey);
         
         showCachedCapabilities(config);
+        
+        // 初始化截图自动保存开关
+        initScreenshotAutoSaveSwitch();
 
         // 添加AI分类关键字规则入口点击事件
         findViewById(R.id.card_ai_category_rules).setOnClickListener(v -> {
@@ -233,5 +252,70 @@ public class AiSettingActivity extends AppCompatActivity {
         String a = left == null ? "" : left.trim();
         String b = right == null ? "" : right.trim();
         return a.equals(b);
+    }
+    
+    private void initScreenshotAutoSaveSwitch() {
+        switchScreenshotAutoSave = findViewById(R.id.switchScreenshotAutoSave);
+        tvScreenshotAutoSaveHint = findViewById(R.id.tvScreenshotAutoSaveHint);
+        
+        switchScreenshotAutoSave.setChecked(screenshotAutoSaveManager.isEnabled());
+        updateScreenshotAutoSaveHint();
+        
+        switchScreenshotAutoSave.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                // 验证前置条件
+                ScreenshotAutoSaveManager.ValidationResult result = 
+                    screenshotAutoSaveManager.validatePrerequisites();
+                
+                if (!result.isValid) {
+                    // 显示错误对话框
+                    showPrerequisiteDialog(result.errorMessage);
+                    switchScreenshotAutoSave.setChecked(false);
+                    return;
+                }
+            }
+            
+            screenshotAutoSaveManager.setEnabled(isChecked);
+            updateScreenshotAutoSaveHint();
+            Toast.makeText(this, 
+                isChecked ? "已开启截图自动保存" : "已关闭截图自动保存", 
+                Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    private void showPrerequisiteDialog(String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_prerequisite_check, null);
+        builder.setView(view);
+        AlertDialog dialog = builder.create();
+        
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        TextView tvMessage = view.findViewById(R.id.tv_message);
+        tvMessage.setText(message);
+        
+        view.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
+        view.findViewById(R.id.btn_go_settings).setOnClickListener(v -> {
+            Intent intent = new Intent(this, PhotoBackupSettingsActivity.class);
+            startActivity(intent);
+            dialog.dismiss();
+        });
+        
+        dialog.show();
+    }
+    
+    private void updateScreenshotAutoSaveHint() {
+        ScreenshotAutoSaveManager.ValidationResult result = 
+            screenshotAutoSaveManager.validatePrerequisites();
+        
+        if (result.isValid) {
+            tvScreenshotAutoSaveHint.setText("功能已就绪");
+            tvScreenshotAutoSaveHint.setTextColor(0xFF4CAF50); // Green
+        } else {
+            tvScreenshotAutoSaveHint.setText(result.errorMessage);
+            tvScreenshotAutoSaveHint.setTextColor(0xFFFF9800); // Orange
+        }
     }
 }

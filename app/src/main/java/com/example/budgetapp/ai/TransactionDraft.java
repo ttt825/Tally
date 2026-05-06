@@ -16,6 +16,7 @@ public class TransactionDraft {
     public int assetId;
     public String currencySymbol;
     public boolean excludeFromBudget;
+    public String photoPath; // 截图保存路径
 
     public Transaction toTransaction() {
         Transaction transaction = new Transaction();
@@ -39,7 +40,7 @@ public class TransactionDraft {
         transaction.assetId = assetId;
         transaction.currencySymbol = currencySymbol;
         transaction.excludeFromBudget = excludeFromBudget;
-        transaction.photoPath = "";
+        transaction.photoPath = photoPath == null ? "" : photoPath;
         transaction.targetObject = "";
 
         return transaction;

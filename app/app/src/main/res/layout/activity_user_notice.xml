@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/notice_root"
@@ -81,7 +81,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="• 记账助手设置：“开启屏幕自动记账”关闭，“开启资产功能”开启\n• 自动资产设置：“开启自动资产”关闭\n• 分类预设管理：“开启二级分类”关闭\n• 记账界面默认显示：“结余”\n• 货币单位设置：“开启货币单位”关闭，默认“￥”\n• 照片备份设置：“开启照片备份”关闭。备份为纯本地存储（原理是复制一份至指定路径），推荐新建以“.”开头（如 .Tally）的空白文件夹作为存储路径\n• 主题设置：“跟随系统”\n• 极简模式：关闭\n\n💡 隐藏彩蛋：长按当前界面左上角的“用户须知”标题，可以取消激活高级设置。"
+                    android:text="• 记账助手设置：“开启屏幕自动记账”关闭，“开启资产功能”开启\n• 自动资产设置：“开启自动资产”关闭\n• 分类预设管理：“开启二级分类”关闭\n• 记账界面默认显示：“结余”\n• 货币单位设置：“开启货币单位”关闭，默认“￥”\n• 照片备注设置：“开启照片备份”关闭。备份为纯本地存储（原理是复制一份至指定路径），推荐新建以“.”开头（如 .Tally）的空白文件夹作为存储路径\n• 主题设置：“跟随系统”\n• 极简模式：关闭\n\n💡 隐藏彩蛋：长按当前界面左上角的“用户须知”标题，可以取消激活高级设置。"
                     android:textSize="15sp"
                     android:lineSpacingExtra="8dp"
                     android:layout_marginTop="12dp"

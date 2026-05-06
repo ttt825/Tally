@@ -45,7 +45,7 @@
         </provider>
 
         <activity android:name=".ui.PhotoBackupSettingsActivity"
-            android:label="照片备份设置"
+            android:label="照片备注设置"
             android:theme="@style/Theme.BudgetApp"/>
 
         <activity android:name=".ui.ThemeSettingsActivity" />

@@ -213,7 +213,7 @@ public class BackupManager {
 
                 // 提取备注并拼装记录标识
                 String remarkStr = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
-                t.remark = remarkStr;
+                t.remark = "";
 
                 // 统一策略：没有备注只保留时间，有备注则加上空格和备注
                 if (TextUtils.isEmpty(remarkStr)) {
@@ -355,7 +355,7 @@ public class BackupManager {
 
                 // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
-                t.remark = remark;
+                t.remark = "";
 
                 // 统一策略：没有备注只保留时间，有备注则加上空格和备注
                 if (TextUtils.isEmpty(remark)) {
@@ -492,7 +492,7 @@ public class BackupManager {
 
                 // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
-                t.remark = remark;
+                t.remark = "";
 
                 // 统一策略：没有备注只保留时间，有备注则加上空格和备注
                 if (TextUtils.isEmpty(remark)) {
@@ -634,7 +634,7 @@ public class BackupManager {
 
                 // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1) ? getCellText(row.getCell(remarkIdx)).trim() : "";
-                t.remark = remark;
+                t.remark = "";
 
                 // 统一策略：没有备注只保留时间，有备注则加上空格和备注
                 if (TextUtils.isEmpty(remark)) {
@@ -784,7 +784,7 @@ public class BackupManager {
 
                 // 提取备注并拼装记录标识
                 String remark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
-                t.remark = remark;
+                t.remark = "";
 
                 // 统一策略：没有备注只保留时间，有备注则加上空格和备注
                 if (TextUtils.isEmpty(remark)) {

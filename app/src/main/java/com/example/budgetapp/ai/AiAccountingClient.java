@@ -412,6 +412,13 @@ public class AiAccountingClient {
         builder.append("1. note 应简洁描述这笔账，例如商家名、商品名或用途。");
         builder.append("2. 不要把订单号、交易单号、手机号、条形码、无关广告、配送承诺写入 note。");
         builder.append("3. 多账单列表中，如果只能看到商户名，则 note 使用商户名。");
+        builder.append("4. note 必须优先使用真实商户名、店铺名、收款方名称、交易对象名称。");
+        builder.append("5. 支付成功页面中，金额附近或支付方式上方的商户名称，通常就是正确 note。");
+        builder.append("6. 不要把广告、推荐商品、红包活动、猜你喜欢、App名称、频道名称作为 note。");
+        builder.append("7. 像“淘宝闪购”“天天领红包”“支付有礼”“广告”“立即领”等内容属于营销信息，不能作为 note。");
+        builder.append("8. 如果同时出现商户名和平台名，优先使用商户名。例如“长葛市图灵网络科技”与“淘宝闪购”同时出现时，note 应为“长葛市图灵网络科技”。");
+        builder.append("9. 如果是支付成功页面，note 优先级如下：商户名称 > 店铺名称 > 商品名称 > 平台名称。");
+        builder.append("10. 不要把“支付宝”“微信支付”“淘宝”“美团”等支付平台名称直接作为 note，除非页面里没有真实商户信息。");
 
         builder.append("\n\n【资产账户规则】");
         builder.append("1. asset 必须尽量从给定资产列表中选择最合适的账户名称。");

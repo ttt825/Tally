@@ -71,6 +71,8 @@ public class AboutActivity extends AppCompatActivity {
             startActivity(new Intent(this, UserNoticeActivity.class)));
         findViewById(R.id.btn_privacy_policy).setOnClickListener(v -> 
             startActivity(new Intent(this, PrivacyPolicyActivity.class)));
+        findViewById(R.id.btn_ai_guide).setOnClickListener(v -> 
+            startActivity(new Intent(this, AiGuideActivity.class)));
         findViewById(R.id.btn_donate).setOnClickListener(v -> 
             startActivity(new Intent(this, DonateActivity.class)));
     }

@@ -108,6 +108,12 @@
             android:exported="false"/>
 
         <activity
+            android:name=".ui.AiGuideActivity"
+            android:label="AI 记账配置指南"
+            android:theme="@style/Theme.BudgetApp"
+            android:exported="false"/>
+
+        <activity
             android:name=".ui.SecuritySettingsActivity"
             android:exported="false"
             android:screenOrientation="portrait"/>

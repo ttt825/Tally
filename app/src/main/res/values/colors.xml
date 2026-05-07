@@ -68,4 +68,11 @@
     <color name="currency_name_text">#888888</color>
     
     <color name="icon_secondary">#888888</color>
+    
+    <!-- AI Guide colors -->
+    <color name="ai_guide_hint_bg">#FFF3E0</color>
+    <color name="ai_guide_hint_title">#FF6F00</color>
+    <color name="ai_guide_hint_text">#E65100</color>
+    <color name="ai_guide_example_bg">#F5F5F5</color>
+    <color name="ai_guide_link">@color/app_blue</color>
 </resources>

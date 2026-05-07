@@ -63,4 +63,11 @@
     <color name="currency_name_text">#AAAAAA</color>
     
     <color name="icon_secondary">#AAAAAA</color>
+    
+    <!-- AI Guide colors (Night mode) -->
+    <color name="ai_guide_hint_bg">#3E2723</color>
+    <color name="ai_guide_hint_title">#FFD54F</color>
+    <color name="ai_guide_hint_text">#FFB74D</color>
+    <color name="ai_guide_example_bg">#2C2C2C</color>
+    <color name="ai_guide_link">#FFD700</color>
 </resources>

@@ -134,6 +134,12 @@ public class AiSettingActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // 添加AI记账配置指南入口点击事件（在默认连接信息标题右边）
+        findViewById(R.id.tv_ai_guide).setOnClickListener(v -> {
+            Intent intent = new Intent(this, AiGuideActivity.class);
+            startActivity(intent);
+        });
+
         btnTest.setOnClickListener(v -> testConnection());
         btnSave.setOnClickListener(v -> {
             AiConfig newConfig = buildConfigFromInput();

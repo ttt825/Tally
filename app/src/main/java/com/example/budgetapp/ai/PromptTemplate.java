@@ -67,6 +67,11 @@ public class PromptTemplate {
         builder.append("\n2. 退款、收款、工资、奖金、转入到账、报销到账，type 为 1。");
         builder.append("\n3. 如果截图是订单完成、交易成功、支付成功、付款成功，通常是支出，type 为 0。");
         builder.append("\n4. 如果截图明确包含退款成功、退款到账、已退款，则 type 为 1。");
+        builder.append("\n5. 如果页面显示“支付成功”“付款成功”“对方确认收款”“商家确认收款”，即使包含“收款”字样，也属于支出，type 为 0。");
+        builder.append("\n6. 类似“张三确认收款”“待XX确认收款”表示对方收到你的付款，不是你收到钱，应识别为支出。");
+        builder.append("\n7. 只有明确表示“收款到账”“已收款”“收到转账”“收入到账”“微信零钱到账”“银行入账”等，才属于收入，type 为 1。");
+        builder.append("\n8. 微信、支付宝转账页面中，如果页面主状态是绿色“支付成功”，通常表示支出而不是收入。");
+        builder.append("\n9. 如果页面显示“向某人付款”“付款给某人”“XX确认收款”，note 应优先使用对方姓名。");
 
         builder.append("\n\n【时间识别规则】");
         builder.append("\n1. time 格式必须严格为 yyyy-MM-dd HH:mm。");

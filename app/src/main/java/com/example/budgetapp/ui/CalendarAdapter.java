@@ -285,7 +285,11 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         // --- 样式优先级：选中 > 今天 > 续费日期 > 普通 ---
         if (isSelected) {
             // [被选中状态]：显示蓝色边框，带有由浅入深的过渡动画
-            applySelectedDateAnimation(holder, themeColor, defaultDayColor);
+            // 如果之前是"今天"或"预算色块"，需要带淡出动画
+            boolean wasToday = isToday;
+            boolean wasBudget = isBudgetEnabled && monthlyBudget > 0 && isCurrentMonth && !date.isAfter(LocalDate.now()) && dailyExpenseForBudget > 0;
+            
+            applySelectedDateAnimation(holder, themeColor, defaultDayColor, wasToday, wasBudget, dailyExpenseForBudget, dailyBudget(date), isCurrentMonth);
             holder.tvDay.setAlpha(1.0f);
             holder.itemView.setSelected(true);
 
@@ -441,25 +445,41 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
     }
 
     /**
-     * 为选中的日期应用由浅入深的快速过渡动画（边框缩放+颜色渐变）
+     * 计算每日预算
+     */
+    private double dailyBudget(LocalDate date) {
+        if (!isBudgetEnabled || monthlyBudget <= 0) return 0;
+        int daysInMonth = date.lengthOfMonth();
+        return monthlyBudget / daysInMonth;
+    }
+
+    /**
+     * 为选中的日期应用由浅入深的快速过渡动画（边框缩放+颜色渐变），并处理背景色块的淡出效果
      * @param holder ViewHolder
      * @param targetColor 目标颜色（主题色）
      * @param textColor 文字颜色
+     * @param wasToday 是否是今天（需要淡出蓝色背景）
+     * @param wasBudget 是否有预算色块（需要淡出预算背景）
+     * @param dailyExpense 当日支出
+     * @param dailyBudget 每日预算
+     * @param isCurrentMonth 是否是当前月份
      */
-    private void applySelectedDateAnimation(ViewHolder holder, int targetColor, int textColor) {
+    private void applySelectedDateAnimation(ViewHolder holder, int targetColor, int textColor, 
+                                           boolean wasToday, boolean wasBudget, 
+                                           double dailyExpense, double dailyBudget,
+                                           boolean isCurrentMonth) {
         Context context = holder.itemView.getContext();
         
         // 创建圆角矩形边框 Shape
         GradientDrawable shape = new GradientDrawable();
         shape.setShape(GradientDrawable.RECTANGLE);
-        shape.setColor(Color.TRANSPARENT);
         
         // 设置圆角
         float radius = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 12, context.getResources().getDisplayMetrics());
         shape.setCornerRadius(radius);
         
-        // 设置边框（初始为浅色）
+        // 设置边框宽度
         float strokeWidth = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 1.5f, context.getResources().getDisplayMetrics());
         
@@ -467,27 +487,53 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         int baseInset = (int) TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 4, context.getResources().getDisplayMetrics());
         
-        // 应用文字颜色
-        holder.tvDay.setTextColor(textColor);
+        // === 核心优化：确定初始背景色（用于淡出动画）===
+        final int startBgColor;
+        final int startBgAlpha; // 记录原始透明度
         
-        // 创建颜色动画：从浅色（15%透明度）到深色（100%不透明）
-        int startColor = androidx.core.graphics.ColorUtils.setAlphaComponent(targetColor, 38); // 15% 透明度
-        int endColor = targetColor; // 100% 不透明
+        // 检查是否是自定义背景模式
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        boolean isCustomBg = prefs.getInt("theme_mode", -1) == 3;
         
-        // 创建组合动画：颜色 + 边框缩放
+        if (wasToday) {
+            // 今天的蓝色背景
+            startBgColor = targetColor;
+            // 自定义背景模式下透明度为 230，普通模式为 255
+            startBgAlpha = isCustomBg ? 230 : 255;
+        } else if (wasBudget) {
+            // 预算色块背景（使用预算专用的浅色）
+            int budgetSafeBg = context.getColor(R.color.budget_safe_bg);
+            int budgetExceedBg = context.getColor(R.color.budget_exceed_bg);
+            startBgColor = dailyExpense > dailyBudget ? budgetExceedBg : budgetSafeBg;
+            // 预算色块的透明度：自定义背景 230，普通模式 255
+            startBgAlpha = isCustomBg ? 230 : 255;
+        } else {
+            startBgColor = Color.TRANSPARENT;
+            startBgAlpha = 0;
+        }
+        
+        // 边框颜色动画：从浅色（15%透明度）到深色（100%不透明）
+        final int startStrokeColor = androidx.core.graphics.ColorUtils.setAlphaComponent(targetColor, 38); // 15% 透明度
+        final int endStrokeColor = targetColor; // 100% 不透明
+        
+        // 创建组合动画：背景淡出 + 边框颜色渐变 + 边框缩放
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(90); // 90ms 极速动画
+        animator.setDuration(90); // 90ms 极速动画（保持原来的时长）
         animator.addUpdateListener(animation -> {
             float progress = (float) animation.getAnimatedValue();
             
-            // 1. 颜色插值
-            int animatedColor = (int) new ArgbEvaluator().evaluate(progress, startColor, endColor);
-            shape.setStroke((int) strokeWidth, animatedColor);
+            // 1. 背景色淡出：保持原来的颜色，透明度从原始值逐渐降到 0（由深入浅）
+            // 透明度从原始值（230 或 255）逐渐降到 0
+            int currentAlpha = (int) (startBgAlpha * (1f - progress)); // progress: 0->1, alpha: startBgAlpha->0
+            int animatedBgColor = androidx.core.graphics.ColorUtils.setAlphaComponent(startBgColor, currentAlpha);
+            shape.setColor(animatedBgColor);
             
-            // 2. 边框缩放效果：从 0.80 到 1.0（通过调整 inset 实现）
-            // progress: 0 -> 1, scale: 0.80 -> 1.0
+            // 2. 边框颜色插值：从浅色到深色
+            int animatedStrokeColor = (int) new ArgbEvaluator().evaluate(progress, startStrokeColor, endStrokeColor);
+            shape.setStroke((int) strokeWidth, animatedStrokeColor);
+            
+            // 3. 边框缩放效果：从 0.80 到 1.0（通过调整 inset 实现）
             float scale = 0.80f + (0.20f * progress);
-            // 将缩放转换为 inset 的变化：缩放越小，inset 越大
             int extraInset = (int) (baseInset * (1f - scale) * 2.5f);
             int currentInset = baseInset + extraInset;
             
@@ -495,6 +541,36 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
             holder.itemView.setBackground(insetDrawable);
             holder.itemView.invalidate();
         });
+        
+        // 文字颜色过渡动画（如果是今天，文字从白色过渡到默认颜色）
+        if (wasToday) {
+            ValueAnimator textAnimator = ValueAnimator.ofFloat(0f, 1f);
+            textAnimator.setDuration(90); // 与边框动画同步
+            textAnimator.addUpdateListener(animation -> {
+                float progress = (float) animation.getAnimatedValue();
+                int animatedTextColor = (int) new ArgbEvaluator().evaluate(progress, Color.WHITE, textColor);
+                holder.tvDay.setTextColor(animatedTextColor);
+                
+                // 同时处理下方文字（tvNet）的颜色过渡
+                if (!holder.tvNet.getText().toString().isEmpty()) {
+                    holder.tvNet.setTextColor(animatedTextColor);
+                }
+            });
+            textAnimator.start();
+        } else {
+            holder.tvDay.setTextColor(textColor);
+        }
+        
+        // 下方文字（tvNet）透明度过渡动画（如果是非当月日期被选中，透明度从 0.3 恢复到 1.0）
+        if (!isCurrentMonth) {
+            ValueAnimator alphaAnimator = ValueAnimator.ofFloat(0.3f, 1.0f);
+            alphaAnimator.setDuration(90); // 与边框动画同步
+            alphaAnimator.addUpdateListener(animation -> {
+                float alpha = (float) animation.getAnimatedValue();
+                holder.tvNet.setAlpha(alpha);
+            });
+            alphaAnimator.start();
+        }
         
         // 启动动画
         animator.start();

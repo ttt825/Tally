@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.budgetapp.R;
 import com.example.budgetapp.ai.AiAccountingClient;
+import com.example.budgetapp.ai.PromptTemplate;
 import com.example.budgetapp.util.PromptManager;
 
 import java.io.BufferedReader;
@@ -169,10 +170,12 @@ public class AiPromptEditorActivity extends AppCompatActivity {
             boolean isCustom;
             
             if (PromptManager.hasCustomPrompt(this)) {
+                // 加载自定义提示词（只包含静态规则）
                 prompt = PromptManager.getCustomPrompt(this);
                 isCustom = true;
             } else {
-                prompt = new AiAccountingClient().buildSystemPrompt(this);
+                // 加载默认静态模板（不包含动态内容）
+                prompt = PromptTemplate.buildEditableTemplate();
                 isCustom = false;
             }
             
@@ -246,9 +249,9 @@ public class AiPromptEditorActivity extends AppCompatActivity {
             // 清除自定义提示词
             PromptManager.clearCustomPrompt(this);
             
-            // 在后台线程加载默认提示词
+            // 在后台线程加载默认静态模板
             new Thread(() -> {
-                String defaultPrompt = new AiAccountingClient().buildSystemPrompt(this);
+                String defaultPrompt = PromptTemplate.buildEditableTemplate();
                 
                 // 在主线程更新 UI
                 runOnUiThread(() -> {
@@ -318,65 +321,73 @@ public class AiPromptEditorActivity extends AppCompatActivity {
     private String buildRulesContent() {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("默认提示词包含以下主要规则类别：\n\n");
+        sb.append("📝 编辑器显示内容说明\n\n");
         
-        sb.append("【JSON 输出规则】\n\n");
-        sb.append("定义AI返回的数据格式，确保返回标准的JSON数组结构。\n\n");
+        sb.append("编辑器中显示的是静态规则模板，这些规则可以由您自由编辑。\n\n");
         
-        sb.append("【多账单识别规则】\n\n");
-        sb.append("处理截图中包含多条交易记录的情况，确保每条记录都被正确识别。\n\n");
+        sb.append("为了简化编辑体验，以下动态内容已被隐藏，它们会在AI识别时自动添加：\n\n");
         
-        sb.append("【金额识别规则】\n\n");
-        sb.append("识别实际支付金额，区分原价、优惠价、折扣等不同类型的金额。\n\n");
+        sb.append("• 当前系统时间\n");
+        sb.append("• 支出分类与二级分类列表\n");
+        sb.append("• 收入分类与二级分类列表\n");
+        sb.append("• 可用资产账户列表\n");
+        sb.append("• JSON 输出示例\n\n");
         
-        sb.append("【收支类型规则】\n\n");
-        sb.append("判断交易是支出还是收入，处理退款、转账等特殊情况。\n\n");
-        
-        sb.append("【时间识别规则】\n\n");
-        sb.append("从截图或文本中提取交易时间，处理各种时间格式。\n\n");
-        
-        sb.append("【分类规则】\n\n");
-        sb.append("根据交易内容自动分配合适的分类和子分类。\n\n");
-        
-        sb.append("【备注规则】\n\n");
-        sb.append("提取商户名称、商品名称等关键信息作为备注。\n\n");
-        
-        sb.append("【资产账户规则】\n\n");
-        sb.append("识别支付方式并匹配到对应的资产账户。\n\n");
+        sb.append("这些动态内容会根据您的分类设置、资产账户和当前时间实时生成，无需手动维护。\n\n");
         
         sb.append("━━━━━━━━━━━━━━━━━━━━\n\n");
         
-        sb.append("⚠️ 重要提示\n\n");
+        sb.append("📋 静态规则类别\n\n");
         
-        sb.append("以下内容由代码动态生成，不建议在提示词中修改：\n\n");
+        sb.append("编辑器中包含以下可编辑的规则类别：\n\n");
         
-        sb.append("• 当前系统时间\n");
-        sb.append("  系统会自动插入当前时间，用于时间识别的参考。\n\n");
+        sb.append("【JSON 输出规则】\n");
+        sb.append("定义AI返回的数据格式和结构要求。\n\n");
         
-        sb.append("• 支出分类与二级分类\n");
-        sb.append("  从应用的分类设置中自动读取，修改请前往分类管理。\n\n");
+        sb.append("【多账单识别规则】\n");
+        sb.append("处理截图中包含多条交易记录的情况。\n\n");
         
-        sb.append("• 收入分类与二级分类\n");
-        sb.append("  从应用的分类设置中自动读取，修改请前往分类管理。\n\n");
+        sb.append("【金额识别规则】\n");
+        sb.append("识别实际支付金额，区分原价、优惠价等。\n\n");
         
-        sb.append("• 可用资产账户\n");
-        sb.append("  从应用的资产账户列表中自动读取，修改请前往资产管理。\n\n");
+        sb.append("【收支类型规则】\n");
+        sb.append("判断交易是支出还是收入。\n\n");
         
-        sb.append("• JSON 示例\n");
-        sb.append("  系统自动生成的示例格式，用于演示正确的输出结构。\n\n");
+        sb.append("【时间识别规则】\n");
+        sb.append("从截图或文本中提取交易时间。\n\n");
+        
+        sb.append("【分类规则】\n");
+        sb.append("根据交易内容自动分配分类。\n\n");
+        
+        sb.append("【备注规则】\n");
+        sb.append("提取商户名称、商品名称等信息。\n\n");
+        
+        sb.append("【资产账户规则】\n");
+        sb.append("识别支付方式并匹配资产账户。\n\n");
         
         sb.append("━━━━━━━━━━━━━━━━━━━━\n\n");
         
         sb.append("💡 编辑建议\n\n");
         
-        sb.append("您可以根据个人需求修改以下内容：\n\n");
+        sb.append("您可以根据个人需求：\n\n");
         
         sb.append("• 调整各类规则的优先级和判断逻辑\n");
         sb.append("• 添加特定商户或场景的识别规则\n");
         sb.append("• 修改金额、时间、分类的识别策略\n");
         sb.append("• 增加或删除某些规则条目\n\n");
         
-        sb.append("但请注意保持 JSON 输出格式的完整性，否则可能导致识别失败。");
+        sb.append("⚠️ 请注意保持 JSON 输出格式的完整性，否则可能导致识别失败。\n\n");
+        
+        sb.append("━━━━━━━━━━━━━━━━━━━━\n\n");
+        
+        sb.append("🔄 动态内容管理\n\n");
+        
+        sb.append("如需修改动态内容，请前往：\n\n");
+        
+        sb.append("• 分类设置 → 修改支出/收入分类\n");
+        sb.append("• 资产管理 → 修改资产账户列表\n\n");
+        
+        sb.append("这些修改会自动反映到AI识别提示词中，无需手动编辑。");
         
         return sb.toString();
     }
@@ -496,7 +507,7 @@ public class AiPromptEditorActivity extends AppCompatActivity {
                     // 更新编辑器内容
                     etPromptContent.setText(importedPrompt);
                     updateCharCount();
-                    Toast.makeText(this, "导入成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "导入成功，请点击保存按钮使提示词生效", Toast.LENGTH_LONG).show();
                 });
                 
             } catch (Exception e) {

@@ -288,20 +288,7 @@ public class AiChatActivity extends AppCompatActivity {
                     processTextAccounting(transcript, statusIndex);
                 });
             } catch (Exception e) {
-                // 【优化】：如果音频大模型调用失败，自动降级到系统语音识别
-                runOnUiThread(() -> {
-                    // 移除失败的状态消息
-                    if (statusIndex >= 0 && statusIndex < chatMessages.size()) {
-                        chatMessages.remove(statusIndex);
-                        chatAdapter.notifyItemRemoved(statusIndex);
-                    }
-                    
-                    // 提示用户降级到系统语音识别
-                    Toast.makeText(this, "语音大模型调用失败，切换到系统语音识别", Toast.LENGTH_SHORT).show();
-                    
-                    // 启动系统语音识别
-                    startSystemSpeechRecognition();
-                });
+                runOnUiThread(() -> updateMessage(statusIndex, "语音转写失败：" + e.getMessage()));
             }
         }).start();
     }

@@ -43,7 +43,7 @@ import java.util.Locale;
 public class AiPromptEditorActivity extends AppCompatActivity {
     
     private TextView tvStatusIndicator;
-    private EditText etPromptContent;
+    private CustomHighlightEditText etPromptContent;
     private TextView tvCharCount;
     private TextView btnViewRules;
     private TextView btnClear;
@@ -145,6 +145,12 @@ public class AiPromptEditorActivity extends AppCompatActivity {
         
         // 启用文本选择和复制功能
         etPromptContent.setTextIsSelectable(true);
+        
+        // 设置自定义的选中颜色：背景为主题蓝色，文字为白色
+        etPromptContent.setHighlightColors(
+            getResources().getColor(R.color.app_blue, null),
+            getResources().getColor(android.R.color.white, null)
+        );
         
         // 字符数统计
         etPromptContent.addTextChangedListener(new TextWatcher() {

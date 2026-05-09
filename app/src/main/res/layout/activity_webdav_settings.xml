@@ -105,7 +105,7 @@
                         android:textSize="14sp"
                         android:layout_marginBottom="8dp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_webdav_url"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
@@ -126,7 +126,7 @@
                         android:textSize="14sp"
                         android:layout_marginBottom="8dp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_webdav_username"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
@@ -147,7 +147,7 @@
                         android:textSize="14sp"
                         android:layout_marginBottom="8dp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_webdav_password"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"

@@ -890,6 +890,8 @@ public class BackupManager {
             String line;
             boolean isDataSection = false;
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            // 【新增】用于格式化记录标识的时间部分
+            SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
 
             int typeIdx = -1, catIdx = -1, subCatIdx = -1, amountIdx = -1, accountIdx = -1, remarkIdx = -1, timeIdx = -1;
 
@@ -938,20 +940,31 @@ public class BackupManager {
 
                 // 2. 金额映射
                 String amountStr = tokens.get(amountIdx).replace("¥", "").replace(",", "").trim();
-                t.amount = parseDoubleSafe(amountStr);
+                t.amount = Math.abs(parseDoubleSafe(amountStr));
 
-                // 3. 时间与记录标识映射 (时间对应时间, 并且对应记录标识 note)
+                // 3. 时间与记录标识、备注的统一映射
                 String timeStr = tokens.get(timeIdx).trim();
+                Date dateObj = null;
                 try {
-                    Date date = sdf.parse(timeStr);
-                    t.date = (date != null) ? date.getTime() : System.currentTimeMillis();
+                    dateObj = sdf.parse(timeStr);
+                    t.date = (dateObj != null) ? dateObj.getTime() : System.currentTimeMillis();
                 } catch (Exception e) {
                     t.date = System.currentTimeMillis();
+                    dateObj = new Date(t.date); // 兜底使用当前时间
                 }
-                t.note = timeStr;
 
-                // 4. 备注映射
-                t.remark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
+                // 提取原账单备注用于拼装记录标识
+                String parsedRemark = (remarkIdx != -1 && remarkIdx < tokens.size()) ? tokens.get(remarkIdx).trim() : "";
+
+                // 原生备注字段直接留空，保持界面清爽
+                t.remark = "";
+
+                // 将提取出的备注拼接到记录标识 (note) 的时间后面
+                if (TextUtils.isEmpty(parsedRemark)) {
+                    t.note = noteSdf.format(dateObj); // 没有备注，仅保留时间 "MM-dd HH:mm"
+                } else {
+                    t.note = noteSdf.format(dateObj) + " " + parsedRemark; // 有备注，拼接空格
+                }
 
                 // 5. 分类和二级分类映射 (不存在则自动生成)
                 String category = tokens.get(catIdx).trim();

@@ -34,7 +34,7 @@
             android:popupElevation="8dp"
             android:entries="@array/asset_types" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_asset_name"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -55,7 +55,7 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_total_installments"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
@@ -68,7 +68,7 @@
                 android:paddingHorizontal="16dp"
                 android:textSize="16sp" />
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_installment_amount"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
@@ -99,7 +99,7 @@
             android:orientation="horizontal"
             android:layout_marginTop="16dp">
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_asset_amount"
                 android:layout_width="0dp"
                 android:layout_weight="1"
@@ -186,7 +186,7 @@
                 android:orientation="horizontal"
                 android:layout_marginTop="16dp">
 
-                <EditText
+                <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_duration"
                     android:layout_width="0dp"
                     android:layout_weight="1"
@@ -198,7 +198,7 @@
                     android:paddingHorizontal="16dp"
                     android:textSize="14sp"/>
 
-                <EditText
+                <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_interest_rate"
                     android:layout_width="0dp"
                     android:layout_weight="1"
@@ -212,7 +212,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_deposit_date"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
@@ -226,7 +226,7 @@
                 android:clickable="true"
                 android:cursorVisible="false"/>
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_expected_total"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"

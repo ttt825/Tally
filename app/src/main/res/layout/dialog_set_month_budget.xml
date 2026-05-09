@@ -32,7 +32,7 @@
             android:gravity="center"
             android:layout_marginTop="8dp"/>
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_month_budget"
             android:layout_width="match_parent"
             android:layout_height="56dp"

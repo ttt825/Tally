@@ -56,7 +56,7 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_min_amount"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
@@ -72,7 +72,7 @@
                 android:layout_gravity="center"
                 android:layout_marginHorizontal="8dp"/>
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_max_amount"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
@@ -92,7 +92,7 @@
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_category"
             android:layout_width="match_parent"
             android:layout_height="52dp"
@@ -105,16 +105,16 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="备注包含"
+            android:text="资产筛选"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_asset"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:hint="输入备注关键字"
+            android:hint="输入资产名称（支持模糊匹配）"
             android:background="@drawable/bg_input_field"
             android:paddingHorizontal="16dp"
             android:textSize="14sp"

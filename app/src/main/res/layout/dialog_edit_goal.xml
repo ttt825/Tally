@@ -22,7 +22,7 @@
             android:textColor="@color/text_primary"
             android:gravity="center" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_edit_goal_name"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -33,7 +33,7 @@
             android:textColorHint="@color/text_secondary"
             android:paddingHorizontal="16dp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_edit_target_amount"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -45,7 +45,7 @@
             android:textColorHint="@color/text_secondary"
             android:paddingHorizontal="16dp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_edit_saved_amount"
             android:layout_width="match_parent"
             android:layout_height="56dp"

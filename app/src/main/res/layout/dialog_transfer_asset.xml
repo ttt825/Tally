@@ -40,7 +40,7 @@
             android:popupBackground="@drawable/bg_input_field"
             android:popupElevation="8dp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_transfer_amount"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -53,7 +53,7 @@
             android:paddingHorizontal="16dp"
             android:textSize="16sp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_transfer_discount"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -66,7 +66,7 @@
             android:paddingHorizontal="16dp"
             android:textSize="16sp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_transfer_note"
             android:layout_width="match_parent"
             android:layout_height="56dp"

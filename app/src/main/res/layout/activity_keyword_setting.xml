@@ -92,7 +92,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"> <EditText
+                android:gravity="center_vertical"> <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_keyword_input"
                 android:layout_width="0dp"
                 android:layout_height="48dp"

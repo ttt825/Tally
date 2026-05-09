@@ -24,7 +24,7 @@
         android:textColor="?android:attr/textColorPrimary"
         android:layout_marginBottom="32dp"/>
 
-    <EditText
+    <com.example.budgetapp.ui.CustomHighlightEditText
         android:id="@+id/et_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

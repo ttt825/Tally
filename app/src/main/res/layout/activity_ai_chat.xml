@@ -79,7 +79,7 @@
                 android:src="@drawable/ic_image" />
 
             <!-- 输入框 -->
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_chat_input"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

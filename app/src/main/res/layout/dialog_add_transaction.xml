@@ -164,7 +164,7 @@
                     android:paddingHorizontal="12dp"
                     android:layout_marginBottom="16dp"/>
 
-                <EditText
+                <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_target_object"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
@@ -184,7 +184,7 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="16dp">
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_amount"
                         android:layout_width="0dp"
                         android:layout_weight="1"
@@ -216,7 +216,7 @@
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                 </LinearLayout>
 
-                <EditText
+                <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_custom_category"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
@@ -237,7 +237,7 @@
                     android:gravity="center_vertical"
                     android:layout_marginBottom="16dp">
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_remark"  android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="56dp"
@@ -282,7 +282,7 @@
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                 </LinearLayout>
 
-                <EditText
+                <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_note"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"

@@ -144,7 +144,7 @@
                         android:paddingHorizontal="12dp"
                         android:layout_marginBottom="16dp"/>
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_window_target"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
@@ -164,7 +164,7 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="16dp">
 
-                        <EditText
+                        <com.example.budgetapp.ui.CustomHighlightEditText
                             android:id="@+id/et_window_amount"
                             android:layout_width="0dp"
                             android:layout_weight="1"
@@ -196,7 +196,7 @@
                             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                     </LinearLayout>
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_window_category"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
@@ -217,7 +217,7 @@
                         android:gravity="center_vertical"
                         android:layout_marginBottom="16dp">
 
-                        <EditText
+                        <com.example.budgetapp.ui.CustomHighlightEditText
                             android:id="@+id/et_window_remark"
                             android:layout_width="0dp"
                             android:layout_weight="1"
@@ -266,7 +266,7 @@
                             app:rippleColor="@android:color/transparent"
                             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                     </LinearLayout>
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_window_note"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"

@@ -214,11 +214,12 @@ public class AiChatActivity extends AppCompatActivity {
 
         try {
             // 在应用的缓存目录创建一个临时音频文件 (无需存储权限)
-            currentAudioFile = new java.io.File(getCacheDir(), "voice_record.m4a");
+            // 使用 WAV 格式，兼容性最好，被所有音频 API 支持
+            currentAudioFile = new java.io.File(getCacheDir(), "voice_record.wav");
             mediaRecorder = new android.media.MediaRecorder();
             mediaRecorder.setAudioSource(android.media.MediaRecorder.AudioSource.MIC);
-            mediaRecorder.setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4);
-            mediaRecorder.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC);
+            mediaRecorder.setOutputFormat(android.media.MediaRecorder.OutputFormat.DEFAULT);
+            mediaRecorder.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.DEFAULT);
             mediaRecorder.setOutputFile(currentAudioFile.getAbsolutePath());
             mediaRecorder.prepare();
             mediaRecorder.start();
@@ -268,7 +269,7 @@ public class AiChatActivity extends AppCompatActivity {
 
         new Thread(() -> {
             try {
-                // 读取录好的 m4a 文件转化为字节
+                // 读取录好的 mp3 文件转化为字节
                 java.io.FileInputStream fis = new java.io.FileInputStream(file);
                 java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
                 byte[] b = new byte[1024];
@@ -280,8 +281,8 @@ public class AiChatActivity extends AppCompatActivity {
                 fis.close();
                 file.delete(); // 内存读取完毕，清理磁盘临时文件
 
-                // 提交给你原本的 AI 接口
-                String transcript = aiClient.transcribeAudio(audioBytes, "voice-input", "audio/m4a");
+                // 提交给你原本的 AI 接口，使用 audio/wav (WAV 格式，通用性最好)
+                String transcript = aiClient.transcribeAudio(audioBytes, "voice-input", "audio/wav");
                 runOnUiThread(() -> {
                     updateMessage(statusIndex, "正在为您生成账单...");
                     addMessage(ChatMessage.mine(transcript, null));

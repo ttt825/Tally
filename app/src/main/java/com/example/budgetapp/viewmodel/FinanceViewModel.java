@@ -561,9 +561,9 @@ public class FinanceViewModel extends AndroidViewModel {
      * 供 DetailsFragment 使用：直接从数据库进行多条件混合查询
      */
     // 修改方法签名，增加 Float minAmount, Float maxAmount 参数
-    public LiveData<List<Transaction>> getFilteredTransactions(long start, long end, Integer type, Float minAmount, Float maxAmount, String keyword) {
+    public LiveData<List<Transaction>> getFilteredTransactions(long start, long end, Integer type, Float minAmount, Float maxAmount, String keyword, String assetName) {
         // 如果你的 ViewModel 直接调用了 dao：
-        return transactionDao.getFilteredTransactions(start, end, type, minAmount, maxAmount, keyword);
+        return transactionDao.getFilteredTransactions(start, end, type, minAmount, maxAmount, keyword, assetName);
     }
 
     // ================= 通知桌面小组件刷新 =================

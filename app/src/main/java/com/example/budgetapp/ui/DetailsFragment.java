@@ -412,17 +412,23 @@ public class DetailsFragment extends Fragment {
 
         String keyword = "";
         if (!TextUtils.isEmpty(currentFilter.category)) keyword += currentFilter.category + " ";
-        if (!TextUtils.isEmpty(currentFilter.assetName)) keyword += currentFilter.assetName + " ";
         keyword = keyword.trim();
         if (keyword.isEmpty()) keyword = null;
+        
+        // 资产名称单独处理
+        String assetName = null;
+        if (!TextUtils.isEmpty(currentFilter.assetName)) {
+            assetName = currentFilter.assetName.trim();
+        }
 
-        // 🌟 修改点：调用 ViewModel 获取常规的 List 流
+        // 🌟 修改点：调用 ViewModel 获取常规的 List 流，添加 assetName 参数
         currentFilteredDataLive = viewModel.getFilteredTransactions(
                 range[0], range[1],
                 currentFilter.type,
                 currentFilter.minAmount,
                 currentFilter.maxAmount,
-                keyword
+                keyword,
+                assetName
         );
 
         currentFilteredDataLive.observe(getViewLifecycleOwner(), list -> {

@@ -149,7 +149,7 @@
                             android:textStyle="bold"
                             android:textColor="@color/text_primary"
                             android:layout_marginBottom="12dp"/>
-                        <EditText
+                        <com.example.budgetapp.ui.CustomHighlightEditText
                             android:id="@+id/et_monthly_budget"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"

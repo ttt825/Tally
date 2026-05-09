@@ -15,7 +15,7 @@
         android:textSize="16sp"
         android:textColor="@color/text_primary" />
 
-    <EditText
+    <com.example.budgetapp.ui.CustomHighlightEditText
         android:id="@+id/et_cat_budget"
         android:layout_width="150dp"
         android:layout_height="48dp"

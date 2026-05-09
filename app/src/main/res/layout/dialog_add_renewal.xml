@@ -109,7 +109,7 @@
             android:layout_height="52dp"
             android:orientation="horizontal">
 
-            <EditText
+            <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_duration_value"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -141,7 +141,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
+    <com.example.budgetapp.ui.CustomHighlightEditText
         android:id="@+id/et_renewal_object"
         android:layout_width="match_parent"
         android:layout_height="52dp"
@@ -162,7 +162,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
+    <com.example.budgetapp.ui.CustomHighlightEditText
         android:id="@+id/et_renewal_amount"
         android:layout_width="match_parent"
         android:layout_height="52dp"

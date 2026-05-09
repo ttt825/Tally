@@ -8,6 +8,13 @@
 
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+        
+        <!-- 设置光标和文本选择手柄颜色为主题色 -->
+        <item name="android:textCursorDrawable">@drawable/cursor_drawable</item>
+        <item name="android:textSelectHandle">@drawable/text_select_handle</item>
+        <item name="android:textSelectHandleLeft">@drawable/text_select_handle_left</item>
+        <item name="android:textSelectHandleRight">@drawable/text_select_handle_right</item>
+        <item name="colorControlActivated">@color/app_blue</item>
     </style>
 
     <style name="TransparentIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">

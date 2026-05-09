@@ -62,7 +62,7 @@
         android:textSize="14sp"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
+    <com.example.budgetapp.ui.CustomHighlightEditText
         android:id="@+id/et_keyword"
         android:layout_width="match_parent"
         android:layout_height="50dp"

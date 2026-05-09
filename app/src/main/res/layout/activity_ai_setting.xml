@@ -287,7 +287,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_base_url"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -309,7 +309,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_api_key"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -360,7 +360,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_text_model"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -391,7 +391,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_text_base_url"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -413,7 +413,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_text_api_key"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -464,7 +464,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_vision_model"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -495,7 +495,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_vision_base_url"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -517,7 +517,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_vision_api_key"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -568,7 +568,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_audio_model"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -599,7 +599,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_audio_base_url"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -621,7 +621,7 @@
                         android:textColor="#888888"
                         android:textSize="12sp" />
 
-                    <EditText
+                    <com.example.budgetapp.ui.CustomHighlightEditText
                         android:id="@+id/et_audio_api_key"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

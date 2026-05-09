@@ -60,15 +60,17 @@ public interface TransactionDao {
     LiveData<List<Transaction>> getTransactionsByRangeLive(long start, long end);
 
     // 2. 高级过滤：用于明细页 (DetailsFragment) 的高级筛选，null 表示该条件不限制
-    // 使用普通的 LiveData<List<Transaction>> 返回类型，并加上金额筛选条件
-    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate " +
-            "AND (:type IS NULL OR type = :type) " +
-            "AND (:minAmount IS NULL OR amount >= :minAmount) " +
-            "AND (:maxAmount IS NULL OR amount <= :maxAmount) " +
-            // 🌟 修改点：在下面的查询条件中加入了 OR subCategory LIKE '%' || :keyword || '%'
-            "AND (:keyword IS NULL OR category LIKE '%' || :keyword || '%' OR subCategory LIKE '%' || :keyword || '%' OR note LIKE '%' || :keyword || '%') " +
-            "ORDER BY date DESC")
-    LiveData<List<Transaction>> getFilteredTransactions(long startDate, long endDate, Integer type, Float minAmount, Float maxAmount, String keyword);
+    // 使用普通的 LiveData<List<Transaction>> 返回类型，并加上金额筛选条件和资产筛选
+    @Query("SELECT t.* FROM transactions t " +
+            "LEFT JOIN asset_accounts a ON t.assetId = a.id " +
+            "WHERE t.date BETWEEN :startDate AND :endDate " +
+            "AND (:type IS NULL OR t.type = :type) " +
+            "AND (:minAmount IS NULL OR t.amount >= :minAmount) " +
+            "AND (:maxAmount IS NULL OR t.amount <= :maxAmount) " +
+            "AND (:keyword IS NULL OR t.category LIKE '%' || :keyword || '%' OR t.subCategory LIKE '%' || :keyword || '%' OR t.note LIKE '%' || :keyword || '%') " +
+            "AND (:assetName IS NULL OR a.name LIKE '%' || :assetName || '%' OR t.remark LIKE '%' || :assetName || '%') " +
+            "ORDER BY t.date DESC")
+    LiveData<List<Transaction>> getFilteredTransactions(long startDate, long endDate, Integer type, Float minAmount, Float maxAmount, String keyword, String assetName);
 
     // 【新增】供桌面小组件使用：同步聚合查询指定时间的收入或支出总和
     @Query("SELECT SUM(amount) FROM transactions WHERE date >= :start AND date <= :end AND type = :type AND category != '资产互转'")

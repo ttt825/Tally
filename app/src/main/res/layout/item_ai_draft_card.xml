@@ -149,7 +149,7 @@
                 android:layout_marginStart="4dp"/>
         </RadioGroup>
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_amount"
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -181,7 +181,7 @@
             android:popupBackground="@drawable/bg_input_field"
             android:paddingHorizontal="12dp" />
 
-        <EditText
+        <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_note"
             android:layout_width="match_parent"
             android:layout_height="48dp"

@@ -46,6 +46,7 @@ public class AiPromptEditorActivity extends AppCompatActivity {
     private EditText etPromptContent;
     private TextView tvCharCount;
     private TextView btnViewRules;
+    private TextView btnClear;
     private TextView btnImport;
     private TextView btnExport;
     private Button btnRestoreDefault;
@@ -132,14 +133,18 @@ public class AiPromptEditorActivity extends AppCompatActivity {
         tvCharCount = findViewById(R.id.tv_char_count);
         // 【修改点 2】: 这里现在绑定的是 XML 中的 TextView
         btnViewRules = findViewById(R.id.btn_view_rules);
+        btnClear = findViewById(R.id.btn_clear);
         btnImport = findViewById(R.id.btn_import);
         btnExport = findViewById(R.id.btn_export);
         btnRestoreDefault = findViewById(R.id.btn_restore_default);
         btnSave = findViewById(R.id.btn_save);
         
-        // 启用 EditText 的滚动功能
-        etPromptContent.setMovementMethod(android.text.method.ScrollingMovementMethod.getInstance());
+        // 移除 ScrollingMovementMethod，因为它会与文本选择冲突
+        // EditText 默认就支持滚动，不需要额外设置
         etPromptContent.setVerticalScrollBarEnabled(true);
+        
+        // 启用文本选择和复制功能
+        etPromptContent.setTextIsSelectable(true);
         
         // 字符数统计
         etPromptContent.addTextChangedListener(new TextWatcher() {
@@ -157,6 +162,7 @@ public class AiPromptEditorActivity extends AppCompatActivity {
         
         // 按钮点击事件
         btnViewRules.setOnClickListener(v -> showRulesDialog());
+        btnClear.setOnClickListener(v -> showClearDialog());
         btnImport.setOnClickListener(v -> showImportDialog());
         btnExport.setOnClickListener(v -> showExportDialog());
         btnRestoreDefault.setOnClickListener(v -> showRestoreDefaultDialog());
@@ -228,6 +234,31 @@ public class AiPromptEditorActivity extends AppCompatActivity {
         updateStatusIndicator(true);
         
         Toast.makeText(this, "提示词已保存", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void showClearDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_clear_prompt, null);
+        builder.setView(view);
+        AlertDialog dialog = builder.create();
+        
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        
+        Button btnCancel = view.findViewById(R.id.btn_cancel);
+        Button btnConfirm = view.findViewById(R.id.btn_confirm);
+        
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        btnConfirm.setOnClickListener(v -> {
+            etPromptContent.setText("");
+            updateCharCount();
+            Toast.makeText(this, "已清空编辑器内容", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        
+        dialog.show();
     }
     
     private void showRestoreDefaultDialog() {

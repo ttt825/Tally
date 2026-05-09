@@ -25,6 +25,19 @@
             android:textColor="?android:attr/textColorPrimary"/>
 
         <TextView
+            android:id="@+id/btn_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="清空"
+            android:textColor="@color/app_blue"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
             android:id="@+id/btn_import"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -168,7 +181,9 @@
                     android:fontFamily="monospace"
                     android:hint="在此输入或编辑系统提示词..."
                     android:textColor="?android:attr/textColorPrimary"
-                    android:textColorHint="#CCCCCC" />
+                    android:textColorHint="#CCCCCC"
+                    android:textIsSelectable="true"
+                    android:longClickable="true" />
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>

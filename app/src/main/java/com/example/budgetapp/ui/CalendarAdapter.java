@@ -508,8 +508,17 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
             // 预算色块的透明度：自定义背景 230，普通模式 255
             startBgAlpha = isCustomBg ? 230 : 255;
         } else {
-            startBgColor = Color.TRANSPARENT;
-            startBgAlpha = 0;
+            // 正常日期（非今天、非预算色块）
+            // 在自定义背景模式下，正常日期也有半透明白色背景，需要淡出动画
+            if (isCustomBg) {
+                int surfaceColor = context.getColor(R.color.white);
+                startBgColor = surfaceColor;
+                // 根据是否是当月日期设置透明度
+                startBgAlpha = isCurrentMonth ? 230 : 153;
+            } else {
+                startBgColor = Color.TRANSPARENT;
+                startBgAlpha = 0;
+            }
         }
         
         // 边框颜色动画：从浅色（15%透明度）到深色（100%不透明）
@@ -518,7 +527,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         
         // 创建组合动画：背景淡出 + 边框颜色渐变 + 边框缩放
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(90); // 90ms 极速动画（保持原来的时长）
+        animator.setDuration(100); // 100ms 动画时长
         animator.addUpdateListener(animation -> {
             float progress = (float) animation.getAnimatedValue();
             
@@ -545,7 +554,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         // 文字颜色过渡动画（如果是今天，文字从白色过渡到默认颜色）
         if (wasToday) {
             ValueAnimator textAnimator = ValueAnimator.ofFloat(0f, 1f);
-            textAnimator.setDuration(90); // 与边框动画同步
+            textAnimator.setDuration(100); // 与边框动画同步
             textAnimator.addUpdateListener(animation -> {
                 float progress = (float) animation.getAnimatedValue();
                 int animatedTextColor = (int) new ArgbEvaluator().evaluate(progress, Color.WHITE, textColor);
@@ -564,7 +573,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         // 下方文字（tvNet）透明度过渡动画（如果是非当月日期被选中，透明度从 0.3 恢复到 1.0）
         if (!isCurrentMonth) {
             ValueAnimator alphaAnimator = ValueAnimator.ofFloat(0.3f, 1.0f);
-            alphaAnimator.setDuration(90); // 与边框动画同步
+            alphaAnimator.setDuration(100); // 与边框动画同步
             alphaAnimator.addUpdateListener(animation -> {
                 float alpha = (float) animation.getAnimatedValue();
                 holder.tvNet.setAlpha(alpha);

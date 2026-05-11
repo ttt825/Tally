@@ -214,17 +214,21 @@ public class AiChatActivity extends AppCompatActivity {
 
         try {
             // 在应用的缓存目录创建一个临时音频文件 (无需存储权限)
-            // 使用 WAV 格式，兼容性最好，被所有音频 API 支持
-            currentAudioFile = new java.io.File(getCacheDir(), "voice_record.wav");
+            // 使用 M4A 格式 (AAC 编码)，API 支持且质量好
+            currentAudioFile = new java.io.File(getCacheDir(), "voice_record.m4a");
             mediaRecorder = new android.media.MediaRecorder();
             mediaRecorder.setAudioSource(android.media.MediaRecorder.AudioSource.MIC);
-            mediaRecorder.setOutputFormat(android.media.MediaRecorder.OutputFormat.DEFAULT);
-            mediaRecorder.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.DEFAULT);
+            mediaRecorder.setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4);
+            mediaRecorder.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC);
+            mediaRecorder.setAudioEncodingBitRate(128000); // 128 kbps
+            mediaRecorder.setAudioSamplingRate(44100); // 44.1 kHz
             mediaRecorder.setOutputFile(currentAudioFile.getAbsolutePath());
             mediaRecorder.prepare();
             mediaRecorder.start();
             recordStartTime = System.currentTimeMillis();
+            android.util.Log.d("AiChatActivity", "Recording started, file: " + currentAudioFile.getAbsolutePath());
         } catch (Exception e) {
+            android.util.Log.e("AiChatActivity", "Failed to start recording", e);
             Toast.makeText(this, "麦克风被占用或无法录音", Toast.LENGTH_SHORT).show();
             stopInternalRecording(true);
         }
@@ -269,7 +273,7 @@ public class AiChatActivity extends AppCompatActivity {
 
         new Thread(() -> {
             try {
-                // 读取录好的 mp3 文件转化为字节
+                // 读取录好的音频文件转化为字节
                 java.io.FileInputStream fis = new java.io.FileInputStream(file);
                 java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
                 byte[] b = new byte[1024];
@@ -279,10 +283,14 @@ public class AiChatActivity extends AppCompatActivity {
                 }
                 byte[] audioBytes = bos.toByteArray();
                 fis.close();
+                
+                // 添加日志：打印音频文件大小
+                android.util.Log.d("AiChatActivity", "Audio file size: " + audioBytes.length + " bytes");
+                
                 file.delete(); // 内存读取完毕，清理磁盘临时文件
 
-                // 提交给你原本的 AI 接口，使用 audio/wav (WAV 格式，通用性最好)
-                String transcript = aiClient.transcribeAudio(audioBytes, "voice-input", "audio/wav");
+                // 提交给 AI 接口，使用 audio/m4a (M4A 格式，AAC 编码)
+                String transcript = aiClient.transcribeAudio(audioBytes, "voice-input.m4a", "audio/m4a");
                 runOnUiThread(() -> {
                     updateMessage(statusIndex, "正在为您生成账单...");
                     addMessage(ChatMessage.mine(transcript, null));
@@ -611,10 +619,16 @@ public class AiChatActivity extends AppCompatActivity {
     }
 
     private int addMessage(ChatMessage message) {
+        return addMessage(message, true);
+    }
+
+    private int addMessage(ChatMessage message, boolean autoScroll) {
         chatMessages.add(message);
         int index = chatMessages.size() - 1;
         chatAdapter.notifyItemInserted(index);
-        rvChat.smoothScrollToPosition(index);
+        if (autoScroll) {
+            rvChat.smoothScrollToPosition(index);
+        }
         return index;
     }
 
@@ -1102,7 +1116,8 @@ public class AiChatActivity extends AppCompatActivity {
             bindSummary();
             updateEditorState();
             Toast.makeText(AiChatActivity.this, "已保存这笔账单。", Toast.LENGTH_SHORT).show();
-            addMessage(ChatMessage.aiText("这笔我已经帮你入账了。"));
+            // 【优化】：保存后不自动滚动到AI回复，让用户停留在当前卡片位置
+            addMessage(ChatMessage.aiText("这笔我已经帮你入账了。"), false);
         }
 
         private TransactionDraft collectDraft() {

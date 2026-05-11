@@ -90,9 +90,8 @@ public class AiAccountingClient {
         connection.setDoOutput(true);
 
         try (DataOutputStream stream = new DataOutputStream(connection.getOutputStream())) {
+            // SiliconFlow API 只需要 model 和 file 两个参数
             writeFormField(stream, boundary, "model", config.audioModel);
-            writeFormField(stream, boundary, "language", "zh");
-            writeFormField(stream, boundary, "response_format", "json");
             writeFileField(stream, boundary, "file", fileName, mimeType, audioBytes);
             stream.writeBytes("--" + boundary + "--\r\n");
             stream.flush();
@@ -100,16 +99,32 @@ public class AiAccountingClient {
 
         int responseCode = connection.getResponseCode();
         String response = readResponse(connection, responseCode);
+        
+        // 添加日志：打印完整响应用于调试
+        android.util.Log.d("AiAccountingClient", "Audio API Response Code: " + responseCode);
+        android.util.Log.d("AiAccountingClient", "Audio API Response Body: " + response);
+        
         if (responseCode < 200 || responseCode >= 300) {
             throw new IOException(buildHttpError(responseCode, response));
         }
 
-        JSONObject object = new JSONObject(response);
-        String text = object.optString("text", "").trim();
-        if (text.isEmpty()) {
-            throw new IOException("音频转写成功，但没有返回文字结果。");
+        // 尝试解析响应
+        try {
+            JSONObject object = new JSONObject(response);
+            String text = object.optString("text", "").trim();
+            
+            if (text.isEmpty()) {
+                // 如果 text 字段为空，打印完整的 JSON 对象用于调试
+                android.util.Log.e("AiAccountingClient", "Empty text field. Full response: " + response);
+                throw new IOException("音频转写成功，但没有返回文字结果。响应内容：" + response);
+            }
+            
+            return text;
+        } catch (org.json.JSONException e) {
+            // JSON 解析失败，可能响应格式不是预期的 JSON
+            android.util.Log.e("AiAccountingClient", "Failed to parse JSON response: " + response, e);
+            throw new IOException("无法解析音频转写响应。响应内容：" + response);
         }
-        return text;
     }
 
     public TestResult testConfiguration(Context context) {
@@ -569,7 +584,9 @@ public class AiAccountingClient {
                 || normalized.contains("no speech")
                 || normalized.contains("silence")
                 || normalized.contains("empty audio")
-                || normalized.contains("invalid audio");
+                || normalized.contains("invalid audio")
+                || normalized.contains("没有返回文字结果")
+                || normalized.contains("empty text");
     }
 
     private void ensureConfig() {

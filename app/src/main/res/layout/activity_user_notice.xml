@@ -209,6 +209,29 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="资产图标设置"
+                    android:textStyle="bold"
+                    android:textSize="17sp"
+                    android:textColor="?android:attr/colorPrimary"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="为资产账户设置个性化的 SVG 图标，让资产列表更加直观美观。\n\n使用方法：\n1. 进入&quot;资产&quot;页面，点击任意资产进入编辑\n2. 在编辑界面找到&quot;设置图标&quot;按钮\n3. 点击&quot;获取图标&quot;按钮，跳转到 iconfont 图标库\n4. 在 iconfont 网站搜索并选择喜欢的图标\n5. 点击图标下方的&quot;复制 SVG 代码&quot;按钮\n6. 返回应用，将 SVG 代码粘贴到输入框\n7. 点击&quot;生成预览&quot;查看效果\n8. 确认无误后点击&quot;保存&quot;\n\niconfont 使用技巧：\n• 搜索关键词：如&quot;银行&quot;、&quot;钱包&quot;、&quot;信用卡&quot;等\n• 选择单色图标：效果更好，与应用风格统一\n• 复制完整代码：确保包含 &lt;svg&gt; 开始和 &lt;/svg&gt; 结束标签\n• 图标尺寸：应用会自动调整为 24dp，无需手动修改\n\n注意事项：\n• 图标会在资产列表中显示，帮助快速识别不同账户\n• 支持所有资产类型：资产、负债、借出、理财、分期\n• 图标数据会随备份一起保存和恢复\n• 如果 SVG 代码无法解析，请检查代码完整性"
+                    android:textSize="15sp"
+                    android:lineSpacingExtra="8dp"
+                    android:layout_marginTop="12dp"
+                    android:textColor="?android:attr/textColorPrimary"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1F888888"
+                    android:layout_marginVertical="24dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="隐私安全承诺"
                     android:textStyle="bold"
                     android:textSize="17sp"

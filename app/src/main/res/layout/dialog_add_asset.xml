@@ -3,27 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="320dp"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="32dp"
-    app:cardElevation="12dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="8dp"
     app:cardBackgroundColor="@color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingTop="24dp"
+        android:paddingBottom="16dp"
+        android:paddingHorizontal="24dp">
 
         <TextView
             android:id="@+id/tv_dialog_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="添加资产"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             android:gravity="center" />
 
-        <!-- 改为 Spinner 下拉框 -->
         <Spinner
             android:id="@+id/spinner_asset_type"
             android:layout_width="match_parent"
@@ -31,14 +33,14 @@
             android:layout_marginTop="16dp"
             android:background="@drawable/bg_input_field"
             android:popupBackground="@drawable/bg_input_field"
-            android:popupElevation="8dp"
+            android:popupElevation="4dp"
             android:entries="@array/asset_types" />
 
         <com.example.budgetapp.ui.CustomHighlightEditText
             android:id="@+id/et_asset_name"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_input_field"
             android:hint="资产名称"
             android:inputType="text"
@@ -47,43 +49,58 @@
             android:paddingHorizontal="16dp"
             android:textSize="16sp" />
 
-        <!-- 【新增】图标设置区域 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="12dp"
             android:background="@drawable/bg_input_field"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp">
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="图标"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_asset_icon_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="未设置"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
 
             <ImageView
                 android:id="@+id/iv_asset_icon_preview"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="8dp"
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/tv_asset_icon_status"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:text="未设置图标"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_asset_icon_editor"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="设置图标" />
+                android:text="设置"
+                android:textColor="@color/app_blue"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="8dp" />
         </LinearLayout>
 
-        <!-- 分期输入表单（选择分期时显示） -->
         <LinearLayout
             android:id="@+id/layout_installment_fields"
             android:layout_width="match_parent"
@@ -95,7 +112,7 @@
                 android:id="@+id/et_total_installments"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_field"
                 android:hint="总期数"
                 android:inputType="number"
@@ -108,7 +125,7 @@
                 android:id="@+id/et_installment_amount"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_field"
                 android:hint="每期金额"
                 android:inputType="numberDecimal"
@@ -121,19 +138,20 @@
                 android:id="@+id/tv_total_amount_display"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:text="总金额：¥0.00"
                 android:textColor="@color/app_blue"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
-                android:paddingHorizontal="16dp" />
+                android:gravity="end"
+                android:paddingHorizontal="4dp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="16dp">
+            android:layout_marginTop="12dp">
 
             <com.example.budgetapp.ui.CustomHighlightEditText
                 android:id="@+id/et_asset_amount"
@@ -150,9 +168,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_currency"
-                android:layout_width="56dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="wrap_content"
                 android:layout_height="56dp"
                 android:layout_marginStart="8dp"
+                android:minWidth="56dp"
                 android:text="¥"
                 android:textSize="18sp"
                 android:textColor="@color/text_primary"
@@ -161,27 +181,26 @@
                 android:padding="0dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:visibility="gone"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                android:visibility="gone" />
         </LinearLayout>
 
         <Spinner
             android:id="@+id/spinner_include_in_total"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_input_field"
             android:popupBackground="@drawable/bg_input_field"
-            android:popupElevation="8dp" />
+            android:popupElevation="4dp" />
 
         <Spinner
             android:id="@+id/spinner_asset_color"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_input_field"
             android:popupBackground="@drawable/bg_input_field"
-            android:popupElevation="8dp" />
+            android:popupElevation="4dp" />
 
         <LinearLayout
             android:id="@+id/layout_investment_details"
@@ -190,6 +209,15 @@
             android:orientation="vertical"
             android:visibility="gone"
             android:layout_marginTop="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="投资明细"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="4dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -203,7 +231,7 @@
                     android:layout_height="56dp"
                     android:background="@drawable/bg_input_field"
                     android:popupBackground="@drawable/bg_input_field"
-                    android:popupElevation="8dp" />
+                    android:popupElevation="4dp" />
 
                 <Spinner
                     android:id="@+id/spinner_interest_type"
@@ -213,14 +241,14 @@
                     android:layout_marginStart="8dp"
                     android:background="@drawable/bg_input_field"
                     android:popupBackground="@drawable/bg_input_field"
-                    android:popupElevation="8dp" />
+                    android:popupElevation="4dp" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="16dp">
+                android:layout_marginTop="12dp">
 
                 <com.example.budgetapp.ui.CustomHighlightEditText
                     android:id="@+id/et_duration"
@@ -231,6 +259,7 @@
                     android:hint="时长(月)"
                     android:inputType="number"
                     android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
                     android:paddingHorizontal="16dp"
                     android:textSize="14sp"/>
 
@@ -244,6 +273,7 @@
                     android:hint="年利率(%)"
                     android:inputType="numberDecimal"
                     android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
                     android:paddingHorizontal="16dp"
                     android:textSize="14sp"/>
             </LinearLayout>
@@ -252,10 +282,11 @@
                 android:id="@+id/et_deposit_date"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_field"
-                android:hint="存入时间: 2024-01-01"
+                android:hint="存入时间: 选择日期"
                 android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
                 android:paddingHorizontal="16dp"
                 android:textSize="15sp"
                 android:focusable="false"
@@ -266,10 +297,11 @@
                 android:id="@+id/et_expected_total"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_field"
                 android:hint="预计结算资产: 0.00"
                 android:textColor="@color/app_blue"
+                android:textColorHint="@color/app_blue"
                 android:textStyle="bold"
                 android:paddingHorizontal="16dp"
                 android:textSize="15sp"
@@ -290,7 +322,7 @@
                 android:layout_width="0dp"
                 android:layout_height="56dp"
                 android:layout_weight="1"
-                android:text="删除"
+                android:text="删 除"
                 android:textColor="@color/text_primary"
                 android:backgroundTint="@color/input_bg"
                 android:layout_marginEnd="8dp"

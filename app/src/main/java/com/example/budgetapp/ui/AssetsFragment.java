@@ -1527,7 +1527,7 @@ public class AssetsFragment extends Fragment {
 
     private void updateAssetIconPreview(android.widget.ImageView imageView, TextView statusView, String svgCode) {
         if (AssetIconHelper.bindSvgIcon(imageView, svgCode)) {
-            statusView.setText("已设置 SVG 图标，将以 24dp 等比显示");
+            statusView.setText("已设置 SVG 图标");
         } else {
             statusView.setText(AssetIconHelper.hasSvgIcon(svgCode) ? "SVG 无法解析" : "未设置图标");
         }

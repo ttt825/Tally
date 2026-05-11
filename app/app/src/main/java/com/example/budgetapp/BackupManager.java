@@ -554,7 +554,9 @@ public class BackupManager {
             }
             csvBuilder.append(assetTypeStr).append(",");
             String symbol = (asset.currencySymbol == null) ? "¥" : asset.currencySymbol;
-            csvBuilder.append(escapeCsv(symbol)).append("\n");
+            csvBuilder.append(escapeCsv(symbol)).append(",");
+            csvBuilder.append(asset.isIncludedInTotal).append(",");
+            csvBuilder.append(escapeCsv(asset.svgIcon == null ? "" : asset.svgIcon)).append("\n");
         }
         csvBuilder.append("\n\n");
 
@@ -774,6 +776,7 @@ public class BackupManager {
                 AssetAccount asset = new AssetAccount(name, amount, type);
                 asset.id = id;
                 asset.currencySymbol = symbol;
+                asset.svgIcon = row.size() > 6 ? row.get(6) : "";
                 asset.isIncludedInTotal = included; // 【新增】计入总资产
                 assets.add(asset);
                 assetNameToIdMap.put(name, id);

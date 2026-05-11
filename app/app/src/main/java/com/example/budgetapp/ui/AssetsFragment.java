@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -26,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.util.AssistantConfig;
+import com.example.budgetapp.util.AssetIconHelper;
 import com.example.budgetapp.util.CurrencyUtils;
 import com.example.budgetapp.viewmodel.FinanceViewModel;
 
@@ -486,6 +488,9 @@ public class AssetsFragment extends Fragment {
         Button btnCancel = view.findViewById(R.id.btn_cancel);
         Button btnSave = view.findViewById(R.id.btn_save);
         Button btnDelete = view.findViewById(R.id.btn_delete);
+        ImageView ivAssetIconPreview = view.findViewById(R.id.iv_asset_icon_preview);
+        TextView tvAssetIconStatus = view.findViewById(R.id.tv_asset_icon_status);
+        Button btnAssetIconEditor = view.findViewById(R.id.btn_asset_icon_editor);
 
         // 【新增 1】初始化 Spinner
         android.widget.Spinner spinnerInclude = view.findViewById(R.id.spinner_include_in_total);
@@ -509,6 +514,18 @@ public class AssetsFragment extends Fragment {
 
         // 用来临时保存用户在弹窗中输入的颜色
         final String[] tempCustomColor = {existing != null && existing.customColorHex != null ? existing.customColorHex : ""};
+        final String[] tempSvgIcon = {existing != null ? AssetIconHelper.normalizeSvg(existing.svgIcon) : ""};
+
+        updateAssetIconPreview(ivAssetIconPreview, tvAssetIconStatus, tempSvgIcon[0]);
+        btnAssetIconEditor.setOnClickListener(v -> AssetIconHelper.showSvgEditorDialog(
+                requireContext(),
+                etName.getText().toString().trim(),
+                tempSvgIcon[0],
+                svgCode -> {
+                    tempSvgIcon[0] = svgCode;
+                    updateAssetIconPreview(ivAssetIconPreview, tvAssetIconStatus, tempSvgIcon[0]);
+                }
+        ));
 
         spinnerColor.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             boolean isFirstInit = true; // 防止回显数据时自动触发弹窗
@@ -768,6 +785,7 @@ public class AssetsFragment extends Fragment {
 
             // 【新增 4】保存是否计入总资产的选项
             accountToSave.isIncludedInTotal = (spinnerInclude.getSelectedItemPosition() == 0);
+            accountToSave.svgIcon = tempSvgIcon[0];
 
             // ========== 新增代码：保存颜色选择 ==========
             accountToSave.colorType = spinnerColor.getSelectedItemPosition();
@@ -870,6 +888,7 @@ public class AssetsFragment extends Fragment {
             if (holder instanceof NormalVH) {
                 NormalVH normalHolder = (NormalVH) holder;
                 normalHolder.tvName.setText(item.name);
+                AssetIconHelper.bindSvgIcon(normalHolder.ivIcon, item.svgIcon);
 
                 String amountStr = String.format("%.2f", item.amount);
                 if (isCurrencyEnabled) {
@@ -962,6 +981,7 @@ public class AssetsFragment extends Fragment {
                         item.name, typeStr, interestModeStr, symbol, item.amount, depositStr, settlementStr, item.durationMonths, item.interestRate, symbol, item.expectedReturn);
 
                 invHolder.tvInfo.setText(info);
+                AssetIconHelper.bindSvgIcon(invHolder.ivIcon, item.svgIcon);
 
                 boolean isDefault = (item.id == defaultAssetId);
                 boolean isCustomColor = (item.colorType == 1 || item.colorType == 2 || item.colorType == 3);
@@ -1010,9 +1030,11 @@ public class AssetsFragment extends Fragment {
 
         // 普通资产/负债/借出 ViewHolder
         static class NormalVH extends RecyclerView.ViewHolder {
+            ImageView ivIcon;
             TextView tvName, tvAmount, tvNote;
             NormalVH(View v) {
                 super(v);
+                ivIcon = v.findViewById(R.id.iv_asset_icon);
                 tvName = v.findViewById(R.id.tv_detail_date);
                 tvAmount = v.findViewById(R.id.tv_detail_amount);
                 tvNote = v.findViewById(R.id.tv_detail_note);
@@ -1021,9 +1043,11 @@ public class AssetsFragment extends Fragment {
 
         // 理财卡片 ViewHolder
         static class InvestmentVH extends RecyclerView.ViewHolder {
+            ImageView ivIcon;
             TextView tvInfo;
             InvestmentVH(View v) {
                 super(v);
+                ivIcon = v.findViewById(R.id.iv_investment_asset_icon);
                 // 对应 item_asset_investment.xml 中的 TextView ID
                 tvInfo = v.findViewById(R.id.tv_investment_info);
             }
@@ -1133,6 +1157,14 @@ public class AssetsFragment extends Fragment {
     private interface OnColorInputListener {
         void onColorSet(String hexColor);
         void onCancel();
+    }
+
+    private void updateAssetIconPreview(ImageView imageView, TextView statusView, String svgCode) {
+        if (AssetIconHelper.bindSvgIcon(imageView, svgCode)) {
+            statusView.setText("已设置 SVG 图标，将以 24dp 等比显示");
+        } else {
+            statusView.setText(AssetIconHelper.hasSvgIcon(svgCode) ? "SVG 无法解析" : "未设置图标");
+        }
     }
 
     // ========== 统一 UI 风格版：自定义颜色弹窗 ==========

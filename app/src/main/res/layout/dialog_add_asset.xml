@@ -47,6 +47,42 @@
             android:paddingHorizontal="16dp"
             android:textSize="16sp" />
 
+        <!-- 【新增】图标设置区域 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input_field"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <ImageView
+                android:id="@+id/iv_asset_icon_preview"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_asset_icon_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="未设置图标"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btn_asset_icon_editor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="设置图标" />
+        </LinearLayout>
+
         <!-- 分期输入表单（选择分期时显示） -->
         <LinearLayout
             android:id="@+id/layout_installment_fields"

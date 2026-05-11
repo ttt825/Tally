@@ -27,10 +27,21 @@
             android:layout_height="wrap_content"
             android:padding="16dp">
 
+            <ImageView
+                android:id="@+id/iv_investment_asset_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tv_investment_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/iv_investment_asset_icon"
+                android:layout_marginStart="36dp"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"

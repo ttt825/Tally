@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +30,7 @@ import com.example.budgetapp.R;
 import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.util.AssistantConfig;
+import com.example.budgetapp.util.AssetIconHelper;
 import com.example.budgetapp.util.CategoryManager;
 import com.example.budgetapp.util.ExternalImportHelper;
 import com.example.budgetapp.viewmodel.FinanceViewModel;
@@ -370,6 +373,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_backup_restore).setOnClickListener(v -> showBackupOptions());
         findViewById(R.id.btn_auto_asset).setOnClickListener(v -> startActivity(new Intent(this, AutoAssetActivity.class)));
+        findViewById(R.id.btn_asset_icon_settings).setOnClickListener(v -> showAssetIconSettingsDialog());
         findViewById(R.id.btn_toggle_night_mode).setOnClickListener(v -> startActivity(new Intent(this, ThemeSettingsActivity.class)));
         findViewById(R.id.btn_assistant_setting).setOnClickListener(v -> startActivity(new Intent(this, AssistantManagerActivity.class)));
         findViewById(R.id.btn_overtime_setting).setOnClickListener(v -> showSetOvertimeRateDialog());
@@ -1118,5 +1122,99 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             }
     );
+
+    private void showAssetIconSettingsDialog() {
+        if (allAssets == null || allAssets.isEmpty()) {
+            Toast.makeText(this, "请先创建资产，再设置图标", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_asset_icon_settings, null);
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(view).create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        List<AssetAccount> assets = new ArrayList<>(allAssets);
+        List<String> assetLabels = new ArrayList<>();
+        for (AssetAccount asset : assets) {
+            assetLabels.add(asset.name);
+        }
+
+        Spinner spinner = view.findViewById(R.id.spinner_asset_for_icon);
+        ImageView ivIcon = view.findViewById(R.id.iv_selected_asset_icon);
+        TextView tvState = view.findViewById(R.id.tv_selected_asset_icon_state);
+
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                this,
+                R.layout.item_spinner_dropdown,
+                assetLabels
+        );
+        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+        spinner.setAdapter(adapter);
+
+        Runnable refreshPreview = () -> {
+            int position = spinner.getSelectedItemPosition();
+            if (position < 0 || position >= assets.size()) {
+                tvState.setText("当前未选择资产");
+                ivIcon.setVisibility(View.GONE);
+                return;
+            }
+            AssetAccount selectedAsset = assets.get(position);
+            if (AssetIconHelper.bindSvgIcon(ivIcon, selectedAsset.svgIcon)) {
+                tvState.setText("当前图标已设置，显示尺寸固定为 24dp");
+            } else {
+                tvState.setText(AssetIconHelper.hasSvgIcon(selectedAsset.svgIcon) ? "当前 SVG 无法解析" : "当前未设置图标");
+            }
+        };
+
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                refreshPreview.run();
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                refreshPreview.run();
+            }
+        });
+
+        view.findViewById(R.id.btn_edit_selected_asset_icon).setOnClickListener(v -> {
+            int position = spinner.getSelectedItemPosition();
+            if (position < 0 || position >= assets.size()) {
+                return;
+            }
+            AssetAccount selectedAsset = assets.get(position);
+            AssetIconHelper.showSvgEditorDialog(
+                    this,
+                    selectedAsset.name,
+                    selectedAsset.svgIcon,
+                    svgCode -> {
+                        selectedAsset.svgIcon = svgCode;
+                        financeViewModel.updateAsset(selectedAsset);
+                        refreshPreview.run();
+                        Toast.makeText(this, "资产图标已保存", Toast.LENGTH_SHORT).show();
+                    }
+            );
+        });
+
+        view.findViewById(R.id.btn_clear_selected_asset_icon).setOnClickListener(v -> {
+            int position = spinner.getSelectedItemPosition();
+            if (position < 0 || position >= assets.size()) {
+                return;
+            }
+            AssetAccount selectedAsset = assets.get(position);
+            selectedAsset.svgIcon = "";
+            financeViewModel.updateAsset(selectedAsset);
+            refreshPreview.run();
+            Toast.makeText(this, "资产图标已清除", Toast.LENGTH_SHORT).show();
+        });
+
+        view.findViewById(R.id.btn_close_asset_icon_settings).setOnClickListener(v -> dialog.dismiss());
+
+        refreshPreview.run();
+        dialog.show();
+    }
 
 }

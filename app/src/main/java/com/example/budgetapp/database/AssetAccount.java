@@ -28,6 +28,7 @@ public class AssetAccount {
 
     // ========== 新增：自定义颜色 HEX 值 ==========
     public String customColorHex = "";
+    public String svgIcon = "";
     // ==========================================
 
     // === 新增理财专属字段 ===

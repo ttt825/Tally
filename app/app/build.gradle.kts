@@ -77,5 +77,6 @@ dependencies {
     implementation("cn.6tail:lunar:1.3.15")
 
     implementation("com.google.android.flexbox:flexbox:3.0.0")
+    implementation("com.caverock:androidsvg-aar:1.4")
 
 }

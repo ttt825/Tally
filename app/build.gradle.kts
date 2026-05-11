@@ -80,4 +80,6 @@ dependencies {
 
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 
+    implementation("com.caverock:androidsvg-aar:1.4")
+
 }

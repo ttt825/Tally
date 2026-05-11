@@ -135,6 +135,11 @@
         </RadioGroup>
     </androidx.cardview.widget.CardView>
 
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -142,6 +147,7 @@
         android:textSize="12sp"
         android:textColor="#888888"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"/>
 
 </LinearLayout>

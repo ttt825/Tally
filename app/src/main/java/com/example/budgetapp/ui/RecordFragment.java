@@ -1497,6 +1497,7 @@ public class RecordFragment extends Fragment {
             assetList.add(noAsset);
 
             spAsset.setAdapter(arrayAdapter);
+            com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
 
             viewModel.getAllAssets().observe(getViewLifecycleOwner(), assets -> {
                 assetList.clear();

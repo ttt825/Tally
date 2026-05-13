@@ -775,6 +775,7 @@ public class SelectToSpeakService extends AccessibilityService {
                 spAsset.setVisibility(View.VISIBLE);
                 com.example.budgetapp.util.AssetSpinnerAdapter adapter = new com.example.budgetapp.util.AssetSpinnerAdapter(themeContext);
                 spAsset.setAdapter(adapter);
+                com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
 
                 AppDatabase.databaseWriteExecutor.execute(() -> {
                     // 【修改】同时加载资产(0)和负债(1)

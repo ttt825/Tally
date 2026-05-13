@@ -945,6 +945,7 @@ public class AiChatActivity extends AppCompatActivity {
             com.example.budgetapp.util.AssetSpinnerAdapter assetAdapter = new com.example.budgetapp.util.AssetSpinnerAdapter(AiChatActivity.this);
             assetAdapter.addAll(selectableAssets);
             spAsset.setAdapter(assetAdapter);
+            com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
             etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         }
 

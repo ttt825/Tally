@@ -7,6 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListPopupWindow;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -22,11 +24,58 @@ import com.example.budgetapp.database.AssetAccount;
  */
 public class AssetSpinnerAdapter extends ArrayAdapter<AssetAccount> {
 
+    private static final int MAX_DROPDOWN_HEIGHT_DP = 260;
+
     private final LayoutInflater inflater;
 
     public AssetSpinnerAdapter(@NonNull Context context) {
         super(context, R.layout.item_spinner_asset);
         this.inflater = LayoutInflater.from(context);
+    }
+
+    /**
+     * 限制 Spinner 下拉列表的最大高度。
+     * 通过拦截 Spinner 点击事件，使用自定义 ListPopupWindow 替代默认弹窗。
+     * 在 setAdapter 之后调用此方法。
+     */
+    public static void limitDropDownHeight(Spinner spinner) {
+        int maxHeightPx = (int) (MAX_DROPDOWN_HEIGHT_DP * spinner.getContext().getResources().getDisplayMetrics().density);
+
+        spinner.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                showCustomDropdown(spinner, maxHeightPx);
+                return true;
+            }
+            return true;
+        });
+    }
+
+    private static void showCustomDropdown(Spinner spinner, int maxHeightPx) {
+        android.widget.ListPopupWindow popupWindow = new android.widget.ListPopupWindow(spinner.getContext());
+        popupWindow.setAnchorView(spinner);
+        popupWindow.setAdapter((android.widget.ListAdapter) spinner.getAdapter());
+        popupWindow.setWidth(spinner.getWidth());
+
+        // 项目少于等于6个时自适应高度，超过6个时限制最大高度
+        int itemCount = spinner.getAdapter().getCount();
+        if (itemCount <= 6) {
+            popupWindow.setHeight(android.widget.ListPopupWindow.WRAP_CONTENT);
+        } else {
+            popupWindow.setHeight(maxHeightPx);
+        }
+
+        popupWindow.setModal(true);
+        popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(spinner.getContext(), R.drawable.bg_input_field));
+        popupWindow.setOnItemClickListener((parent, view, position, id) -> {
+            spinner.setSelection(position);
+            popupWindow.dismiss();
+        });
+        popupWindow.show();
+
+        // 隐藏滚动条
+        if (popupWindow.getListView() != null) {
+            popupWindow.getListView().setVerticalScrollBarEnabled(false);
+        }
     }
 
     @NonNull

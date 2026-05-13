@@ -798,6 +798,7 @@ public class DetailsFragment extends Fragment {
 
             arrayAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
             spAsset.setAdapter(arrayAdapter);
+            com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
 
             viewModel.getAllAssets().observe(getViewLifecycleOwner(), assets -> {
                 localAssetList.clear();

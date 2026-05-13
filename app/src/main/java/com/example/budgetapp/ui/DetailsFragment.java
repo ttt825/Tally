@@ -27,6 +27,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -558,6 +559,36 @@ public class DetailsFragment extends Fragment {
         boolean isCurrencyEnabled = prefs.getBoolean("enable_currency", false);
         boolean isPhotoBackupEnabled = prefs.getBoolean("enable_photo_backup", false);
 
+        // ================= 不计入预算逻辑开始 =================
+        ImageView ivExcludeBudget = dialogView.findViewById(R.id.iv_exclude_budget);
+        boolean isBudgetFeatureEnabled = prefs.getBoolean("is_budget_enabled", false);
+        final boolean[] isExcludedFromBudget = {
+                existingTransaction != null && existingTransaction.excludeFromBudget
+        };
+
+        if (isBudgetFeatureEnabled && ivExcludeBudget != null) {
+            ivExcludeBudget.setVisibility(View.VISIBLE);
+            Runnable updateDotUi = () -> {
+                if (isExcludedFromBudget[0]) {
+                    ivExcludeBudget.setColorFilter(ContextCompat.getColor(getContext(), R.color.app_blue));
+                    ivExcludeBudget.setImageResource(R.drawable.ic_dot_filled);
+                } else {
+                    ivExcludeBudget.setColorFilter(android.graphics.Color.parseColor("#888888"));
+                    ivExcludeBudget.setImageResource(R.drawable.ic_dot_outline);
+                }
+            };
+            updateDotUi.run();
+
+            ivExcludeBudget.setOnClickListener(v -> {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+                isExcludedFromBudget[0] = !isExcludedFromBudget[0];
+                updateDotUi.run();
+                Toast.makeText(getContext(), isExcludedFromBudget[0] ? "该笔账单将不计入预算" : "该笔账单正常计入预算", Toast.LENGTH_SHORT).show();
+            });
+        } else if (ivExcludeBudget != null) {
+            ivExcludeBudget.setVisibility(View.GONE);
+        }
+        // ================= 不计入预算逻辑结束 =================
         if (isCurrencyEnabled) {
             btnCurrency.setVisibility(View.VISIBLE);
             if (existingTransaction != null && existingTransaction.currencySymbol != null && !existingTransaction.currencySymbol.isEmpty()) {
@@ -935,8 +966,19 @@ public class DetailsFragment extends Fragment {
                     updateT.currencySymbol = currencySymbol;
                     updateT.subCategory = selectedSubCategory[0];
                     updateT.photoPath = currentPhotoPath[0];
+                    updateT.excludeFromBudget = isExcludedFromBudget[0];
 
                     viewModel.updateTransactionWithAssetSync(existingTransaction, updateT);
+                } else {
+                    // 新增交易
+                    Transaction newT = new Transaction(ts, type, category, amount, noteContent, userRemark);
+                    newT.assetId = selectedAssetId;
+                    newT.currencySymbol = currencySymbol;
+                    newT.subCategory = selectedSubCategory[0];
+                    newT.photoPath = currentPhotoPath[0];
+                    newT.excludeFromBudget = isExcludedFromBudget[0];
+
+                    viewModel.addTransactionWithAssetSync(newT);
                 }
                 dialog.dismiss();
             }

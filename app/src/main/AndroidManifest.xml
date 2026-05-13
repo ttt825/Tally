@@ -84,6 +84,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.ImageViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <activity android:name=".ui.PhotoActionActivity"
             android:theme="@style/Theme.BudgetApp.Transparent"
             android:excludeFromRecents="true"

@@ -789,8 +789,14 @@ public class AiChatActivity extends AppCompatActivity {
             if (message.image != null) {
                 ivImage.setVisibility(View.VISIBLE);
                 ivImage.setImageBitmap(message.image);
+                ivImage.setOnClickListener(v -> {
+                    ImageViewerActivity.setPendingBitmap(message.image);
+                    v.getContext().startActivity(
+                            new android.content.Intent(v.getContext(), ImageViewerActivity.class));
+                });
             } else {
                 ivImage.setVisibility(View.GONE);
+                ivImage.setOnClickListener(null);
             }
         }
     }
@@ -936,11 +942,9 @@ public class AiChatActivity extends AppCompatActivity {
             noAsset.id = 0;
             selectableAssets.add(noAsset);
             selectableAssets.addAll(assets);
-            List<String> assetNames = new ArrayList<>();
-            for (AssetAccount asset : selectableAssets) {
-                assetNames.add(asset.name);
-            }
-            spAsset.setAdapter(new ArrayAdapter<>(AiChatActivity.this, android.R.layout.simple_spinner_dropdown_item, assetNames));
+            com.example.budgetapp.util.AssetSpinnerAdapter assetAdapter = new com.example.budgetapp.util.AssetSpinnerAdapter(AiChatActivity.this);
+            assetAdapter.addAll(selectableAssets);
+            spAsset.setAdapter(assetAdapter);
             etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         }
 

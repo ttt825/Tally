@@ -1489,56 +1489,13 @@ public class RecordFragment extends Fragment {
         boolean isAssetEnabled = config.isAssetsEnabled();
 
         List<AssetAccount> assetList = new ArrayList<>();
-        ArrayAdapter<AssetAccount> arrayAdapter = new ArrayAdapter<AssetAccount>(getContext(), R.layout.item_spinner_dropdown) {
-            @NonNull @Override
-            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                applyColor(view, getItem(position));
-                return view;
-            }
-            @Override
-            public View getDropDownView(int position, View convertView, @NonNull ViewGroup parent) {
-                View view = super.getDropDownView(position, convertView, parent);
-                applyColor(view, getItem(position));
-                return view;
-            }
-            private void applyColor(View view, AssetAccount asset) {
-                if (view instanceof TextView && asset != null) {
-                    TextView tv = (TextView) view;
-                    tv.setText(asset.name);
-
-                    // 1. 取消背景色，保持默认透明 (如果在Asset列表里，保留圆角逻辑即可)
-                    tv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-
-                    // 2. 根据用户的设置，单独修改字体颜色
-                    if (asset.colorType == 1) { // 红色
-                        tv.setTextColor(androidx.core.content.ContextCompat.getColor(view.getContext(), R.color.income_red));
-                    } else if (asset.colorType == 2) { // 绿色
-                        tv.setTextColor(androidx.core.content.ContextCompat.getColor(view.getContext(), R.color.expense_green));
-                    } else if (asset.colorType == 3 && asset.customColorHex != null && !asset.customColorHex.isEmpty()) { // 自定义颜色
-                        try {
-                            tv.setTextColor(android.graphics.Color.parseColor(asset.customColorHex));
-                        } catch (Exception e) {
-                            // 格式错误时回退到默认颜色
-                            tv.setTextColor(androidx.core.content.ContextCompat.getColor(view.getContext(), R.color.text_primary));
-                        }
-                    } else { // 默认颜色
-                        try {
-                            tv.setTextColor(androidx.core.content.ContextCompat.getColor(view.getContext(), R.color.text_primary));
-                        } catch (Exception e) {
-                            tv.setTextColor(android.graphics.Color.BLACK);
-                        }
-                    }
-                }
-            }
-        };
+        com.example.budgetapp.util.AssetSpinnerAdapter arrayAdapter = new com.example.budgetapp.util.AssetSpinnerAdapter(getContext());
         if (isAssetEnabled) {
             spAsset.setVisibility(View.VISIBLE);
             AssetAccount noAsset = new AssetAccount("不关联资产", 0, 0);
             noAsset.id = 0;
             assetList.add(noAsset);
 
-            arrayAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
             spAsset.setAdapter(arrayAdapter);
 
             viewModel.getAllAssets().observe(getViewLifecycleOwner(), assets -> {

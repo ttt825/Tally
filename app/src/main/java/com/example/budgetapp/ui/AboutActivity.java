@@ -45,6 +45,10 @@ public class AboutActivity extends AppCompatActivity {
             tvAppVersion.setText("当前版本 未知");
         }
 
+        // 新增：从服务器获取最新版本号
+        TextView tvLatestVersion = findViewById(R.id.tv_latest_version);
+        checkLatestVersion(tvLatestVersion);
+
         // 处理沉浸式内边距，与其他界面保持统一
         View rootView = findViewById(R.id.about_root);
         final int originalPaddingLeft = rootView.getPaddingLeft();
@@ -119,5 +123,51 @@ public class AboutActivity extends AppCompatActivity {
         // 计算差值并转为天数（+1 表示包括今天）
         long diff = today.getTimeInMillis() - startDate.getTimeInMillis();
         return (diff / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    /**
+     * 从服务器获取最新版本号
+     * 请求地址: https://tallyapp.top/version.json
+     * 预期返回格式: {"version": "1.2.0"}
+     */
+    private void checkLatestVersion(TextView tvLatestVersion) {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL("http://tallyapp.top/version.json");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    java.io.InputStream is = conn.getInputStream();
+                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    // 解析 JSON
+                    org.json.JSONObject json = new org.json.JSONObject(sb.toString());
+                    String latestVersion = json.optString("version", "");
+
+                    runOnUiThread(() -> {
+                        if (!latestVersion.isEmpty()) {
+                            tvLatestVersion.setText("最新版本 v" + latestVersion);
+                        } else {
+                            tvLatestVersion.setText("最新版本 获取失败");
+                        }
+                    });
+                } else {
+                    runOnUiThread(() -> tvLatestVersion.setText("最新版本 获取失败"));
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                runOnUiThread(() -> tvLatestVersion.setText("最新版本 获取失败"));
+            }
+        }).start();
     }
 }

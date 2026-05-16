@@ -478,6 +478,142 @@ public class DetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * 显示日期选择器，选择完日期后自动弹出时间选择器
+     */
+    private void showTransactionDatePicker(java.util.Calendar calendar, Runnable updateDisplay) {
+        if (getContext() == null) return;
+
+        final BottomSheetDialog dialog = new BottomSheetDialog(getContext());
+        dialog.setContentView(R.layout.dialog_bottom_date_picker);
+
+        dialog.setOnShowListener(dialogInterface -> {
+            View bottomSheet = ((BottomSheetDialog) dialogInterface).findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) bottomSheet.setBackgroundResource(android.R.color.transparent);
+        });
+
+        NumberPicker npYear = dialog.findViewById(R.id.np_year);
+        NumberPicker npMonth = dialog.findViewById(R.id.np_month);
+        NumberPicker npDay = dialog.findViewById(R.id.np_day);
+        TextView tvPreview = dialog.findViewById(R.id.tv_date_preview);
+        Button btnCancel = dialog.findViewById(R.id.btn_cancel);
+        Button btnConfirm = dialog.findViewById(R.id.btn_confirm);
+
+        if (npYear == null || npMonth == null || npDay == null || btnConfirm == null || btnCancel == null) return;
+
+        int curYear = calendar.get(java.util.Calendar.YEAR);
+        int curMonth = calendar.get(java.util.Calendar.MONTH) + 1;
+        int curDay = calendar.get(java.util.Calendar.DAY_OF_MONTH);
+
+        npYear.setMinValue(2000);
+        npYear.setMaxValue(2050);
+        npYear.setValue(curYear);
+
+        npMonth.setMinValue(1);
+        npMonth.setMaxValue(12);
+        npMonth.setValue(curMonth);
+
+        npDay.setMinValue(1);
+        int maxDays = java.time.YearMonth.of(curYear, curMonth).lengthOfMonth();
+        npDay.setMaxValue(maxDays);
+        npDay.setValue(curDay);
+
+        NumberPicker.OnValueChangeListener dateChangeListener = (picker, oldVal, newVal) -> {
+            picker.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            int y = npYear.getValue();
+            int m = npMonth.getValue();
+            int newMaxDays = java.time.YearMonth.of(y, m).lengthOfMonth();
+            if (npDay.getMaxValue() != newMaxDays) {
+                npDay.setMaxValue(newMaxDays);
+                if (npDay.getValue() > newMaxDays) npDay.setValue(newMaxDays);
+            }
+            updatePreviewText(tvPreview, y, m, npDay.getValue());
+        };
+
+        npYear.setOnValueChangedListener(dateChangeListener);
+        npMonth.setOnValueChangedListener(dateChangeListener);
+        npDay.setOnValueChangedListener(dateChangeListener);
+        updatePreviewText(tvPreview, curYear, curMonth, curDay);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnConfirm.setOnClickListener(v -> {
+            v.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            calendar.set(java.util.Calendar.YEAR, npYear.getValue());
+            calendar.set(java.util.Calendar.MONTH, npMonth.getValue() - 1);
+            calendar.set(java.util.Calendar.DAY_OF_MONTH, npDay.getValue());
+            dialog.dismiss();
+            showTransactionTimePicker(calendar, updateDisplay);
+        });
+
+        dialog.show();
+    }
+
+    /**
+     * 显示时间选择器（小时 + 分钟）
+     */
+    private void showTransactionTimePicker(java.util.Calendar calendar, Runnable updateDisplay) {
+        if (getContext() == null) return;
+
+        final BottomSheetDialog dialog = new BottomSheetDialog(getContext());
+        dialog.setContentView(R.layout.dialog_bottom_time_picker);
+
+        dialog.setOnShowListener(dialogInterface -> {
+            View bottomSheet = ((BottomSheetDialog) dialogInterface).findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) bottomSheet.setBackgroundResource(android.R.color.transparent);
+        });
+
+        NumberPicker npHour = dialog.findViewById(R.id.np_hour);
+        NumberPicker npMinute = dialog.findViewById(R.id.np_minute);
+        TextView tvPreview = dialog.findViewById(R.id.tv_time_preview);
+        Button btnCancel = dialog.findViewById(R.id.btn_cancel);
+        Button btnConfirm = dialog.findViewById(R.id.btn_confirm);
+
+        if (npHour == null || npMinute == null || btnConfirm == null || btnCancel == null) return;
+
+        int curHour = calendar.get(java.util.Calendar.HOUR_OF_DAY);
+        int curMinute = calendar.get(java.util.Calendar.MINUTE);
+
+        npHour.setMinValue(0);
+        npHour.setMaxValue(23);
+        npHour.setValue(curHour);
+        npHour.setFormatter(value -> String.format(Locale.CHINA, "%02d", value));
+
+        npMinute.setMinValue(0);
+        npMinute.setMaxValue(59);
+        npMinute.setValue(curMinute);
+        npMinute.setFormatter(value -> String.format(Locale.CHINA, "%02d", value));
+
+        Runnable updateTimePreview = () -> {
+            if (tvPreview != null) {
+                tvPreview.setText(String.format(Locale.CHINA, "%02d:%02d", npHour.getValue(), npMinute.getValue()));
+            }
+        };
+        updateTimePreview.run();
+
+        npHour.setOnValueChangedListener((picker, oldVal, newVal) -> {
+            picker.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            updateTimePreview.run();
+        });
+        npMinute.setOnValueChangedListener((picker, oldVal, newVal) -> {
+            picker.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            updateTimePreview.run();
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnConfirm.setOnClickListener(v -> {
+            v.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, npHour.getValue());
+            calendar.set(java.util.Calendar.MINUTE, npMinute.getValue());
+            calendar.set(java.util.Calendar.SECOND, 0);
+            updateDisplay.run();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
     private void processAndDisplayData(int direction) {
         long[] range = getTimeRange();
 
@@ -836,8 +972,10 @@ public class DetailsFragment extends Fragment {
         };
         updateDateDisplay.run();
 
-        tvDate.setClickable(false);
-        tvDate.setFocusable(false);
+        // 点击日期可修改
+        tvDate.setClickable(true);
+        tvDate.setFocusable(true);
+        tvDate.setOnClickListener(v -> showTransactionDatePicker(calendar, updateDateDisplay));
 
         rgType.setOnCheckedChangeListener((g, id) -> {
             boolean switchToExpense = (id == R.id.rb_expense);

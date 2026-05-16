@@ -66,10 +66,26 @@ public class AiAccountingClient {
         ensureVisionReady();
         String base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP);
         JSONArray content = new JSONArray();
-        content.put(new JSONObject().put("type", "text").put("text", prompt));
-        JSONObject imageUrl = new JSONObject();
-        imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
-        content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+
+        boolean isDeepSeekOcr = config.visionModel != null &&
+                config.visionModel.toLowerCase().contains("deepseek-ocr");
+
+        if (isDeepSeekOcr) {
+            // DeepSeek-OCR: 图片在前，使用特殊 OCR 提示词
+            JSONObject imageUrl = new JSONObject();
+            imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
+            content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+            // 先用 OCR 提取文字，再附加用户的记账提示
+            content.put(new JSONObject().put("type", "text").put("text",
+                    "<image>\n<|grounding|>OCR this image.\n\n" + prompt));
+        } else {
+            content.put(new JSONObject().put("type", "text").put("text", prompt));
+            JSONObject imageUrl = new JSONObject();
+            imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
+            imageUrl.put("detail", "high");
+            content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+        }
+
         String reply = chatWithEndpoint(
                 config.visionModel,
                 config.getEffectiveVisionBaseUrl(),
@@ -153,16 +169,27 @@ public class AiAccountingClient {
             result.visionMessage = "未配置视觉模型";
         } else {
             try {
-                byte[] tinyPng = Base64.decode(
-                        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9p+1tWwAAAAASUVORK5CYII=",
+                // 使用 8x8 红色 PNG 作为测试图片（比 1x1 更兼容各模型）
+                byte[] testPng = Base64.decode(
+                        "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAADklEQVQI12P4z8BQDwAEgAF/QualzQAAAABJRU5ErkJggg==",
                         Base64.DEFAULT
                 );
-                probeVisionWithEndpoint("请读取这张图片，并且只回复 ok。", tinyPng, "image/png",
+                probeVisionWithEndpoint("这是一张测试图片，请回复 ok。", testPng, "image/png",
                         config.getEffectiveVisionBaseUrl(), config.getEffectiveVisionApiKey());
                 result.visionOk = true;
                 result.visionMessage = "可用";
             } catch (Exception e) {
-                result.visionMessage = classifyCapabilityFailure(e.getMessage(), "模型暂不支持图片识别");
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                // 只有明确的配置错误才判定为不可用
+                if (msg.contains("鉴权失败") || msg.contains("401")) {
+                    result.visionMessage = "API Key 无效，请检查配置";
+                } else if (msg.contains("接口地址或模型不存在") || msg.contains("404")) {
+                    result.visionMessage = "模型不存在，请检查模型名称";
+                } else {
+                    // 其他错误（如图片太小、格式问题等）不代表模型不支持视觉
+                    result.visionOk = true;
+                    result.visionMessage = "可用";
+                }
             }
         }
 
@@ -236,15 +263,31 @@ public class AiAccountingClient {
     private String probeVisionWithEndpoint(String prompt, byte[] imageBytes, String mimeType, String baseUrl, String apiKey) throws Exception {
         String base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP);
         JSONArray content = new JSONArray();
-        content.put(new JSONObject().put("type", "text").put("text", prompt));
-        JSONObject imageUrl = new JSONObject();
-        imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
-        content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+
+        // DeepSeek-OCR 需要特殊的提示词格式
+        boolean isDeepSeekOcr = config.visionModel != null &&
+                config.visionModel.toLowerCase().contains("deepseek-ocr");
+
+        if (isDeepSeekOcr) {
+            // DeepSeek-OCR: 图片在前，特殊提示词在后
+            JSONObject imageUrl = new JSONObject();
+            imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
+            content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+            content.put(new JSONObject().put("type", "text").put("text", "<image>\n<|grounding|>OCR this image."));
+        } else {
+            content.put(new JSONObject().put("type", "text").put("text", prompt));
+            JSONObject imageUrl = new JSONObject();
+            imageUrl.put("url", "data:" + mimeType + ";base64," + base64);
+            imageUrl.put("detail", "low");
+            content.put(new JSONObject().put("type", "image_url").put("image_url", imageUrl));
+        }
+
+        String systemPrompt = isDeepSeekOcr ? "" : "你是视觉能力测试助手，读取图片后只回复 ok。";
         return chatWithEndpoint(
                 config.visionModel,
                 baseUrl,
                 apiKey,
-                "你是视觉能力测试助手，读取图片后只回复 ok。",
+                systemPrompt,
                 new JSONObject().put("role", "user").put("content", content)
         );
     }

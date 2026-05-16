@@ -133,13 +133,31 @@ public class AboutActivity extends AppCompatActivity {
     private void checkLatestVersion(TextView tvLatestVersion) {
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL("http://tallyapp.top/version.json");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+                // 优先尝试域名，失败后回退到 IP 直连
+                java.net.HttpURLConnection conn = null;
+                int responseCode = -1;
+                try {
+                    java.net.URL url = new java.net.URL("https://tallyapp.top/version.json");
+                    conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
+                    responseCode = conn.getResponseCode();
+                } catch (Exception domainEx) {
+                    // 域名不通，回退到 IP 直连
+                    try {
+                        java.net.URL fallbackUrl = new java.net.URL("http://47.97.78.35/version.json");
+                        conn = (java.net.HttpURLConnection) fallbackUrl.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.setConnectTimeout(5000);
+                        conn.setReadTimeout(5000);
+                        responseCode = conn.getResponseCode();
+                    } catch (Exception ipEx) {
+                        throw ipEx;
+                    }
+                }
+                android.util.Log.d("AboutActivity", "Version check response: " + responseCode);
 
-                int responseCode = conn.getResponseCode();
                 if (responseCode == 200) {
                     java.io.InputStream is = conn.getInputStream();
                     java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
@@ -150,7 +168,6 @@ public class AboutActivity extends AppCompatActivity {
                     }
                     reader.close();
 
-                    // 解析 JSON
                     org.json.JSONObject json = new org.json.JSONObject(sb.toString());
                     String latestVersion = json.optString("version", "");
 
@@ -162,10 +179,12 @@ public class AboutActivity extends AppCompatActivity {
                         }
                     });
                 } else {
+                    android.util.Log.e("AboutActivity", "Version check failed with code: " + responseCode);
                     runOnUiThread(() -> tvLatestVersion.setText("最新版本 获取失败"));
                 }
                 conn.disconnect();
             } catch (Exception e) {
+                android.util.Log.e("AboutActivity", "Version check error: " + e.getMessage(), e);
                 runOnUiThread(() -> tvLatestVersion.setText("最新版本 获取失败"));
             }
         }).start();

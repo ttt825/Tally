@@ -117,6 +117,9 @@ public class AiChatActivity extends AppCompatActivity {
         btnVoice = findViewById(R.id.btn_voice_input);
         btnImage = findViewById(R.id.btn_image_input);
         btnSend = findViewById(R.id.btn_send);
+
+        findViewById(R.id.btn_ai_settings).setOnClickListener(v ->
+                startActivity(new Intent(this, AiSettingActivity.class)));
         
         voiceRecordingOverlay = findViewById(R.id.voice_recording_overlay);
         tvRecordingHint = findViewById(R.id.tv_recording_hint);

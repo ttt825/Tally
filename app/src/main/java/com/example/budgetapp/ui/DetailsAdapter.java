@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
+import com.example.budgetapp.util.AssetIconHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ import java.util.Map;
 public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHolder> {
 
     private List<Transaction> transactions = new ArrayList<>();
-    private Map<Integer, String> assetMap = new HashMap<>();
+    private Map<Integer, AssetAccount> assetMap = new HashMap<>();
     private OnTransactionClickListener listener;
 
     private final SimpleDateFormat displayFormat = new SimpleDateFormat("MM月dd日 EEEE", Locale.CHINA);
@@ -51,7 +52,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
     public void setAssets(List<AssetAccount> assets) {
         assetMap.clear();
         if (assets != null) {
-            for (AssetAccount asset : assets) assetMap.put(asset.id, asset.name);
+            for (AssetAccount asset : assets) assetMap.put(asset.id, asset);
         }
         notifyDataSetChanged();
     }
@@ -169,17 +170,25 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
             holder.tvNote.setVisibility(View.GONE);
         }
 
-        String assetName = (current.assetId != 0 && assetMap != null) ? assetMap.get(current.assetId) : null;
+        String assetName = (current.assetId != 0 && assetMap != null) ? assetMap.get(current.assetId) != null ? assetMap.get(current.assetId).name : null : null;
+        AssetAccount assetAccount = (current.assetId != 0 && assetMap != null) ? assetMap.get(current.assetId) : null;
         boolean hasRemarkOrPhoto = !TextUtils.isEmpty(current.remark) || !TextUtils.isEmpty(current.photoPath);
         int statusColor = hasRemarkOrPhoto ? context.getColor(R.color.expense_green) : context.getColor(R.color.income_red);
 
-        if (assetName != null) {
+        if (assetAccount != null && assetName != null) {
             holder.viewIndicator.setVisibility(View.GONE);
-            holder.tvAssetName.setVisibility(View.VISIBLE);
+            holder.llAssetInfo.setVisibility(View.VISIBLE);
             holder.tvAssetName.setText(assetName);
             holder.tvAssetName.setTextColor(statusColor);
+            
+            // 显示资产图标
+            if (AssetIconHelper.bindSvgIcon(holder.ivAssetIcon, assetAccount.svgIcon)) {
+                holder.ivAssetIcon.setVisibility(View.VISIBLE);
+            } else {
+                holder.ivAssetIcon.setVisibility(View.GONE);
+            }
         } else {
-            holder.tvAssetName.setVisibility(View.GONE);
+            holder.llAssetInfo.setVisibility(View.GONE);
             holder.viewIndicator.setVisibility(View.VISIBLE);
             holder.viewIndicator.setBackgroundColor(statusColor);
         }
@@ -200,6 +209,8 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         View cardView;
         TextView tvDate, tvSubCategory, tvAmount, tvNote, tvAssetName;
         View viewIndicator;
+        android.widget.ImageView ivAssetIcon;
+        android.widget.LinearLayout llAssetInfo;
 
         ViewHolder(View wrapper, TextView header, View card) {
             super(wrapper);
@@ -211,6 +222,8 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
             tvNote = card.findViewById(R.id.tv_detail_note);
             tvAssetName = card.findViewById(R.id.tv_asset_name);
             viewIndicator = card.findViewById(R.id.view_remark_indicator);
+            ivAssetIcon = card.findViewById(R.id.iv_asset_icon);
+            llAssetInfo = card.findViewById(R.id.ll_asset_info);
         }
     }
 }

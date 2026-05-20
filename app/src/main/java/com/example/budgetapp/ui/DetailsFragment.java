@@ -924,7 +924,7 @@ public class DetailsFragment extends Fragment {
         boolean isAssetEnabled = config.isAssetsEnabled();
 
         List<AssetAccount> localAssetList = new ArrayList<>();
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(getContext(), R.layout.item_spinner_dropdown);
+        com.example.budgetapp.util.AssetSpinnerAdapter assetAdapter = new com.example.budgetapp.util.AssetSpinnerAdapter(getContext());
 
         if (isAssetEnabled) {
             spAsset.setVisibility(View.VISIBLE);
@@ -932,8 +932,7 @@ public class DetailsFragment extends Fragment {
             noAsset.id = 0;
             localAssetList.add(noAsset);
 
-            arrayAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
-            spAsset.setAdapter(arrayAdapter);
+            spAsset.setAdapter(assetAdapter);
             com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
 
             viewModel.getAllAssets().observe(getViewLifecycleOwner(), assets -> {
@@ -944,10 +943,9 @@ public class DetailsFragment extends Fragment {
                         if (a.type == 0 || a.type == 1) localAssetList.add(a);
                     }
                 }
-                List<String> names = localAssetList.stream().map(a -> a.name).collect(Collectors.toList());
-                arrayAdapter.clear();
-                arrayAdapter.addAll(names);
-                arrayAdapter.notifyDataSetChanged();
+                assetAdapter.clear();
+                assetAdapter.addAll(localAssetList);
+                assetAdapter.notifyDataSetChanged();
 
                 if (existingTransaction != null && existingTransaction.assetId != 0) {
                     for (int i = 0; i < localAssetList.size(); i++) {
@@ -1169,9 +1167,9 @@ public class DetailsFragment extends Fragment {
         AssetAccount noAsset = new AssetAccount("不关联资产", 0, 0);
         noAsset.id = 0;
 
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(requireContext(), R.layout.item_spinner_dropdown);
-        arrayAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
-        spRevokeAsset.setAdapter(arrayAdapter);
+        com.example.budgetapp.util.AssetSpinnerAdapter assetAdapter = new com.example.budgetapp.util.AssetSpinnerAdapter(requireContext());
+        spRevokeAsset.setAdapter(assetAdapter);
+        com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spRevokeAsset);
 
         viewModel.getAllAssets().observe(getViewLifecycleOwner(), assets -> {
             localAssetList.clear();
@@ -1181,10 +1179,9 @@ public class DetailsFragment extends Fragment {
                     if (a.type == 0 || a.type == 1) localAssetList.add(a);
                 }
             }
-            List<String> names = localAssetList.stream().map(a -> a.name).collect(Collectors.toList());
-            arrayAdapter.clear();
-            arrayAdapter.addAll(names);
-            arrayAdapter.notifyDataSetChanged();
+            assetAdapter.clear();
+            assetAdapter.addAll(localAssetList);
+            assetAdapter.notifyDataSetChanged();
 
             int targetIndex = 0;
             if (transaction.assetId != 0) {

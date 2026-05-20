@@ -68,14 +68,31 @@
                 android:background="@color/income_red"
                 android:visibility="gone"/>
 
-            <TextView
-                android:id="@+id/tv_asset_name"
+            <LinearLayout
+                android:id="@+id/ll_asset_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                android:text="资产名称"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/iv_asset_icon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="4dp"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter"
+                    android:visibility="gone"/>
+
+                <TextView
+                    android:id="@+id/tv_asset_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:text="资产名称"/>
+            </LinearLayout>
         </FrameLayout>
 
         <TextView

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
+import com.example.budgetapp.util.AssetIconHelper;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.Map;
 
 public class TransactionListAdapter extends RecyclerView.Adapter<TransactionListAdapter.ViewHolder> {
     private List<Transaction> list = new ArrayList<>();
-    private Map<Integer, String> assetMap = new HashMap<>();
+    private Map<Integer, AssetAccount> assetMap = new HashMap<>();
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
@@ -42,7 +43,7 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         assetMap.clear();
         if (assets != null) {
             for (AssetAccount asset : assets) {
-                assetMap.put(asset.id, asset.name);
+                assetMap.put(asset.id, asset);
             }
         }
         notifyDataSetChanged();
@@ -136,15 +137,23 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
                 : context.getColor(R.color.income_red);
 
         // 资产名称映射处理
-        String assetName = (t.assetId != 0 && assetMap != null) ? assetMap.get(t.assetId) : null;
+        AssetAccount assetAccount = (t.assetId != 0 && assetMap != null) ? assetMap.get(t.assetId) : null;
+        String assetName = assetAccount != null ? assetAccount.name : null;
 
         if (assetName != null) {
             holder.viewIndicator.setVisibility(View.GONE);
-            holder.tvAssetName.setVisibility(View.VISIBLE);
+            holder.llAssetInfo.setVisibility(View.VISIBLE);
             holder.tvAssetName.setText(assetName);
             holder.tvAssetName.setTextColor(statusColor);
+            
+            // 显示资产图标
+            if (AssetIconHelper.bindSvgIcon(holder.ivAssetIcon, assetAccount.svgIcon)) {
+                holder.ivAssetIcon.setVisibility(View.VISIBLE);
+            } else {
+                holder.ivAssetIcon.setVisibility(View.GONE);
+            }
         } else {
-            holder.tvAssetName.setVisibility(View.GONE);
+            holder.llAssetInfo.setVisibility(View.GONE);
             holder.viewIndicator.setVisibility(View.VISIBLE);
             holder.viewIndicator.setBackgroundColor(statusColor);
         }
@@ -165,6 +174,8 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
 
         TextView tvSubCategory;
         TextView tvAssetName;
+        android.widget.ImageView ivAssetIcon;
+        android.widget.LinearLayout llAssetInfo;
 
         ViewHolder(View v) {
             super(v);
@@ -174,6 +185,8 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
             tvNote = v.findViewById(R.id.tv_detail_note);
             viewIndicator = v.findViewById(R.id.view_remark_indicator);
             tvAssetName = v.findViewById(R.id.tv_asset_name);
+            ivAssetIcon = v.findViewById(R.id.iv_asset_icon);
+            llAssetInfo = v.findViewById(R.id.ll_asset_info);
         }
     }
 }

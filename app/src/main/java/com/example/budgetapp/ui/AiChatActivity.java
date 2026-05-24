@@ -921,7 +921,19 @@ public class AiChatActivity extends AppCompatActivity {
             // 2. 直接复用你原版“记一笔”的 CategoryAdapter
             if (rvCategory != null) {
                 // 如果开启了“详细分类”，建议使用 StaggeredGridLayoutManager 或 FlexboxLayoutManager
-                rvCategory.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(AiChatActivity.this, 5));
+                // 根据是否开启详细分类，动态选择布局管理器
+                boolean isDetailed = com.example.budgetapp.util.CategoryManager.isDetailedCategoryEnabled(AiChatActivity.this);
+                if (isDetailed) {
+                    // 详细分类：使用 FlexboxLayoutManager 实现横向自适应换行
+                    com.google.android.flexbox.FlexboxLayoutManager flexboxLayoutManager = new com.google.android.flexbox.FlexboxLayoutManager(AiChatActivity.this);
+                    flexboxLayoutManager.setFlexWrap(com.google.android.flexbox.FlexWrap.WRAP);
+                    flexboxLayoutManager.setFlexDirection(com.google.android.flexbox.FlexDirection.ROW);
+                    flexboxLayoutManager.setJustifyContent(com.google.android.flexbox.JustifyContent.FLEX_START);
+                    rvCategory.setLayoutManager(flexboxLayoutManager);
+                } else {
+                    // 默认：5列网格布局
+                    rvCategory.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(AiChatActivity.this, 5));
+                }
 
                 categoryAdapter = new CategoryAdapter(AiChatActivity.this, new ArrayList<>(), currentSelectedCategory, category -> {
                     // 点击一级分类时触发

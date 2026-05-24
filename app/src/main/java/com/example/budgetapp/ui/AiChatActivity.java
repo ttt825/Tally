@@ -379,6 +379,19 @@ public class AiChatActivity extends AppCompatActivity {
         if (intent == null) {
             return;
         }
+        
+        // 处理语音触发
+        if (intent.getBooleanExtra("trigger_voice", false)) {
+            // 延迟触发语音输入，等待界面完全加载
+            btnVoice.postDelayed(() -> {
+                if (!isFinishing()) {
+                    btnVoice.performClick();
+                }
+            }, 300);
+            return;
+        }
+        
+        // 处理图片分享
         String action = intent.getAction();
         String type = intent.getType();
         if (Intent.ACTION_SEND.equals(action) && type != null && type.startsWith("image/")) {

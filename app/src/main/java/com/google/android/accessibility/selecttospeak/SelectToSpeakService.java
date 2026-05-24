@@ -308,7 +308,8 @@ public class SelectToSpeakService extends AccessibilityService {
         try {
             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
             dao = db.transactionDao();
-            startForegroundNotification();
+            // 已移除常驻通知，改为可选的AI记账通知
+            // startForegroundNotification();
             setupKeepAliveWindow();
         } catch (Exception e) {
             Log.e(TAG, "Service init failed", e);

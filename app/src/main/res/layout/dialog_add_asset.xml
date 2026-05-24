@@ -7,13 +7,20 @@
     app:cardElevation="8dp"
     app:cardBackgroundColor="@color/white">
 
-    <LinearLayout
+    <com.example.budgetapp.ui.MaxHeightScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingTop="24dp"
-        android:paddingBottom="16dp"
-        android:paddingHorizontal="24dp">
+        app:maxHeight="600dp"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="24dp"
+            android:paddingBottom="16dp"
+            android:paddingHorizontal="24dp">
 
         <TextView
             android:id="@+id/tv_dialog_title"
@@ -352,5 +359,7 @@
                 app:cornerRadius="16dp"/>
         </LinearLayout>
 
-    </LinearLayout>
+        </LinearLayout>
+
+    </com.example.budgetapp.ui.MaxHeightScrollView>
 </androidx.cardview.widget.CardView>

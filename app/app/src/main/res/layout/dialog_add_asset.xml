@@ -3,15 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="320dp"
     android:layout_height="wrap_content"
+    android:maxHeight="600dp"
     app:cardCornerRadius="32dp"
     app:cardElevation="12dp"
     app:cardBackgroundColor="@color/white">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
 
         <TextView
             android:id="@+id/tv_dialog_title"
@@ -298,5 +305,7 @@
                 app:cornerRadius="16dp"/>
         </LinearLayout>
 
-    </LinearLayout>
+        </LinearLayout>
+
+    </ScrollView>
 </androidx.cardview.widget.CardView>

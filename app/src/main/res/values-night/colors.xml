@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="app_blue">#3683f7</color>
+    <!-- 【修复】同步新增 app_accent 别名 -->
+    <color name="app_accent">#3683f7</color>
+    <color name="app_yellow">#3683f7</color>
     <color name="ripple_yellow">#263238</color>
 
     <color name="app_background">#121212</color>
@@ -11,13 +13,8 @@
     <color name="text_primary">#E0E0E0</color>
     <color name="text_secondary">#A0A0A0</color>
 
-    <color name="fixed_yellow">#FFD700</color>
+    <!-- 【修复】移除未使用的 fixed_yellow -->
     <color name="tab_unselected">#90A4AE</color>
-
-    <color name="budget_safe_bg">#1A3320</color>
-    <color name="budget_exceed_bg">#3B1919</color>
-    <color name="budget_progress_safe">#A5D6A7</color>
-    <color name="budget_progress_exceed">#EF6565</color>
 
     <color name="divider_color">#2C2C2C</color>
 
@@ -26,7 +23,7 @@
 
     <color name="calendar_lunar_text">#6b6d6d</color>
 
-    <color name="bottom_selected">@color/app_blue</color>
+    <color name="bottom_selected">@color/app_yellow</color>
 
     <color name="divider">#73C5BFBF</color>
     <color name="income_red">#EF6565</color>
@@ -40,6 +37,9 @@
 
     <color name="down_background">#000000</color>
     <color name="bar_background">#000000</color>
+    
+    <!-- 底部导航栏背景，深色，80%透明度 -->
+    <color name="bottom_bar_background">#CC1E1E1E</color>
 
     <color name="bottom_unselected">#FFFFFF</color>
 
@@ -61,13 +61,4 @@
     <color name="currency_symbol_text_normal">#FFFFFF</color>
     <color name="currency_symbol_text_selected">#FFFFFF</color>
     <color name="currency_name_text">#AAAAAA</color>
-    
-    <color name="icon_secondary">#AAAAAA</color>
-    
-    <!-- AI Guide colors (Night mode) -->
-    <color name="ai_guide_hint_bg">#3E2723</color>
-    <color name="ai_guide_hint_title">#FFD54F</color>
-    <color name="ai_guide_hint_text">#FFB74D</color>
-    <color name="ai_guide_example_bg">#2C2C2C</color>
-    <color name="ai_guide_link">#FFD700</color>
 </resources>

@@ -1,5 +1,7 @@
 package com.example.budgetapp.service;
 
+import android.util.Log;
+
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -27,7 +29,6 @@ import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -40,14 +41,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
-import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.ui.CategoryAdapter;
 import com.example.budgetapp.ui.PhotoActionActivity;
-import com.example.budgetapp.util.AssistantConfig;
+import com.example.budgetapp.ui.TransactionDialogHelper;
 import com.example.budgetapp.util.CategoryManager;
-import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -59,7 +57,6 @@ public class QuickAddTileService extends TileService {
 
     private boolean isWindowShowing = false;
     private View windowRootView; // 【新增】持有悬浮窗根视图引用
-    private List<AssetAccount> loadedAssets = new ArrayList<>();
     private String selectedSubCategory = null;
 
     @Override
@@ -88,6 +85,7 @@ public class QuickAddTileService extends TileService {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void checkPermissionAndShowWindow() {
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "需要悬浮窗权限才能使用快捷记账", Toast.LENGTH_LONG).show();
@@ -118,8 +116,7 @@ public class QuickAddTileService extends TileService {
             WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
             WindowManager.LayoutParams params = new WindowManager.LayoutParams();
 
-            params.type = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ?
-                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+            params.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
             params.format = PixelFormat.TRANSLUCENT;
             params.width = WindowManager.LayoutParams.MATCH_PARENT;
             params.height = WindowManager.LayoutParams.MATCH_PARENT;
@@ -153,39 +150,7 @@ public class QuickAddTileService extends TileService {
             EditText etCategory = floatView.findViewById(R.id.et_window_category);
             EditText etNote = floatView.findViewById(R.id.et_window_note);
             EditText etRemark = floatView.findViewById(R.id.et_window_remark);
-            Spinner spAsset = floatView.findViewById(R.id.sp_asset);
             Button btnCurrency = floatView.findViewById(R.id.btn_window_currency);
-
-            // ================= 【新增】不计入预算逻辑开始 =================
-            ImageView ivExcludeBudget = floatView.findViewById(R.id.iv_window_exclude_budget);
-            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-            boolean isBudgetFeatureEnabled = prefs.getBoolean("is_budget_enabled", false);
-            final boolean[] isExcludedFromBudget = { false }; // 悬浮窗默认计入预算
-
-            if (isBudgetFeatureEnabled && ivExcludeBudget != null) {
-                ivExcludeBudget.setVisibility(View.VISIBLE);
-
-                Runnable updateDotUi = () -> {
-                    if (isExcludedFromBudget[0]) {
-                        ivExcludeBudget.setColorFilter(ContextCompat.getColor(this, R.color.app_blue));
-                        ivExcludeBudget.setImageResource(R.drawable.ic_dot_filled);
-                    } else {
-                        ivExcludeBudget.setColorFilter(android.graphics.Color.parseColor("#888888"));
-                        ivExcludeBudget.setImageResource(R.drawable.ic_dot_outline);
-                    }
-                };
-                updateDotUi.run();
-
-                ivExcludeBudget.setOnClickListener(v -> {
-                    v.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
-                    isExcludedFromBudget[0] = !isExcludedFromBudget[0];
-                    updateDotUi.run();
-                    Toast.makeText(this, isExcludedFromBudget[0] ? "该笔账单将不计入预算" : "该笔账单正常计入预算", Toast.LENGTH_SHORT).show();
-                });
-            } else if (ivExcludeBudget != null) {
-                ivExcludeBudget.setVisibility(View.GONE);
-            }
-            // ================= 【新增】不计入预算逻辑结束 =================
 
             Button btnSave = floatView.findViewById(R.id.btn_window_save);
             Button btnCancel = floatView.findViewById(R.id.btn_window_cancel);
@@ -199,6 +164,7 @@ public class QuickAddTileService extends TileService {
             etAmount.requestFocus();
             rgType.check(R.id.rb_window_expense);
 
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
             boolean isCurrencyEnabled = prefs.getBoolean("enable_currency", false);
             boolean isPhotoBackupEnabled = prefs.getBoolean("enable_photo_backup", false);
             final String[] currentPhotoPath = {null};
@@ -296,8 +262,8 @@ public class QuickAddTileService extends TileService {
                     rvCategory.setVisibility(View.GONE);
                     etCategory.setVisibility(View.GONE);
                     etTarget.setVisibility(View.VISIBLE);
-                    etTarget.setHint("负债对象");
-                    selectedCategory[0] = "借入"; // 负债对应资金流入(借入)
+                    etTarget.setHint("借入对象");
+                    selectedCategory[0] = "借入";
                 } else if (checkedId == R.id.rb_window_loan) {
                     rvCategory.setVisibility(View.GONE);
                     etCategory.setVisibility(View.GONE);
@@ -310,50 +276,6 @@ public class QuickAddTileService extends TileService {
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
             etNote.setText(sdf.format(new Date()));
 
-            AssistantConfig config = new AssistantConfig(this);
-            boolean isAssetEnabled = config.isAssetsEnabled();
-
-            if (isAssetEnabled) {
-                spAsset.setVisibility(View.VISIBLE);
-                com.example.budgetapp.util.AssetSpinnerAdapter adapter = new com.example.budgetapp.util.AssetSpinnerAdapter(this);
-                spAsset.setAdapter(adapter);
-                com.example.budgetapp.util.AssetSpinnerAdapter.limitDropDownHeight(spAsset);
-
-                AppDatabase.databaseWriteExecutor.execute(() -> {
-                    // 【修改】同时加载资产(0)和负债(1)
-                    List<AssetAccount> assets = AppDatabase.getDatabase(this).assetAccountDao().getAssetsByTypeSync(0);
-                    List<AssetAccount> liabilities = AppDatabase.getDatabase(this).assetAccountDao().getAssetsByTypeSync(1);
-
-                    loadedAssets.clear();
-                    AssetAccount noAsset = new AssetAccount("不关联资产", 0, 0);
-                    noAsset.id = 0;
-                    loadedAssets.add(noAsset);
-
-                    if (assets != null) loadedAssets.addAll(assets);
-                    if (liabilities != null) loadedAssets.addAll(liabilities);
-
-//                    List<String> names = new ArrayList<>();
-//                    for (AssetAccount a : loadedAssets) names.add(a.name);
-
-                    int defaultAssetId = config.getDefaultAssetId();
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        adapter.clear();
-                        adapter.addAll(loadedAssets); // 修改：直接传入 loadedAssets
-                        adapter.notifyDataSetChanged();
-                        if (defaultAssetId != -1) {
-                            for (int i = 0; i < loadedAssets.size(); i++) {
-                                if (loadedAssets.get(i).id == defaultAssetId) {
-                                    spAsset.setSelection(i);
-                                    break;
-                                }
-                            }
-                        }
-                    });
-                });
-            } else {
-                spAsset.setVisibility(View.GONE);
-            }
-
             btnSave.setOnClickListener(v -> {
                 String amountStr = etAmount.getText().toString();
                 if (amountStr.isEmpty()) {
@@ -362,6 +284,10 @@ public class QuickAddTileService extends TileService {
                 }
                 try {
                     double finalAmount = Double.parseDouble(amountStr);
+                    if (finalAmount <= 0 || finalAmount > 99999999.99) {
+                        Toast.makeText(this, "金额范围：0.01 ~ 99,999,999.99", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     String finalNote = etNote.getText().toString();
                     String finalRemark = etRemark.getText().toString().trim();
 
@@ -377,12 +303,12 @@ public class QuickAddTileService extends TileService {
 
                     if (checkedId == R.id.rb_window_liability) {
                         targetObject = etTarget.getText().toString().trim();
-                        if (targetObject.isEmpty()) { Toast.makeText(this, "请输入负债对象", Toast.LENGTH_SHORT).show(); return; }
-                        liabilityLoanType = 1; // 1代表负债资产
+                        if (targetObject.isEmpty()) { Toast.makeText(this, "请输入借入对象", Toast.LENGTH_SHORT).show(); return; }
+                        liabilityLoanType = 1;
                     } else if (checkedId == R.id.rb_window_loan) {
                         targetObject = etTarget.getText().toString().trim();
                         if (targetObject.isEmpty()) { Toast.makeText(this, "请输入借出对象", Toast.LENGTH_SHORT).show(); return; }
-                        liabilityLoanType = 2; // 2代表借出资产
+                        liabilityLoanType = 2;
                     } else if ("自定义".equals(finalCat)) {
                         String customInput = etCategory.getText().toString().trim();
                         if (!customInput.isEmpty()) {
@@ -393,18 +319,10 @@ public class QuickAddTileService extends TileService {
                         }
                     }
 
-                    int assetId = 0;
-                    if (isAssetEnabled) {
-                        int selectedPos = spAsset.getSelectedItemPosition();
-                        if (selectedPos >= 0 && selectedPos < loadedAssets.size()) {
-                            assetId = loadedAssets.get(selectedPos).id;
-                        }
-                    }
-
                     String symbol = isCurrencyEnabled ? btnCurrency.getText().toString() : "¥";
 
-                    // 【修改】加上最后的 isExcludedFromBudget[0]
-                    saveToDatabase(finalAmount, finalType, finalCat, selectedSubCategory, finalNote, finalRemark, assetId, symbol, currentPhotoPath[0], targetObject, liabilityLoanType, isExcludedFromBudget[0]);
+                    // 【修改】将 targetObject 和 liabilityLoanType 传给底层方法
+                    saveToDatabase(finalAmount, finalType, finalCat, selectedSubCategory, finalNote, finalRemark, symbol, currentPhotoPath[0], targetObject, liabilityLoanType);
                     closeWindow(windowManager, floatView);
                     Toast.makeText(this, "记账成功", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
@@ -416,7 +334,7 @@ public class QuickAddTileService extends TileService {
             windowManager.addView(floatView, params);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("Tally", "Error", e);
         }
     }
     // --- 新增辅助方法 START ---
@@ -501,83 +419,20 @@ public class QuickAddTileService extends TileService {
     // --- 新增辅助方法 END ---
 
     private void showSubCategoryDialog(Context context, String parentCategory, CategoryAdapter adapter) {
-        // ... (保持之前的二级分类 Dialog 逻辑不变) ...
-        // ... 为节省篇幅，此处省略，逻辑与之前提交的完全一致，请保留原代码 ...
-        // 提示：一定要记得在这里设置 dialog.getWindow().setType(...)
-        
-        // 1. 获取数据
-        List<String> subCats = CategoryManager.getSubCategories(this, parentCategory);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        View subCatView = LayoutInflater.from(context).inflate(R.layout.dialog_select_sub_category, null);
-        builder.setView(subCatView);
-
-        AlertDialog subCatDialog = builder.create();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            subCatDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
-        } else {
-            subCatDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
-        }
-
-        subCatDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
-        TextView tvTitle = subCatView.findViewById(R.id.tv_title);
-        tvTitle.setText(parentCategory + " - 选择细分");
-
-        ChipGroup cgSubCategories = subCatView.findViewById(R.id.cg_sub_categories);
-        TextView tvEmpty = subCatView.findViewById(R.id.tv_empty);
-        View nsvContainer = subCatView.findViewById(R.id.nsv_container);
-        Button btnCancel = subCatView.findViewById(R.id.btn_cancel);
-
-        if (subCats.isEmpty()) {
-            cgSubCategories.setVisibility(View.GONE);
-            tvEmpty.setVisibility(View.VISIBLE);
-            nsvContainer.setMinimumHeight(150);
-        } else {
-            cgSubCategories.setVisibility(View.VISIBLE);
-            tvEmpty.setVisibility(View.GONE);
-
-            int bgDefault = ContextCompat.getColor(context, R.color.cat_unselected_bg);
-            int bgChecked = ContextCompat.getColor(context, R.color.app_blue);
-            int textDefault = ContextCompat.getColor(context, R.color.text_primary);
-            int textChecked = ContextCompat.getColor(context, R.color.cat_selected_text);
-
-            int[][] states = new int[][] { new int[] { android.R.attr.state_checked }, new int[] { } };
-            ColorStateList bgStateList = new ColorStateList(states, new int[] { bgChecked, bgDefault });
-            ColorStateList textStateList = new ColorStateList(states, new int[] { textChecked, textDefault });
-
-            for (String subCatName : subCats) {
-                Chip chip = new Chip(context);
-                chip.setText(subCatName);
-                chip.setCheckable(true);
-                chip.setClickable(true);
-                chip.setChipBackgroundColor(bgStateList);
-                chip.setTextColor(textStateList);
-                chip.setChipStrokeWidth(0);
-                chip.setCheckedIconVisible(false);
-
-                if (subCatName.equals(selectedSubCategory)) {
-                    chip.setChecked(true);
-                }
-
-                chip.setOnClickListener(v -> {
-                    if (subCatName.equals(selectedSubCategory)) {
+        AlertDialog subCatDialog = TransactionDialogHelper.createSubCategoryDialog(
+                this, parentCategory, selectedSubCategory, true,
+                subCat -> {
+                    if (subCat == null) {
                         selectedSubCategory = null;
                         Toast.makeText(this, "已取消细分", Toast.LENGTH_SHORT).show();
                     } else {
-                        selectedSubCategory = subCatName;
-                        Toast.makeText(this, "已选择: " + subCatName, Toast.LENGTH_SHORT).show();
+                        selectedSubCategory = subCat;
+                        Toast.makeText(this, "已选择: " + subCat, Toast.LENGTH_SHORT).show();
                     }
                     if (adapter != null) {
                         adapter.setSelectedCategory(parentCategory);
                     }
-                    subCatDialog.dismiss();
                 });
-                cgSubCategories.addView(chip);
-            }
-        }
-        btnCancel.setOnClickListener(v -> subCatDialog.dismiss());
         subCatDialog.show();
     }
 
@@ -585,14 +440,14 @@ public class QuickAddTileService extends TileService {
         try {
             if (view != null && wm != null) wm.removeView(view);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("Tally", "Error", e);
         } finally {
             isWindowShowing = false;
             windowRootView = null; // 清理引用
         }
     }
 
-    private void saveToDatabase(double amount, int type, String category, String subCategory, String note, String remark, int assetId, String currencySymbol, String photoPath, String targetObject, int liabilityLoanType, boolean excludeFromBudget) {
+    private void saveToDatabase(double amount, int type, String category, String subCategory, String note, String remark, String currencySymbol, String photoPath, String targetObject, int liabilityLoanType) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
 
@@ -604,78 +459,13 @@ public class QuickAddTileService extends TileService {
             t.amount = amount;
             t.note = note;
             t.remark = remark;
-            t.assetId = assetId;
             t.currencySymbol = currencySymbol;
             t.photoPath = photoPath;
             t.targetObject = targetObject;
-
-            t.excludeFromBudget = excludeFromBudget;
-
             db.transactionDao().insert(t);
-
-            // 1. 同步影响【对方资产】（负债/借出对象）
-            if (targetObject != null && !targetObject.isEmpty() && liabilityLoanType != -1) {
-                // 负债借入或借出：增加对应账户金额
-                List<AssetAccount> targets = db.assetAccountDao().getAssetsByTypeSync(liabilityLoanType);
-                AssetAccount existingTarget = null;
-                if (targets != null) {
-                    for (AssetAccount a : targets) {
-                        if (a.name.equals(targetObject)) {
-                            existingTarget = a;
-                            break;
-                        }
-                    }
-                }
-                if (existingTarget != null) {
-                    existingTarget.amount += amount; // 无论负债还是借出，账户总额都增加
-                    db.assetAccountDao().update(existingTarget);
-                } else {
-                    AssetAccount newTarget = new AssetAccount(targetObject, 0, liabilityLoanType);
-                    newTarget.amount = amount;
-                    db.assetAccountDao().insert(newTarget);
-                }
-            } else if (type == 0 && remark != null && !remark.isEmpty()) {
-                // 支出还款：检查备注是否匹配负债账户名称
-                AssetAccount liabilityAccount = db.assetAccountDao().getAssetByNameAndType(remark, 1);
-                if (liabilityAccount != null) {
-                    liabilityAccount.amount -= amount;
-                    if (liabilityAccount.amount <= 0) {
-                        liabilityAccount.amount = 0;
-                    }
-                    db.assetAccountDao().update(liabilityAccount);
-                }
-            } else if (type == 1 && remark != null && !remark.isEmpty()) {
-                // 收入收款：检查备注是否匹配借出账户名称
-                AssetAccount lentAccount = db.assetAccountDao().getAssetByNameAndType(remark, 2);
-                if (lentAccount != null) {
-                    lentAccount.amount -= amount;
-                    if (lentAccount.amount <= 0) {
-                        lentAccount.amount = 0;
-                    }
-                    db.assetAccountDao().update(lentAccount);
-                }
-            }
-
-            // 2. 同步影响【己方资产】（使用的支付/收款账户）
-            if (assetId != 0) {
-                AssetAccount asset = db.assetAccountDao().getAssetByIdSync(assetId);
-                if (asset != null) {
-                    if (asset.type == 0) {
-                        if (type == 1) asset.amount += amount;
-                        else asset.amount -= amount;
-                    } else if (asset.type == 1 || asset.type == 2) {
-                        if (type == 1) asset.amount -= amount;
-                        else asset.amount += amount;
-                    }
-                    db.assetAccountDao().update(asset);
-                }
-            }
 
             // 👇👇👇 一键刷新所有桌面小组件 👇👇👇
             com.example.budgetapp.widget.WidgetUtils.updateAllWidgets(getApplicationContext());
-            
-            // 触发 WebDAV 自动同步
-            com.example.budgetapp.BackupManager.triggerAutoUploadIfEnabled(getApplicationContext());
 
         }); // 这里是 execute 的结尾大括号
     }

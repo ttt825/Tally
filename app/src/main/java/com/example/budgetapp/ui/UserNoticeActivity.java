@@ -22,29 +22,25 @@ public class UserNoticeActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_user_notice);
 
-        // 处理系统栏遮挡，增加内边距（保留原有的 Padding）
+        // 处理系统栏遮挡，增加内边距
         View rootView = findViewById(R.id.notice_root);
-        final int originalPaddingLeft = rootView.getPaddingLeft();
-        final int originalPaddingTop = rootView.getPaddingTop();
-        final int originalPaddingRight = rootView.getPaddingRight();
-        final int originalPaddingBottom = rootView.getPaddingBottom();
         ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, windowInsets) -> {
             androidx.core.graphics.Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(originalPaddingLeft + insets.left, originalPaddingTop + insets.top, originalPaddingRight + insets.right, originalPaddingBottom + insets.bottom);
+            v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
             return WindowInsetsCompat.CONSUMED;
         });
 
         // Github 链接复制逻辑
         findViewById(R.id.btn_copy_github).setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setText("https://github.com/cypressincloud/Tally");
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://github.com/cypressincloud/Tally"));
             Toast.makeText(this, "链接已复制到剪切板", Toast.LENGTH_SHORT).show();
         });
 
         // 新增：123盘链接复制逻辑
         findViewById(R.id.btn_copy_123pan).setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setText("https://www.123pan.com/s/Ih5uVv-nYapd.html");
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://www.123pan.com/s/Ih5uVv-nYapd.html"));
             Toast.makeText(this, "链接已复制到剪切板", Toast.LENGTH_SHORT).show();
         });
 

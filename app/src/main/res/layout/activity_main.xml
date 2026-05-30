@@ -1,31 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:importantForAccessibility="noHideDescendants"
-    android:orientation="vertical"
-    android:background="@color/bar_background"> <androidx.fragment.app.FragmentContainerView
-    android:id="@+id/nav_host_fragment"
-    android:name="androidx.navigation.fragment.NavHostFragment"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_weight="1"
-    android:background="@color/white"
-    app:defaultNavHost="true"
-    app:navGraph="@navigation/nav_graph" />
+    android:background="@color/bar_background">
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_nav"
+    <!-- 遮罩图层 - 独立于内容布局，确保能覆盖状态栏 -->
+    <View
+        android:id="@+id/view_mask_overlay"
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="false"
+        android:background="#000000"
+        android:visibility="gone"/>
+
+    <FrameLayout
+        android:id="@+id/content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/nav_host_fragment"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/nav_graph" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/tab_bar_container"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/down_background"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-        app:menu="@menu/bottom_menu"
-        app:labelVisibilityMode="labeled"
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/blur_tab_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:blurOverlayColor="@color/bottom_bar_background">
 
-        app:itemIconTint="@color/selector_bottom_nav"
-        app:itemTextColor="@color/selector_bottom_nav"
-        app:itemActiveIndicatorStyle="@style/TransparentIndicator" />
-</LinearLayout>
+            <me.ibrahimsn.lib.SmoothBottomBar
+                android:id="@+id/bottomBar"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_gravity="bottom"
+                app:menu="@menu/bottom_menu"
+                app:backgroundColor="@android:color/transparent"
+                app:indicatorColor="@color/bottom_bar_active_indicator"
+                app:textColor="@color/bottom_bar_inactive_color"
+                app:iconTint="@color/bottom_bar_inactive_color"
+                app:iconTintActive="@color/bottom_bar_active_color"
+                app:textSize="15sp"
+                app:iconSize="26dp"
+                app:activeItem="0"
+                app:duration="300" />
+        </eightbitlab.com.blurview.BlurView>
+    </FrameLayout>
+
+</FrameLayout>

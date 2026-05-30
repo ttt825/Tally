@@ -77,7 +77,7 @@ public class CurrencyAdapter extends RecyclerView.Adapter<CurrencyAdapter.ViewHo
 
         holder.itemView.setOnClickListener(v -> {
             int prev = selectedIndex;
-            selectedIndex = holder.getAdapterPosition();
+            selectedIndex = holder.getBindingAdapterPosition();
             notifyItemChanged(prev);
             notifyItemChanged(selectedIndex);
             listener.onItemClick(symbol, selectedIndex);

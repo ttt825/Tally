@@ -11,11 +11,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.DiffUtil;
 
 import com.example.budgetapp.R;
-import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
-import com.example.budgetapp.util.AssetIconHelper;
+import com.example.budgetapp.model.TransactionType;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,12 +24,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 // 恢复为标准的 RecyclerView.Adapter
 public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHolder> {
 
+    private static final DiffUtil.ItemCallback<Transaction> DIFF_CALLBACK = new DiffUtil.ItemCallback<Transaction>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
+            return oldItem.id == newItem.id;
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
+            return oldItem.amount == newItem.amount
+                    && Objects.equals(oldItem.category, newItem.category)
+                    && Objects.equals(oldItem.note, newItem.note)
+                    && Objects.equals(oldItem.remark, newItem.remark)
+                    && Objects.equals(oldItem.subCategory, newItem.subCategory)
+                    && oldItem.type == newItem.type
+                    && oldItem.date == newItem.date;
+        }
+    };
+
     private List<Transaction> transactions = new ArrayList<>();
-    private Map<Integer, AssetAccount> assetMap = new HashMap<>();
     private OnTransactionClickListener listener;
 
     private final SimpleDateFormat displayFormat = new SimpleDateFormat("MM月dd日 EEEE", Locale.CHINA);
@@ -43,18 +61,37 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         this.listener = listener;
     }
 
-    // 🌟 新增：用于接收常规的 List 数据并刷新
+    // 新增：用于接收常规的 List 数据并刷新
     public void setTransactions(List<Transaction> newList) {
+        List<Transaction> oldList = this.transactions;
         this.transactions = newList == null ? new ArrayList<>() : newList;
-        notifyDataSetChanged();
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldList.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return transactions.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areItemsTheSame(oldList.get(oldItemPosition), transactions.get(newItemPosition));
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areContentsTheSame(oldList.get(oldItemPosition), transactions.get(newItemPosition));
+            }
+        });
+        result.dispatchUpdatesTo(this);
     }
 
-    public void setAssets(List<AssetAccount> assets) {
-        assetMap.clear();
-        if (assets != null) {
-            for (AssetAccount asset : assets) assetMap.put(asset.id, asset);
-        }
-        notifyDataSetChanged();
+    // 🌟 新增：获取当前显示的交易列表（用于导出）
+    public List<Transaction> getCurrentTransactions() {
+        return transactions;
     }
 
     private int dpToPx(Context context, int dp) {
@@ -143,12 +180,15 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         String amountStr = String.format(Locale.CHINA, "%.2f", current.amount);
         String displayAmount = showCurrency ? (symbol + " " + amountStr) : amountStr;
 
-        if (current.type == 2) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.app_blue));
-            holder.tvAmount.setText(displayAmount);
-        } else if (current.type == 1) {
+        if (current.type == TransactionType.INCOME.getValue()) {
             holder.tvAmount.setTextColor(context.getColor(R.color.income_red));
             holder.tvAmount.setText("+" + displayAmount);
+        } else if (current.type == TransactionType.LIABILITY.getValue()) {
+            holder.tvAmount.setTextColor(context.getColor(R.color.liability_orange));
+            holder.tvAmount.setText("+" + displayAmount);
+        } else if (current.type == TransactionType.LEND.getValue()) {
+            holder.tvAmount.setTextColor(context.getColor(R.color.lend_purple));
+            holder.tvAmount.setText("-" + displayAmount);
         } else {
             holder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
             holder.tvAmount.setText("-" + displayAmount);
@@ -163,34 +203,20 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
             holder.tvSubCategory.setVisibility(View.GONE);
         }
 
+        // 创建时间显示（current.note字段包含创建时间）
         if (!TextUtils.isEmpty(current.note)) {
-            holder.tvNote.setVisibility(View.VISIBLE);
-            holder.tvNote.setText(current.note);
+            holder.tvTime.setVisibility(View.VISIBLE);
+            holder.tvTime.setText(current.note);
         } else {
-            holder.tvNote.setVisibility(View.GONE);
+            holder.tvTime.setVisibility(View.GONE);
         }
 
-        String assetName = (current.assetId != 0 && assetMap != null) ? assetMap.get(current.assetId) != null ? assetMap.get(current.assetId).name : null : null;
-        AssetAccount assetAccount = (current.assetId != 0 && assetMap != null) ? assetMap.get(current.assetId) : null;
-        boolean hasRemarkOrPhoto = !TextUtils.isEmpty(current.remark) || !TextUtils.isEmpty(current.photoPath);
-        int statusColor = hasRemarkOrPhoto ? context.getColor(R.color.expense_green) : context.getColor(R.color.income_red);
-
-        if (assetAccount != null && assetName != null) {
-            holder.viewIndicator.setVisibility(View.GONE);
-            holder.llAssetInfo.setVisibility(View.VISIBLE);
-            holder.tvAssetName.setText(assetName);
-            holder.tvAssetName.setTextColor(statusColor);
-            
-            // 显示资产图标
-            if (AssetIconHelper.bindSvgIcon(holder.ivAssetIcon, assetAccount.svgIcon)) {
-                holder.ivAssetIcon.setVisibility(View.VISIBLE);
-            } else {
-                holder.ivAssetIcon.setVisibility(View.GONE);
-            }
+        // 备注显示
+        if (!TextUtils.isEmpty(current.remark)) {
+            holder.tvNote.setVisibility(View.VISIBLE);
+            holder.tvNote.setText(current.remark);
         } else {
-            holder.llAssetInfo.setVisibility(View.GONE);
-            holder.viewIndicator.setVisibility(View.VISIBLE);
-            holder.viewIndicator.setBackgroundColor(statusColor);
+            holder.tvNote.setVisibility(View.GONE);
         }
 
         holder.cardView.setOnClickListener(v -> {
@@ -207,10 +233,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvHeader;
         View cardView;
-        TextView tvDate, tvSubCategory, tvAmount, tvNote, tvAssetName;
-        View viewIndicator;
-        android.widget.ImageView ivAssetIcon;
-        android.widget.LinearLayout llAssetInfo;
+        TextView tvDate, tvTime, tvSubCategory, tvAmount, tvNote;
 
         ViewHolder(View wrapper, TextView header, View card) {
             super(wrapper);
@@ -218,12 +241,9 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
             cardView = card;
             tvDate = card.findViewById(R.id.tv_detail_date);
             tvSubCategory = card.findViewById(R.id.tv_detail_sub_category);
+            tvTime = card.findViewById(R.id.tv_detail_time);
             tvAmount = card.findViewById(R.id.tv_detail_amount);
             tvNote = card.findViewById(R.id.tv_detail_note);
-            tvAssetName = card.findViewById(R.id.tv_asset_name);
-            viewIndicator = card.findViewById(R.id.view_remark_indicator);
-            ivAssetIcon = card.findViewById(R.id.iv_asset_icon);
-            llAssetInfo = card.findViewById(R.id.ll_asset_info);
         }
     }
 }

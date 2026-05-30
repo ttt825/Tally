@@ -23,7 +23,7 @@
             android:gravity="center"
             android:layout_marginBottom="24dp"/>
 
-        <com.example.budgetapp.ui.CustomHighlightEditText
+        <EditText
             android:id="@+id/et_hourly_rate"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -35,7 +35,7 @@
             android:paddingHorizontal="16dp"
             android:textSize="16sp" />
 
-        <com.example.budgetapp.ui.CustomHighlightEditText
+        <EditText
             android:id="@+id/et_duration"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -84,7 +84,7 @@
                 android:text="确 认"
                 android:textStyle="bold"
                 android:textColor="@color/text_white"
-                android:backgroundTint="@color/app_blue"
+                android:backgroundTint="@color/app_yellow"
                 app:cornerRadius="16dp"/>
         </LinearLayout>
 

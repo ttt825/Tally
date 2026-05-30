@@ -2,20 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".MyApplication"
-        android:allowBackup="true"
-        android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@drawable/ic_app_logo"
@@ -34,9 +27,7 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.AutoTrackLogActivity"
-            android:exported="false" />
+        
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -49,46 +40,15 @@
         </provider>
 
         <activity android:name=".ui.PhotoBackupSettingsActivity"
-            android:label="照片备注设置"
+            android:label="照片备份设置"
+            android:theme="@style/Theme.BudgetApp"/>
+
+        <activity android:name=".ui.AutoBackupSettingsActivity"
+            android:label="自动备份设置"
             android:theme="@style/Theme.BudgetApp"/>
 
         <activity android:name=".ui.ThemeSettingsActivity" />
-
-        <activity
-            android:name=".ui.AiSettingActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
-            android:name=".ui.AiCategoryRuleActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
-            android:name=".ui.AiPromptEditorActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
-            android:name=".ui.AiChatActivity"
-            android:exported="true"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BudgetApp">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".ui.ImageViewerActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".ui.CropActivity" android:theme="@style/Theme.BudgetApp" />
 
         <activity android:name=".ui.PhotoActionActivity"
             android:theme="@style/Theme.BudgetApp.Transparent"
@@ -108,20 +68,8 @@
             android:exported="false"/>
 
         <activity
-            android:name=".ui.WebdavSettingsActivity"
-            android:label="WebDAV备份设置"
-            android:theme="@style/Theme.BudgetApp"
-            android:exported="false"/>
-
-        <activity
             android:name=".ui.DonateActivity"
             android:label="捐赠支持"
-            android:theme="@style/Theme.BudgetApp"
-            android:exported="false"/>
-
-        <activity
-            android:name=".ui.AiGuideActivity"
-            android:label="AI 记账配置指南"
             android:theme="@style/Theme.BudgetApp"
             android:exported="false"/>
 
@@ -136,39 +84,12 @@
             android:screenOrientation="portrait"/>
 
         <activity
-            android:name=".ui.BudgetManagementActivity"
-            android:label="预算管理设置"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
             android:name=".ui.CategorySettingsActivity"
             android:label="分类预设管理"
             android:theme="@style/Theme.BudgetApp"
             android:exported="false"/>
 
-        <activity android:name=".ui.AssistantManagerActivity" />
-
-        <activity
-            android:name=".KeywordSettingActivity"
-            android:label="关键字设置"
-            android:exported="false"/>
-
-        <activity android:name=".ui.AutoAssetActivity"
-            android:label="资产设置"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
-            android:name=".ui.AssetCategorySettingsActivity"
-            android:label="资产分类设置"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity android:name=".ui.DefaultPageActivity"
-            android:label="应用默认页面设置"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
+        
 
         <activity
             android:name=".ui.YearCalendarActivity"
@@ -178,28 +99,9 @@
 
         <activity android:name=".ui.UserNoticeActivity" />
 
-        <activity android:name=".ui.PrivacyPolicyActivity" />
-
-        <activity
-            android:name=".ui.BudgetHistoryActivity"
-            android:theme="@style/Theme.BudgetApp"
-            android:exported="false" />
-
         <activity
             android:name=".ui.CurrencySettingsActivity"
             android:exported="false" />
-
-        <activity
-            android:name=".ui.AutoRenewalActivity"
-            android:label="自动续费提醒设置"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
-
-        <activity
-            android:name=".ui.InstallmentDetailActivity"
-            android:label="分期详情"
-            android:exported="false"
-            android:theme="@style/Theme.BudgetApp" />
 
         <service
             android:name=".service.QuickAddTileService"
@@ -212,19 +114,7 @@
             </intent-filter>
         </service>
 
-        <service
-            android:name="com.google.android.accessibility.selecttospeak.SelectToSpeakService"
-            android:exported="true"
-            android:label="记账屏幕同步助手"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:foregroundServiceType="dataSync">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
+        
 
         <receiver
             android:name=".widget.TodaySummaryWidget"
@@ -270,26 +160,6 @@
                 android:resource="@xml/overtime_summary_widget_info" />
         </receiver>
 
-        <receiver
-            android:name=".widget.TodayBudgetWidget"
-            android:exported="true"
-            android:label="@string/widget_name_budget"> <intent-filter>
-            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-        </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/today_budget_widget_info" />
-        </receiver>
-
-<!--        <service android:name=".service.NotificationMonitorService"-->
-<!--            android:label="退款通知监听"-->
-<!--            android:exported="true"-->
-<!--            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.service.notification.NotificationListenerService" />-->
-<!--            </intent-filter>-->
-<!--        </service>-->
-
-    </application>
+        </application>
 
 </manifest>

@@ -1,64 +1,82 @@
 package com.example.budgetapp;
 
-import com.example.budgetapp.database.AssetAccount;
-import com.example.budgetapp.database.Goal;
 import com.example.budgetapp.database.Transaction;
-import com.example.budgetapp.database.RenewalItem;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class BackupData {
+    @SerializedName("version")
     public int version = 5;
+
+    @SerializedName("createTime")
     public long createTime;
 
-    public List<AssetAccount> assets;
+    @SerializedName("expenseCategories")
     public List<String> expenseCategories;
+
+    @SerializedName("incomeCategories")
     public List<String> incomeCategories;
+
+    @SerializedName("subCategoryMap")
     public Map<String, List<String>> subCategoryMap;
-    public List<Goal> goals; // 👈 新增这一行
 
+    @SerializedName("subCategoryEnabled")
+    public boolean subCategoryEnabled;
+
+    @SerializedName("detailedCategoryEnabled")
+    public boolean detailedCategoryEnabled;
+
+    @SerializedName("assistantConfig")
     public AssistantConfigData assistantConfig;
-    public List<String> autoAssetRules;
-    public List<RenewalItem> renewalList;
 
-    // 【修复】记录数据类型，防止导入后 SharedPreferences 抛出 ClassCastException
+    @SerializedName("appPreferences")
     public Map<String, PrefItem> appPreferences;
 
+    @SerializedName("records")
     public List<Transaction> records;
 
     public BackupData() {}
 
-    public BackupData(List<Transaction> records, List<AssetAccount> assets, List<Goal> goals) {
+    public BackupData(List<Transaction> records) {
         this.createTime = System.currentTimeMillis();
         this.records = records;
-        this.assets = assets;
-        this.goals = goals; // 👈 新增赋值
     }
 
-    // 保留旧的 2 个参数的构造方法（供微信、支付宝等外部账单导入使用）
-    public BackupData(List<Transaction> records, List<AssetAccount> assets) {
-        this.records = records;
-        this.assets = assets;
-    }
     public static class AssistantConfigData {
+        @SerializedName("enableAutoTrack")
         public boolean enableAutoTrack;
+
+        @SerializedName("enableRefund")
         public boolean enableRefund;
-        public boolean enableAssets;
-        public int defaultAssetId;
+
+        @SerializedName("expenseKeywords")
         public Set<String> expenseKeywords;
+
+        @SerializedName("incomeKeywords")
         public Set<String> incomeKeywords;
+
+        @SerializedName("weekdayRate")
         public float weekdayRate;
+
+        @SerializedName("holidayRate")
         public float holidayRate;
+
+        @SerializedName("monthlyBaseSalary")
         public float monthlyBaseSalary;
     }
 
-    // 【新增】用来包裹配置类型和值的静态类
     public static class PrefItem {
+        @SerializedName("type")
         public String type;
+
+        @SerializedName("value")
         public String value;
+
         public PrefItem() {}
+
         public PrefItem(String type, String value) {
             this.type = type;
             this.value = value;

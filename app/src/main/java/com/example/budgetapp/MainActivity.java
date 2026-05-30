@@ -1,17 +1,24 @@
 package com.example.budgetapp;
 
+import android.util.Log;
+
 import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
-import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.view.MotionEvent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
@@ -32,14 +39,14 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
-import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.widget.TodaySummaryWidget;
-import com.google.android.accessibility.selecttospeak.SelectToSpeakService;
 import com.example.budgetapp.ui.SettingsActivity;
-import com.example.budgetapp.util.AssistantConfig;
-import com.example.budgetapp.viewmodel.FinanceViewModel;
+import com.example.budgetapp.viewmodel.TransactionViewModel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import me.ibrahimsn.lib.SmoothBottomBar;
+import eightbitlab.com.blurview.BlurView;
+import eightbitlab.com.blurview.RenderScriptBlur;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,30 +55,31 @@ import androidx.activity.OnBackPressedCallback;
 
 public class MainActivity extends AppCompatActivity {
 
-    private FinanceViewModel financeViewModel;
-    private List<Transaction> allTransactions = new ArrayList<>();
-    private List<AssetAccount> allAssets = new ArrayList<>();
+    private TransactionViewModel transactionViewModel;
+    private eightbitlab.com.blurview.BlurView blurTabBar;
+    // 【修复】移除全量数据缓存，改为导出时按需读取，避免内存占用过大
+
+    // 双击返回退出功能
+    private long backPressedTime = 0;
+    private static final int TIME_INTERVAL = 2000; // 2秒间隔
+
+    // 用于跟踪当前被按下的Tab，避免与选中动画冲突
+
 
 
     // 导出功能保留在此处作为备份逻辑
     private final ActivityResultLauncher<String> exportLauncher = registerForActivityResult(
-            new ActivityResultContracts.CreateDocument("application/zip"),
+            new ActivityResultContracts.CreateDocument("application/json"),
             uri -> {
                 if (uri != null) {
-                    // 开一个子线程来查询数据库并导出，防止卡顿
                     new Thread(() -> {
                         try {
-                            // 查询出存钱目标
-                            com.example.budgetapp.database.AppDatabase db = com.example.budgetapp.database.AppDatabase.getDatabase(getApplicationContext());
-                            List<com.example.budgetapp.database.Goal> allGoals = db.goalDao().getAllGoalsSync();
-
-                            // 导出时加上 allGoals 参数
-                            BackupManager.exportToZip(MainActivity.this, uri, allTransactions, allAssets, allGoals);
-
-                            runOnUiThread(() -> Toast.makeText(MainActivity.this, "导出成功", Toast.LENGTH_SHORT).show());
+                            List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
+                            BackupManager.exportToJson(this, uri, transactions);
+                            runOnUiThread(() -> Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show());
                         } catch (Exception e) {
-                            e.printStackTrace();
-                            runOnUiThread(() -> Toast.makeText(MainActivity.this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            Log.e("Tally", "Error", e);
+                            runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     }).start();
                 }
@@ -83,47 +91,40 @@ public class MainActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             uri -> {
                 if (uri != null) {
-                    try {
-                        BackupData data = BackupManager.importFromZip(this, uri);
-                        
-                        int recordCount = 0;
-                        int assetCount = 0;
-
-                        if (data.records != null && !data.records.isEmpty()) {
-                            for (Transaction t : data.records) {
-                                Transaction newT = t; 
-                                newT.id = 0; 
-                                financeViewModel.addTransaction(newT);
+                    // 【修复】导入使用批量插入，避免逐条触发备份计数
+                    new Thread(() -> {
+                        try {
+                            BackupData data = BackupManager.importFromJson(this, uri);
+                            
+                            if (data.records != null && !data.records.isEmpty()) {
+                                for (Transaction t : data.records) {
+                                    t.id = 0;
+                                }
+                                transactionViewModel.insertTransactionsSync(data.records, count -> {
+                                    runOnUiThread(() -> {
+                                        if (count > 0) {
+                                            Toast.makeText(this, 
+                                                String.format("成功导入: %d条账单", count), 
+                                                Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                });
+                            } else {
+                                runOnUiThread(() -> Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show());
                             }
-                            recordCount = data.records.size();
+                        } catch (Exception e) {
+                            Log.e("Tally", "Error", e);
+                            runOnUiThread(() -> Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-
-                        if (data.assets != null && !data.assets.isEmpty()) {
-                            for (AssetAccount a : data.assets) {
-                                AssetAccount newA = a;
-                                newA.id = 0; 
-                                financeViewModel.addAsset(newA);
-                            }
-                            assetCount = data.assets.size();
-                        }
-
-                        if (recordCount > 0 || assetCount > 0) {
-                            Toast.makeText(this, 
-                                String.format("成功导入: %d条账单, %d个资产", recordCount, assetCount), 
-                                Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show();
-                        }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    }
+                    }).start();
                 }
             }
     );
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         // 【修改】适配双背景组合逻辑
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
@@ -153,119 +154,60 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        financeViewModel = new ViewModelProvider(this).get(FinanceViewModel.class);
+        transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
         
-        financeViewModel.getAllTransactions().observe(this, transactions -> {
-            this.allTransactions = transactions;
-        });
+        // 【修复】移除全量数据观察，避免内存占用过大
 
-        financeViewModel.getAllAssets().observe(this, assets -> {
-            this.allAssets = assets;
-        });
+        View rootLayout = findViewById(R.id.root_layout);
+        View contentLayout = findViewById(R.id.content_layout);
+        SmoothBottomBar bottomBar = findViewById(R.id.bottomBar);
 
-        LinearLayout rootLayout = findViewById(R.id.root_layout);
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        BlurView blurTabBar = findViewById(R.id.blur_tab_bar);
+        this.blurTabBar = blurTabBar;
+        @SuppressWarnings("deprecation")
+        var ignored = blurTabBar.setupWith((ViewGroup) rootLayout, new RenderScriptBlur(this));
+        blurTabBar.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
+        blurTabBar.setClipToOutline(true);
+
+        applyTabBackgroundSettings(blurTabBar);
 
         // 初始化时应用背景
         applyCustomBackground();
 
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
+        // 显示首次打开引导提示
+        showLongPressHintIfNeeded();
+
+        // 【修改】将WindowInsets监听器设置在content_layout上，避免影响遮罩层的覆盖范围
+        ViewCompat.setOnApplyWindowInsetsListener(contentLayout, (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(0, insets.top, 0, 0);
             return windowInsets;
         });
 
-        ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (v, windowInsets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(bottomBar, (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
             return WindowInsetsCompat.CONSUMED;
         });
-
-        AssistantConfig config = new AssistantConfig(this);
-        boolean showAssets = config.isAssetsEnabled();
-        boolean showDetails = config.isDetailsEnabled(); // 新增
-
-        bottomNav.getMenu().findItem(R.id.nav_assets).setVisible(showAssets);
-        bottomNav.getMenu().findItem(R.id.nav_details).setVisible(showDetails); // 新增
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
 
         if (navHostFragment != null) {
             NavController navController = navHostFragment.getNavController();
-            NavigationUI.setupWithNavController(bottomNav, navController);
 
-            // 【新增】读取默认页面设置并跳转
-            int defaultPage = prefs.getInt("default_page", 0); // 0 = 记账
-            int targetNavId = R.id.nav_record; // 默认记账页面
+            // 设置SmoothBottomBar与Navigation Component的集成
+            PopupMenu popupMenu = new PopupMenu(this, null);
+            popupMenu.getMenuInflater().inflate(R.menu.bottom_menu, popupMenu.getMenu());
+            bottomBar.setupWithNavController(popupMenu.getMenu(), navController);
+
+            // 获取菜单并根据配置隐藏明细页面（如果需要的话）
+            Menu menu = popupMenu.getMenu();
+            MenuItem detailsItem = menu.findItem(R.id.nav_details);
             
-            switch (defaultPage) {
-                case 0: // 记账
-                    targetNavId = R.id.nav_record;
-                    break;
-                case 1: // 明细
-                    targetNavId = R.id.nav_details;
-                    break;
-                case 2: // 预算
-                    targetNavId = R.id.nav_budget;
-                    break;
-                case 3: // 资产
-                    targetNavId = R.id.nav_assets;
-                    break;
-                case 4: // 统计
-                    targetNavId = R.id.nav_stats;
-                    break;
+            if (detailsItem != null) {
+                detailsItem.setVisible(true);
             }
-            
-            // 如果不是默认的记账页面，则跳转到指定页面
-            if (targetNavId != R.id.nav_record) {
-                navController.navigate(targetNavId);
-            }
-
-            bottomNav.setOnItemSelectedListener(item -> {
-                // 添加触摸振动反馈
-                bottomNav.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
-
-                if (item.getItemId() != navController.getCurrentDestination().getId()) {
-                    navController.navigate(item.getItemId());
-                    return true;
-                }
-                return false;
-            });
-
-            bottomNav.post(() -> {
-                // 1. 记账: 屏蔽默认长按提示
-                View recordTab = bottomNav.findViewById(R.id.nav_record);
-                if (recordTab != null) {
-                    recordTab.setOnLongClickListener(v -> true);
-                }
-
-                // 2. 统计: 极简模式跳转设置，否则仅屏蔽默认提示
-                View statsTab = bottomNav.findViewById(R.id.nav_stats);
-                if (statsTab != null) {
-                    statsTab.setOnLongClickListener(v -> {
-                        boolean isMinimalist = getSafeBoolean(prefs, "minimalist_mode", false);
-                        
-                        if (isMinimalist) {
-                            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                            startActivity(intent);
-                        }
-                        return true; 
-                    });
-                }
-                
-                // 3. 资产: 屏蔽默认长按提示
-                View assetsTab = bottomNav.findViewById(R.id.nav_assets);
-                if (assetsTab != null) {
-                    assetsTab.setOnLongClickListener(v -> true);
-                }
-
-                // 4. 明细: 屏蔽默认长按提示
-                View detailsTab = bottomNav.findViewById(R.id.nav_details);
-                if (detailsTab != null) {
-                    detailsTab.setOnLongClickListener(v -> true);
-                }
-            });
 
             // 【新增】拦截返回手势逻辑
             getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -273,11 +215,20 @@ public class MainActivity extends AppCompatActivity {
                 public void handleOnBackPressed() {
                     if (navController.getCurrentDestination() != null) {
                         int currentId = navController.getCurrentDestination().getId();
-                        // 新增 R.id.nav_details
-                        if (currentId == R.id.nav_record || currentId == R.id.nav_assets ||
-                                currentId == R.id.nav_stats || currentId == R.id.nav_details) {
-                            finish();
+                        // 主页面，实现双击退出功能
+                        if (currentId == R.id.nav_record || currentId == R.id.nav_stats ||
+                                currentId == R.id.nav_details) {
+                            // 主页面，实现双击退出功能
+                            if (backPressedTime + TIME_INTERVAL > System.currentTimeMillis()) {
+                                // 2秒内再次按下返回键，退出应用
+                                finish();
+                            } else {
+                                // 第一次按下返回键，显示提示
+                                backPressedTime = System.currentTimeMillis();
+                                Toast.makeText(MainActivity.this, "再按一次退出应用", Toast.LENGTH_SHORT).show();
+                            }
                         } else {
+                            // 其他页面，正常返回
                             if (!navController.popBackStack()) {
                                 finish();
                             }
@@ -289,7 +240,44 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        checkPermissions();
+    }
+
+    private void applyTabBackgroundSettings(eightbitlab.com.blurview.BlurView blurTabBar) {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int blurLevel = prefs.getInt("tab_blur_level", 5);
+        int cornerRadius = prefs.getInt("tab_corner_radius", 50);
+        int opacity = prefs.getInt("tab_opacity", 80);
+        int shadowSize = prefs.getInt("tab_shadow_size", 1);
+        int shadowOpacity = prefs.getInt("tab_shadow_opacity", 25);
+
+        float actualRadius = blurLevel;
+        blurTabBar.setBlurRadius(actualRadius);
+
+        int alphaInt = (int) (opacity / 100f * 255);
+        android.graphics.drawable.GradientDrawable roundedBg = new android.graphics.drawable.GradientDrawable();
+        roundedBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        roundedBg.setCornerRadius(cornerRadius);
+        roundedBg.setColor((alphaInt << 24) | 0x00FFFFFF);
+        blurTabBar.setBackground(roundedBg);
+
+        View container = findViewById(R.id.tab_bar_container);
+        if (container != null) {
+            float density = getResources().getDisplayMetrics().density;
+            float shadowSizeDp = shadowSize * 0.5f;
+            if (shadowSize > 0 && shadowOpacity > 0) {
+                int shadowPx = (int) (shadowSizeDp * density);
+                int shadowAlpha = (int) (shadowOpacity / 100f * 255);
+                android.graphics.drawable.GradientDrawable shadowDrawable = new android.graphics.drawable.GradientDrawable();
+                shadowDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                shadowDrawable.setCornerRadius(cornerRadius + shadowSizeDp);
+                shadowDrawable.setColor((shadowAlpha << 24) | 0x000000);
+                container.setBackground(shadowDrawable);
+                container.setPadding(shadowPx, shadowPx / 2, shadowPx, shadowPx * 2);
+            } else {
+                container.setBackground(null);
+                container.setPadding(0, 0, 0, 0);
+            }
+        }
     }
 
     // 【修改】应用自定义背景（完美保留原有透明度适配逻辑，仅新增日/夜双图片判断）
@@ -298,11 +286,36 @@ public class MainActivity extends AppCompatActivity {
         int themeMode = getSafeInt(prefs, "theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         View rootLayout = findViewById(R.id.root_layout);
         View navHostFragment = findViewById(R.id.nav_host_fragment); // 获取碎片容器
+        View maskOverlay = findViewById(R.id.view_mask_overlay); // 获取遮罩图层
 
-        // 🌟 获取底栏
-        com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        // 🌟 获取底部导航栏
+        View bottomBar = findViewById(R.id.bottomBar);
 
         if (rootLayout == null) return;
+
+        // 🌟 【新增】应用遮罩设置
+        if (maskOverlay != null) {
+            boolean maskEnabled = prefs.getBoolean("mask_enabled", false);
+            if (maskEnabled && themeMode == 3) {
+                String maskColorStr = prefs.getString("mask_color", "#000000");
+                int maskAlpha = prefs.getInt("mask_alpha", 128);
+                
+                try {
+                    int maskColor = android.graphics.Color.parseColor(maskColorStr);
+                    int maskColorWithAlpha = android.graphics.Color.argb(maskAlpha,
+                        android.graphics.Color.red(maskColor),
+                        android.graphics.Color.green(maskColor),
+                        android.graphics.Color.blue(maskColor));
+                    
+                    maskOverlay.setBackgroundColor(maskColorWithAlpha);
+                    maskOverlay.setVisibility(View.VISIBLE);
+                } catch (Exception e) {
+                    maskOverlay.setVisibility(View.GONE);
+                }
+            } else {
+                maskOverlay.setVisibility(View.GONE);
+            }
+        }
 
         if (themeMode == 3) { // 3 代表开启了自定义背景
             // 🌟 【修改部分开始】：智能获取应该加载日间还是夜间的图片
@@ -341,23 +354,23 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // 🌟 【保留原有】：底栏设置透明度 (Alpha: 230)
-                    if (bottomNav != null && bottomNav.getBackground() != null) {
-                        bottomNav.getBackground().mutate().setAlpha(230);
+                    if (bottomBar != null && bottomBar.getBackground() != null) {
+                        bottomBar.getBackground().mutate().setAlpha(230);
                     }
 
                     if (inputStream != null) inputStream.close();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e("Tally", "Error", e);
                     rootLayout.setBackgroundResource(R.color.bar_background);
-                    if (navHostFragment != null) navHostFragment.setBackgroundResource(R.color.white);
+                    if (navHostFragment != null) navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                     // 异常时恢复底栏透明度
-                    if (bottomNav != null && bottomNav.getBackground() != null) bottomNav.getBackground().mutate().setAlpha(255);
+                    if (bottomBar != null && bottomBar.getBackground() != null) bottomBar.getBackground().mutate().setAlpha(255);
                 }
             } else {
-                // 如果开启了自定义背景，但用户把两张图都"清除"了，则恢复系统默认
+                // 如果开启了自定义背景，但用户把两张图都"清除"了，则恢复系统默认背景，但FragmentContainerView保持透明
                 rootLayout.setBackgroundResource(R.color.bar_background);
-                if (navHostFragment != null) navHostFragment.setBackgroundResource(R.color.white);
-                if (bottomNav != null && bottomNav.getBackground() != null) bottomNav.getBackground().mutate().setAlpha(255);
+                if (navHostFragment != null) navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                if (bottomBar != null && bottomBar.getBackground() != null) bottomBar.getBackground().mutate().setAlpha(255);
             }
         } else {
             // 如果不是自定义背景模式，恢复系统默认颜色
@@ -367,100 +380,10 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // 🌟 【保留原有】：恢复底栏 100% 不透明度
-            if (bottomNav != null && bottomNav.getBackground() != null) {
-                bottomNav.getBackground().mutate().setAlpha(255);
+            if (bottomBar != null && bottomBar.getBackground() != null) {
+                bottomBar.getBackground().mutate().setAlpha(255);
             }
         }
-    }
-
-    private void checkPermissions() {
-        AssistantConfig config = new AssistantConfig(this);
-
-        if (config.isEnabled() && !isAccessibilitySettingsOn()) {
-            showPermissionDialog("开启屏幕同步助手",
-                    "为了提取屏幕上的支付金额，请开启‘记账屏幕同步助手’。",
-                    Settings.ACTION_ACCESSIBILITY_SETTINGS);
-        }
-//        else if (config.isRefundEnabled() && !isNotificationListenerEnabled()) {
-//            showPermissionDialog("开启退款监听",
-//                    "为了监听微信/支付宝的退款通知，请授予‘通知使用权’。",
-//                    Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-//        }
-        else if (config.isEnabled() && !Settings.canDrawOverlays(this)) {
-            showPermissionDialog("开启悬浮窗权限",
-                    "为了在记账时显示确认弹窗，请授予‘显示在其他应用上层’权限。",
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-        }
-    }
-
-    private void showPermissionDialog(String title, String message, String action) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View view = getLayoutInflater().inflate(R.layout.dialog_permission_request, null);
-        builder.setView(view);
-
-        AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) {
-            // 背景透明以显示圆角
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-
-        // 绑定数据
-        TextView tvTitle = view.findViewById(R.id.tv_permission_title);
-        TextView tvMessage = view.findViewById(R.id.tv_permission_message);
-        tvTitle.setText(title);
-        tvMessage.setText(message);
-
-        // 取消按钮
-        view.findViewById(R.id.btn_cancel_permission).setOnClickListener(v -> dialog.dismiss());
-
-        // 去授权按钮
-        view.findViewById(R.id.btn_grant_permission).setOnClickListener(v -> {
-            try {
-                Intent intent = new Intent(action);
-                if (Settings.ACTION_MANAGE_OVERLAY_PERMISSION.equals(action)) {
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                }
-                startActivity(intent);
-            } catch (Exception e) {
-                Toast.makeText(this, "无法打开设置页，请手动前往设置", Toast.LENGTH_LONG).show();
-            }
-            dialog.dismiss();
-        });
-
-        dialog.show();
-    }
-
-    private boolean isAccessibilitySettingsOn() {
-        int accessibilityEnabled = 0;
-        final String service = getPackageName() + "/" + SelectToSpeakService.class.getCanonicalName();
-        try {
-            accessibilityEnabled = Settings.Secure.getInt(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED);
-        } catch (Settings.SettingNotFoundException e) { }
-
-        if (accessibilityEnabled == 1) {
-            String settingValue = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-            if (settingValue != null) {
-                return settingValue.contains(service);
-            }
-        }
-        return false;
-    }
-
-    private boolean isNotificationListenerEnabled() {
-        String pkgName = getPackageName();
-        final String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-        if (!TextUtils.isEmpty(flat)) {
-            final String[] names = flat.split(":");
-            for (String name : names) {
-                final ComponentName cn = ComponentName.unflattenFromString(name);
-                if (cn != null) {
-                    if (TextUtils.equals(pkgName, cn.getPackageName())) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     // 已移除旧的 toggleNightMode 方法，因为现在由 SettingsActivity 统一管理
@@ -473,11 +396,11 @@ public class MainActivity extends AppCompatActivity {
                     if (which == 0) {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
                         String timeStr = sdf.format(new Date()).replace(":", "-"); 
-                        String fileName = "Tally " + timeStr + ".zip";
+                        String fileName = "Tally " + timeStr + ".json";
                         exportLauncher.launch(fileName);
                     }
                     else {
-                        importLauncher.launch(new String[]{"application/zip"});
+                        importLauncher.launch(new String[]{"application/json", "*/*"});
                     }
                 })
                 .show();
@@ -487,24 +410,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        // 【新增】每次回到主界面时，检查并刷新背景
         applyCustomBackground();
-
-        // 动态控制"预算"菜单栏是否显示
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
-        if (bottomNav != null) {
-            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-            boolean isBudgetEnabled = getSafeBoolean(prefs, "is_budget_enabled", false);
-
-            // 如果菜单里找到了 nav_budget，就根据开关状态决定它的隐藏/显示
-            if (bottomNav.getMenu().findItem(R.id.nav_budget) != null) {
-                bottomNav.getMenu().findItem(R.id.nav_budget).setVisible(isBudgetEnabled);
-            }
+        if (blurTabBar != null) {
+            applyTabBackgroundSettings(blurTabBar);
         }
     }
-
-    // ================== 新增：安全读取 SharedPreferences 的兼容方法 ==================
-    private int getSafeInt(SharedPreferences prefs, String key, int defValue) {
+	
+	
+	    // ================== 新增：安全读取 SharedPreferences 的兼容方法 ==================
+	    private int getSafeInt(SharedPreferences prefs, String key, int defValue) {
         try {
             return prefs.getInt(key, defValue);
         } catch (ClassCastException e) {
@@ -533,16 +447,30 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    // ==============================================================================
 
-    /**
-     * 切换到记账页面（供其他 Fragment 调用）
-     */
-    public void switchToRecordPage() {
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
-        if (bottomNav != null) {
-            bottomNav.setSelectedItemId(R.id.nav_record);
+    // 显示首次打开引导提示
+    private void showLongPressHintIfNeeded() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        boolean hasShownHint = prefs.getBoolean("has_shown_long_press_hint", false);
+
+        if (!hasShownHint) {
+            // 延迟显示，确保界面已经完全加载
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                new AlertDialog.Builder(this)
+                        .setTitle("使用提示")
+                        .setMessage("短按➕添加账单，长按➕进入设置")
+                        .setPositiveButton("知道了", (dialog, which) -> {
+                            // 用户确认后，标记为已显示
+                            prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
+                            dialog.dismiss();
+                        })
+                        .setCancelable(false)
+                        .show();
+            }, 500); // 延迟500毫秒显示
         }
     }
+    // ==============================================================================
+
+
 
 }

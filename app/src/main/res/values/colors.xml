@@ -6,8 +6,19 @@
     <color name="marker_bg">#F5F5F5</color>
 
     <color name="text_white">#FFFFFFFF</color>
+    <color name="colorPrimary">#1677FF</color>
+    <!-- 白色背景，80%透明度 -->
+    <color name="bottom_bar_background">#CCFFFFFF</color>
+    <!-- 70%透明度的蓝色 -->
+    <color name="bottom_bar_active_indicator">#B31677FF</color>
+    <!-- 蓝色图标和文字 -->
+    <color name="bottom_bar_active_color">#1677FF</color>
+    <color name="bottom_bar_inactive_color">#808080</color>
 
-    <color name="app_blue">#327ffc</color>
+    <!-- 【修复】重命名：app_yellow 实际是蓝紫色，改为语义正确的名称 -->
+    <color name="app_accent">#D9327FFC</color>
+    <!-- 保留旧名称作为别名，避免外部引用断裂 -->
+    <color name="app_yellow">#D9327FFC</color>
     <color name="ripple_yellow">#FFF59D</color>
     <color name="app_background">#FFFFFF</color>
 
@@ -19,22 +30,22 @@
     <color name="transfer_fab_bg">#FFFFFF</color>
     <color name="transfer_fab_icon_tint">@color/text_primary</color>
 
-    <color name="budget_safe_bg">#E8F5E9</color>
-    <color name="budget_exceed_bg">#FFEBEE</color>
-    <color name="budget_progress_safe">#4CAF50</color>
-    <color name="budget_progress_exceed">#FF5252</color>
+    
 
     <color name="black_marker">#FF000000</color>
 
-    <color name="fixed_yellow">#1677FF</color>
+    <!-- 【修复】移除未使用的 fixed_yellow（与 colorPrimary 重复） -->
 
+    <!-- 【修复】统一 divider 和 divider_color 为一个定义 -->
     <color name="divider">#E0E0E0</color>
+    <color name="divider_color">#E0E0E0</color>
 
     <color name="tab_unselected">#757575</color>
 
-    <color name="divider_color">#E0E0E0</color>
-
     <color name="bottom_selected">#1677FF</color>
+    <color name="apple_blue">#007AFF</color>
+    <color name="apple_gray">#8E8E93</color>
+    <color name="apple_light_gray">#F2F2F7</color>
 
     <color name="calendar_lunar_text">#666666</color>
 
@@ -49,7 +60,7 @@
 
     <color name="highlight_bg_color">#FFF59D</color>
 
-    <color name="down_background">#FFFFFF</color>
+    <color name="down_background">#CCFFFFFF</color>
     <color name="bar_background">#F7F7F7</color>
     <color name="bottom_unselected">#333333</color>
 
@@ -66,13 +77,10 @@
     <color name="currency_symbol_text_normal">#000000</color>
     <color name="currency_symbol_text_selected">#2196F3</color>
     <color name="currency_name_text">#888888</color>
-    
-    <color name="icon_secondary">#888888</color>
-    
-    <!-- AI Guide colors -->
-    <color name="ai_guide_hint_bg">#FFF3E0</color>
-    <color name="ai_guide_hint_title">#FF6F00</color>
-    <color name="ai_guide_hint_text">#E65100</color>
-    <color name="ai_guide_example_bg">#F5F5F5</color>
-    <color name="ai_guide_link">@color/app_blue</color>
+
+    <!-- 交易类型颜色 -->
+    <color name="expense_red">#FF5252</color>
+    <color name="income_green">#4CAF50</color>
+    <color name="liability_orange">#FF9800</color>
+    <color name="lend_purple">#9C27B0</color>
 </resources>

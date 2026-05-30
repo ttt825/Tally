@@ -27,49 +27,15 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tv_dialog_title"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp">
-
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp">
-
-                        <ImageView
-                            android:id="@+id/iv_exclude_budget"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:layout_alignParentStart="true"
-                            android:layout_centerVertical="true"
-                            android:padding="4dp"
-                            android:src="@drawable/ic_dot_outline"
-                            android:visibility="gone" />
-
-                        <TextView
-                            android:id="@+id/tv_dialog_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_centerInParent="true"
-                            android:text="记一笔"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="?android:attr/textColorPrimary"/>
-                    </RelativeLayout>
-
-                    <TextView
-                        android:id="@+id/tv_revoke"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="撤回"
-                        android:textColor="@color/income_red"
-                        android:textSize="14sp"
-                        android:padding="4dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:visibility="gone"/>
-                </RelativeLayout>
+                    android:text="记一笔"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:layout_gravity="center_horizontal"/>
 
                 <TextView
                     android:id="@+id/tv_dialog_date"
@@ -77,7 +43,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:textColor="?android:attr/textColorSecondary"
-                    android:layout_gravity="start"/>
+                    android:layout_gravity="start"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:background="?android:attr/selectableItemBackground"/>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_category"
@@ -129,7 +99,7 @@
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
-                        android:text="负债"
+                        android:text="借入"
                         android:gravity="center"
                         android:button="@null"
                         android:background="@drawable/bg_type_selector"
@@ -153,24 +123,11 @@
                         android:layout_marginStart="4dp"/>
                 </RadioGroup>
 
-                <Spinner
-                    android:id="@+id/sp_asset"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:spinnerMode="dropdown"
-                    android:dropDownHeight="160dp"
-                    android:textSize="16sp"
-                    android:background="@drawable/bg_input_field"
-                    android:popupBackground="@drawable/bg_input_field"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="12dp"
-                    android:layout_marginBottom="16dp"/>
-
-                <com.example.budgetapp.ui.CustomHighlightEditText
+                <EditText
                     android:id="@+id/et_target_object"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:hint="负债/借出对象*"
+                    android:hint="借入/借出对象*"
                     android:textSize="16sp"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textColorHint="?android:attr/textColorHint"
@@ -186,7 +143,7 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="16dp">
 
-                    <com.example.budgetapp.ui.CustomHighlightEditText
+                    <EditText
                         android:id="@+id/et_amount"
                         android:layout_width="0dp"
                         android:layout_weight="1"
@@ -218,7 +175,7 @@
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                 </LinearLayout>
 
-                <com.example.budgetapp.ui.CustomHighlightEditText
+                <EditText
                     android:id="@+id/et_custom_category"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
@@ -239,7 +196,7 @@
                     android:gravity="center_vertical"
                     android:layout_marginBottom="16dp">
 
-                    <com.example.budgetapp.ui.CustomHighlightEditText
+                    <EditText
                         android:id="@+id/et_remark"  android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="56dp"
@@ -284,7 +241,7 @@
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                 </LinearLayout>
 
-                <com.example.budgetapp.ui.CustomHighlightEditText
+                <EditText
                     android:id="@+id/et_note"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"

@@ -2,6 +2,7 @@ package com.example.budgetapp.ui;
 
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -9,6 +10,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
@@ -19,6 +21,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.budgetapp.MyApplication;
 import com.example.budgetapp.R;
+import com.example.budgetapp.security.SecureStorage;
 
 import java.util.concurrent.Executor;
 
@@ -26,8 +29,10 @@ public class AuthActivity extends AppCompatActivity {
 
     private EditText etPassword;
     private SharedPreferences prefs;
+    private SecureStorage secureStorage;
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -62,6 +67,7 @@ public class AuthActivity extends AppCompatActivity {
         });
 
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        secureStorage = new SecureStorage(this);
         etPassword = findViewById(R.id.et_password);
         Button btnUnlock = findViewById(R.id.btn_unlock);
 //        ImageView ivBiometric = findViewById(R.id.iv_biometric);
@@ -81,17 +87,23 @@ public class AuthActivity extends AppCompatActivity {
         } else {
             layoutBiometricContainer.setVisibility(View.GONE);
         }
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                moveTaskToBack(true);
+            }
+        });
     }
 
     private void verifyPassword() {
         String input = etPassword.getText().toString();
-        String correctPwd = prefs.getString("app_password", "");
 
-        if (input.equals(correctPwd)) {
+        if (secureStorage.verifyPassword(input)) {
             unlockSuccess();
         } else {
             Toast.makeText(this, "密码错误", Toast.LENGTH_SHORT).show();
-            etPassword.setText(""); // 清空输入框
+            etPassword.setText("");
         }
     }
 
@@ -126,16 +138,14 @@ public class AuthActivity extends AppCompatActivity {
         biometricPrompt.authenticate(promptInfo);
     }
 
+    @SuppressWarnings("deprecation")
     private void unlockSuccess() {
-        // 更新全局状态为已解锁
         MyApplication.isUnlocked = true;
         finish();
-        overridePendingTransition(0, 0); // 取消关闭动画，体验更好
-    }
-
-    @Override
-    public void onBackPressed() {
-        // 拦截返回键，按返回键直接退到手机桌面，防止绕过密码页
-        moveTaskToBack(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0);
+        } else {
+            overridePendingTransition(0, 0);
+        }
     }
 }

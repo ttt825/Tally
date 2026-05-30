@@ -1,14 +1,9 @@
 // src/main/java/com/example/budgetapp/ui/CalendarAdapter.java
 package com.example.budgetapp.ui;
 
-import android.animation.ArgbEvaluator;
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.InsetDrawable;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,8 +12,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
-import com.example.budgetapp.database.RenewalItem;
 import com.example.budgetapp.database.Transaction;
+
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -26,25 +21,45 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import com.nlf.calendar.Lunar;
 
 public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHolder> {
 
     private List<LocalDate> days = new ArrayList<>();
     private List<Transaction> transactions = new ArrayList<>();
-    private List<RenewalItem> renewalItems = new ArrayList<>(); // 支持多项续费项目
     private LocalDate selectedDate;
     private final OnDateClickListener listener;
     private int filterMode = 0;
     private YearMonth currentMonth;
 
-    private boolean isBudgetEnabled = false;
-    private float monthlyBudget = 0f;
+    // 预计算缓存
+    private List<DayCache> dayCacheList = new ArrayList<>();
 
-    // 增加一个公开方法用于接收配置
-    public void setBudgetConfig(boolean enabled, float budget) {
-        this.isBudgetEnabled = enabled;
-        this.monthlyBudget = budget;
-        notifyDataSetChanged();
+    // 缓存的主题颜色
+    private int cachedColorPrimaryText = Color.GRAY;
+    private int cachedColorSecondaryText = Color.GRAY;
+    private int cachedThemeColor = Color.GRAY;
+    private int cachedIncomeRed = Color.GRAY;
+    private int cachedExpenseGreen = Color.GRAY;
+    private int cachedLunarTextColor = Color.GRAY;
+    private boolean themeColorsCached = false;
+
+    // 缓存的自定义背景开关
+    private boolean customBgEnabled = false;
+
+    /**
+     * 内部类：存储每日的预计算结果
+     */
+    private static class DayCache {
+        LocalDate date;
+        double dailySum;
+        double dailyHours;
+        // 【新增】分别存储收入和支出
+        double dailyIncome;
+        double dailyExpense;
+        String netText;
+        int netColor;
+        boolean hasData;
     }
 
     public interface OnDateClickListener {
@@ -53,14 +68,6 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
 
     public CalendarAdapter(OnDateClickListener listener) {
         this.listener = listener;
-    }
-
-    /**
-     * 更新续费项目列表
-     */
-    public void setRenewalItems(List<RenewalItem> items) {
-        this.renewalItems = items != null ? items : new ArrayList<>();
-        notifyDataSetChanged();
     }
 
     public void setFilterMode(int mode) {
@@ -72,9 +79,42 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         this.currentMonth = month;
     }
 
+    /**
+     * 缓存主题颜色，避免在 onBindViewHolder 中重复解析
+     */
+    public void cacheThemeColors(Context context) {
+        cachedColorPrimaryText = getThemeColor(context, android.R.attr.textColorPrimary);
+        cachedColorSecondaryText = getThemeColor(context, android.R.attr.textColorSecondary);
+        cachedThemeColor = context.getColor(R.color.app_yellow);
+        cachedIncomeRed = context.getColor(R.color.income_red);
+        cachedExpenseGreen = context.getColor(R.color.expense_green);
+        cachedLunarTextColor = context.getColor(R.color.calendar_lunar_text);
+        themeColorsCached = true;
+    }
+
+    /**
+     * 设置自定义背景是否开启，由外部传入避免在 onBindViewHolder 中读取 SharedPreferences
+     */
+    public void setCustomBgEnabled(boolean enabled) {
+        this.customBgEnabled = enabled;
+    }
+
     public void updateData(List<LocalDate> days, List<Transaction> transactions) {
         this.days = days;
         this.transactions = transactions;
+        buildDayCache();
+        notifyDataSetChanged();
+    }
+
+    /**
+     * 【新增】强制重新缓存主题颜色并刷新日历
+     * 用于 Tab 切换后恢复正确的颜色状态
+     */
+    public void refreshThemeColors(Context context) {
+        themeColorsCached = false;
+        cacheThemeColors(context);
+        // 颜色缓存更新后，需要重新计算每日的颜色
+        buildDayCache();
         notifyDataSetChanged();
     }
 
@@ -94,6 +134,127 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         return Color.GRAY;
     }
 
+    /**
+     * 预计算每日统计数据并缓存到 dayCacheList 中
+     */
+    private void buildDayCache() {
+        dayCacheList = new ArrayList<>(days.size());
+        for (int i = 0; i < days.size(); i++) {
+            LocalDate date = days.get(i);
+            DayCache cache = new DayCache();
+            cache.date = date;
+
+            if (date == null) {
+                dayCacheList.add(cache);
+                continue;
+            }
+
+            double dailySum = 0;
+            double dailyHours = 0;
+            // 【新增】分别统计收入和支出
+            double dailyIncome = 0;
+            double dailyExpense = 0;
+            long start = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long end = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+            for (Transaction t : transactions) {
+                if (t.date >= start && t.date < end) {
+                    // 【新增】统计支出
+                    if (t.type == 0) {
+                        dailyExpense += t.amount;
+                    }
+
+                    switch (filterMode) {
+                        case 0: // 结余
+                            if (t.type == 1) {
+                                if (!"加班".equals(t.category)) {
+                                    dailySum += t.amount;
+                                    dailyIncome += t.amount;
+                                }
+                            } else if (t.type == 0) {
+                                dailySum -= t.amount;
+                            }
+                            break;
+                        case 1: // 收入
+                            if (t.type == 1 && !"加班".equals(t.category)) {
+                                dailySum += t.amount;
+                                dailyIncome += t.amount;
+                            }
+                            break;
+                        case 2: // 支出
+                            if (t.type == 0) dailySum += t.amount;
+                            break;
+                        case 3: // 加班工资
+                            if (t.type == 1 && "加班".equals(t.category)) dailySum += t.amount;
+                            break;
+                        case 4: // 加班工时
+                            if (t.type == 1 && "加班".equals(t.category)) {
+                                if (t.note != null) {
+                                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("时长:\\s*([0-9.]+)\\s*小时").matcher(t.note);
+                                    if (m.find()) {
+                                        try {
+                                            dailyHours += Double.parseDouble(m.group(1));
+                                        } catch (NumberFormatException ignored) {}
+                                    }
+                                }
+                                dailySum += t.amount;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            cache.dailySum = dailySum;
+            cache.dailyHours = dailyHours;
+            cache.dailyIncome = dailyIncome;
+            cache.dailyExpense = dailyExpense;
+
+            // 判断是否有收支数据
+            if (dailySum != 0 || dailyHours > 0 || (filterMode == 0 && (dailyIncome > 0 || dailyExpense > 0))) {
+                cache.hasData = true;
+                if (filterMode == 4) {
+                    cache.netText = String.format("%.1fh", dailyHours);
+                    cache.netColor = Color.parseColor("#2196F3");
+                } else if (filterMode == 0) {
+                    // 【修改】结余模式：分别显示收入（红色）和支出（绿色）
+                    // 两者都有时显示差额（收入-支出）
+                    boolean hasIncome = dailyIncome > 0;
+                    boolean hasExpense = dailyExpense > 0;
+                    if (hasIncome && hasExpense) {
+                        // 两者都有：显示差额
+                        double balance = dailyIncome - dailyExpense;
+                        cache.netText = String.format("%.2f", balance);
+                        cache.netColor = balance > 0 ? cachedIncomeRed : cachedExpenseGreen;
+                    } else if (hasIncome) {
+                        // 只有收入：红色
+                        cache.netText = String.format("%.2f", dailyIncome);
+                        cache.netColor = cachedIncomeRed;
+                    } else {
+                        // 只有支出：绿色
+                        cache.netText = String.format("%.2f", dailyExpense);
+                        cache.netColor = cachedExpenseGreen;
+                    }
+                } else {
+                    cache.netText = String.format("%.2f", dailySum);
+                    if (filterMode == 2) {
+                        cache.netColor = cachedExpenseGreen;
+                    } else if (filterMode == 3) {
+                        cache.netColor = Color.parseColor("#FF9800");
+                    } else {
+                        cache.netColor = dailySum > 0 ? cachedIncomeRed : cachedExpenseGreen;
+                    }
+                }
+            } else {
+                cache.hasData = false;
+                // 无收支数据时，农历文本和颜色仍需在 onBindViewHolder 中计算（需要 Context）
+                cache.netText = null;
+                cache.netColor = 0;
+            }
+
+            dayCacheList.add(cache);
+        }
+    }
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -103,7 +264,8 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        LocalDate date = days.get(position);
+        DayCache cache = dayCacheList.get(position);
+        LocalDate date = cache.date;
         if (date == null) {
             holder.tvDay.setText("");
             holder.tvNet.setText("");
@@ -113,15 +275,13 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         }
 
         Context context = holder.itemView.getContext();
+
+        // 确保主题颜色已缓存
+        if (!themeColorsCached) {
+            cacheThemeColors(context);
+        }
+
         holder.tvDay.setText(String.valueOf(date.getDayOfMonth()));
-
-        // 基础颜色
-        int colorPrimaryText = getThemeColor(context, android.R.attr.textColorPrimary);
-        int colorSecondaryText = getThemeColor(context, android.R.attr.textColorSecondary);
-        int themeColor = context.getColor(R.color.app_blue);
-
-        int incomeRed = context.getColor(R.color.income_red);
-        int expenseGreen = context.getColor(R.color.expense_green);
 
         boolean isCurrentMonth = currentMonth != null &&
                 date.getYear() == currentMonth.getYear() &&
@@ -133,254 +293,105 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
             holder.tvDay.setAlpha(1.0f);
             DayOfWeek dayOfWeek = date.getDayOfWeek();
             boolean isWeekend = dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
-            defaultDayColor = isWeekend ? themeColor : colorPrimaryText;
+            defaultDayColor = isWeekend ? cachedThemeColor : cachedColorPrimaryText;
         } else {
             holder.tvDay.setAlpha(0.3f);
-            defaultDayColor = colorSecondaryText;
+            defaultDayColor = cachedColorSecondaryText;
         }
 
-        // 2. 统计金额及颜色处理
-        double dailySum = 0;
-        double dailyHours = 0; // 新增：统计每日工时
-        double dailyExpenseForBudget = 0; // <--- 1. 新增这行，定义每日支出变量
-        long start = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        long end = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
-        for (Transaction t : transactions) {
-            if (t.date >= start && t.date < end) {
-
-                // 🌟 核心拦截：如果是资产互转，直接跳过，不参与日历下方任何数字的计算
-                boolean isTransfer = (t.type == 2) || "资产互转".equals(t.category);
-                if (isTransfer) {
-                    continue;
-                }
-
-                // <--- 2. 新增这块：只要是支出(type==0)，就累加到预算统计里 --->
-                if (t.type == 0) {
-                    dailyExpenseForBudget += t.amount;
-                }
-
-                switch (filterMode) {
-                    case 0: // 结余
-                        if (t.type == 1) {
-                            if (!"加班".equals(t.category)) dailySum += t.amount;
-                        } else if (t.type == 0) { // 🌟 严格限制只有真正的支出才减去金额
-                            dailySum -= t.amount;
-                        }
-                        break;
-                    case 1: // 收入
-                        if (t.type == 1 && !"加班".equals(t.category)) dailySum += t.amount;
-                        break;
-                    case 2: // 支出
-                        if (t.type == 0) dailySum += t.amount;
-                        break;
-                    case 3: // 加班工资
-                        if (t.type == 1 && "加班".equals(t.category)) dailySum += t.amount;
-                        break;
-                    case 4: // 加班工时
-                        if (t.type == 1 && "加班".equals(t.category)) {
-                            if (t.note != null) {
-                                java.util.regex.Matcher m = java.util.regex.Pattern.compile("时长:\\s*([0-9.]+)\\s*小时").matcher(t.note);
-                                if (m.find()) {
-                                    try {
-                                        dailyHours += Double.parseDouble(m.group(1));
-                                    } catch (NumberFormatException ignored) {}
-                                }
-                            }
-                            // 赋值 dailySum 让底部判断有数据
-                            dailySum += t.amount;
-                        }
-                        break;
-                }
-            }
-        }
-
+        // 2. 从缓存获取统计数据
         int defaultNetColor = 0;
-        String netText = "";
+        String netText;
 
-        // 判断是否有收支数据 (增加对工时的判断)
-        if (Math.abs(dailySum) > 0.001 || dailyHours > 0) {
-            // === 有收支数据，按原逻辑显示金额 ===
-            if (filterMode == 4) {
-                netText = String.format("%.1fh", dailyHours); // 显示工时，例如 2.0h
-                defaultNetColor = Color.parseColor("#2196F3"); // 给工时换个颜色 (蓝色) 用来区分
-            } else {
-                netText = String.format("%.2f", dailySum);
-                if (filterMode == 2) {
-                    defaultNetColor = expenseGreen;
-                } else if (filterMode == 3) {
-                    defaultNetColor = Color.parseColor("#FF9800"); // 加班工资使用橘色
-                } else {
-                    defaultNetColor = dailySum > 0 ? incomeRed : expenseGreen;
-                }
-            }
+        if (cache.hasData) {
+            netText = cache.netText;
+            defaultNetColor = cache.netColor;
         } else {
-            // === 无收支数据，显示农历或节假日 ===
+            // === 无收支数据，显示农历和节日（需要 Context，在 onBindViewHolder 中计算）===
             try {
-                com.nlf.calendar.Solar solar = com.nlf.calendar.Solar.fromYmd(date.getYear(), date.getMonthValue(), date.getDayOfMonth());
-                com.nlf.calendar.Lunar lunar = solar.getLunar();
+                java.util.Date utilDate = java.util.Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                Lunar lunar = new Lunar(utilDate);
+                String lunarDay = lunar.getDayInChinese();
 
-                String festival = "";
-
-                // 依次优先级：农历节日 -> 阳历节日 -> 节气
-                if (lunar.getFestivals() != null && !lunar.getFestivals().isEmpty()) {
-                    festival = lunar.getFestivals().get(0);
-                } else if (solar.getFestivals() != null && !solar.getFestivals().isEmpty()) {
-                    festival = solar.getFestivals().get(0);
-                } else if (lunar.getJieQi() != null && !lunar.getJieQi().isEmpty()) {
-                    festival = lunar.getJieQi();
-                }
-
-                // 确定显示的文字
-                if (festival != null && !festival.isEmpty()) {
-                    netText = festival;
+                java.util.List<String> festivals = lunar.getFestivals();
+                if (festivals != null && !festivals.isEmpty()) {
+                    netText = festivals.get(0);
                 } else {
-                    if (lunar.getDay() == 1) {
-                        netText = lunar.getMonthInChinese() + "月";
-                    } else {
-                        netText = lunar.getDayInChinese();
-                    }
+                    netText = lunarDay;
                 }
-
-                // ==========================================
-                // 新增逻辑：限制农历/节假日最多显示三个字，超出显示"..."
-                // ==========================================
-                if (netText.length() > 3) {
-                    netText = netText.substring(0, 3) + "...";
-                }
-
-                // 【修改这里】：动态获取系统当前模式下的颜色 (日间#666666，夜间#6b6d6d)
-                defaultNetColor = context.getColor(R.color.calendar_lunar_text);
-
             } catch (Exception e) {
-                e.printStackTrace();
+                netText = String.valueOf(date.getDayOfMonth());
             }
+            defaultNetColor = cachedLunarTextColor;
         }
+
         // 3. 样式应用逻辑核心
         boolean isToday = date.equals(LocalDate.now());
         boolean isSelected = date.equals(selectedDate);
 
-        // --- 在判断背景色之前，先保存 View 原本的 Padding ---
         // --- 在判断背景色之前，先保存 View 原本的 Padding ---
         int padLeft = holder.itemView.getPaddingLeft();
         int padTop = holder.itemView.getPaddingTop();
         int padRight = holder.itemView.getPaddingRight();
         int padBottom = holder.itemView.getPaddingBottom();
 
-        // --- 核心优化：检测多项自动续费日期 (支持自定义) ---
-        boolean isRenewalDay = false;
-        for (RenewalItem item : renewalItems) {
-            // 【关键修改】：调用新增的统一判断方法
-            if (isRenewalDate(item, date)) {
-                isRenewalDay = true;
-                break;
-            }
-        }
-
-        // ====== 新增：提前获取是否开启了自定义背景 ======
-        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-        boolean isCustomBg = prefs.getInt("theme_mode", -1) == 3;
-        // ===============================================
-
-        // --- 样式优先级：选中 > 今天 > 续费日期 > 普通 ---
+        // --- 样式优先级：选中 > 今天 > 普通 ---
         if (isSelected) {
-            // [被选中状态]：显示蓝色边框，带有由浅入深的过渡动画
-            // 如果之前是"今天"或"预算色块"，需要带淡出动画
-            boolean wasToday = isToday;
-            boolean wasBudget = isBudgetEnabled && monthlyBudget > 0 && isCurrentMonth && !date.isAfter(LocalDate.now()) && dailyExpenseForBudget > 0;
-            
-            applySelectedDateAnimation(holder, themeColor, defaultDayColor, wasToday, wasBudget, dailyExpenseForBudget, dailyBudget(date), isCurrentMonth);
+            holder.itemView.setBackgroundResource(R.drawable.bg_calendar_today);
+            Drawable bg = holder.itemView.getBackground();
+            if (bg != null) bg.setTint(Color.parseColor("#2196F3"));
+
+            holder.tvDay.setTextColor(Color.WHITE);
             holder.tvDay.setAlpha(1.0f);
             holder.itemView.setSelected(true);
 
         } else if (isToday) {
-            // [今天状态]：黄色实心背景 + 白色文字
-            holder.itemView.setBackgroundResource(R.drawable.bg_calendar_today);
+            holder.itemView.setBackgroundResource(R.drawable.bg_selected_date);
             Drawable bg = holder.itemView.getBackground();
-            if (bg != null) bg.setTint(themeColor);
+            if (bg != null) bg.setTint(Color.parseColor("#2196F3"));
 
-            holder.tvDay.setTextColor(Color.WHITE);
+            holder.tvDay.setTextColor(defaultDayColor);
             holder.tvDay.setAlpha(1.0f);
             holder.itemView.setSelected(false);
 
-        } else if (isRenewalDay) {
-            // [自动续费状态]：显示红色边框
-            holder.itemView.setBackgroundResource(R.drawable.bg_selected_date);
-            Drawable bg = holder.itemView.getBackground();
-            if (bg != null) bg.setTint(incomeRed);
-
-            holder.tvDay.setTextColor(defaultDayColor);
-            holder.itemView.setSelected(false);
-
-        } else if (isBudgetEnabled && monthlyBudget > 0 && isCurrentMonth && !date.isAfter(LocalDate.now())) {
-            // [预算状态]
-            int daysInMonth = date.lengthOfMonth();
-            double dailyBudget = monthlyBudget / daysInMonth;
-            if (dailyExpenseForBudget > dailyBudget) {
-                holder.itemView.setBackgroundResource(R.drawable.bg_budget_exceed);
-            } else {
-                holder.itemView.setBackgroundResource(R.drawable.bg_budget_safe);
-            }
-
-            Drawable bg = holder.itemView.getBackground();
-            if (bg != null) {
-                // 如果是自定义背景，设置为 217 (85% 不透明度)，否则恢复 255 (不透明)
-                bg.mutate().setAlpha(isCustomBg ? 230 : 255);
-            }
-
-            holder.tvDay.setTextColor(defaultDayColor);
-            holder.itemView.setSelected(false);
-
         } else {
-            // ====== 修改：[普通状态] ======
-            if (isCustomBg) {
-                // 1. 创建圆角矩形 Shape
+            // ====== [普通状态] ======
+            if (customBgEnabled) {
                 android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
                 shape.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
 
-                // 【新增判断】：如果是当月日期，用 90% 不透明度 (230)；如果是非当月(上个月/下个月)，用 60% 不透明度 (153)
                 int alpha = isCurrentMonth ? 230 : 153;
 
-                // 设置颜色：淡灰底色注入动态透明度
                 int surfaceColor = androidx.core.content.ContextCompat.getColor(context, R.color.white);
                 int translucentGray = androidx.core.graphics.ColorUtils.setAlphaComponent(surfaceColor, alpha);
                 shape.setColor(translucentGray);
 
-                // 设置圆角：12dp 转换为 px
                 float radius = android.util.TypedValue.applyDimension(
                         android.util.TypedValue.COMPLEX_UNIT_DIP, 12, context.getResources().getDisplayMetrics());
                 shape.setCornerRadius(radius);
 
-                // 2. 创建 Inset 缩进
-                // 设置间隙：4dp 转换为 px
                 int inset = (int) android.util.TypedValue.applyDimension(
                         android.util.TypedValue.COMPLEX_UNIT_DIP, 4, context.getResources().getDisplayMetrics());
 
-                // 将 Shape 放入 InsetDrawable 中，四周缩进 4dp
                 android.graphics.drawable.InsetDrawable insetDrawable =
                         new android.graphics.drawable.InsetDrawable(shape, inset, inset, inset, inset);
 
-                // 应用背景
                 holder.itemView.setBackground(insetDrawable);
             } else {
-                // 系统纯色背景：恢复完全透明，不遮挡系统的底色
                 holder.itemView.setBackgroundResource(0);
             }
 
             holder.tvDay.setTextColor(defaultDayColor);
             holder.itemView.setSelected(false);
-            // ===============================
         }
 
-        // --- 新增：背景设置完毕后，强行恢复原本的 Padding ---
+        // --- 背景设置完毕后，强行恢复原本的 Padding ---
         holder.itemView.setPadding(padLeft, padTop, padRight, padBottom);
-        // ----------------------------------------------------
 
         // 设置下方金额文字
         holder.tvNet.setText(netText);
         if (!netText.isEmpty()) {
-            // 如果是今天且未被选中，金额显示白色以适配黄色背景
-            if (isToday && !isSelected) {
+            if (isSelected) {
                 holder.tvNet.setTextColor(Color.WHITE);
             } else {
                 holder.tvNet.setTextColor(defaultNetColor);
@@ -391,198 +402,9 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         }
 
         holder.itemView.setOnClickListener(v -> {
-            // 修改为 KEYBOARD_TAP (模拟键盘敲击的清脆感)
-            v.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+            v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
             listener.onDateClick(date);
         });
-    }
-
-    // 新增：用于判断目标日期是否为续费日（包含自定义周期的计算）
-    private boolean isRenewalDate(RenewalItem item, LocalDate targetDate) {
-        if ("Month".equals(item.period)) {
-            return targetDate.getDayOfMonth() == item.day;
-        } else if ("Year".equals(item.period)) {
-            return targetDate.getMonthValue() == item.month && targetDate.getDayOfMonth() == item.day;
-        } else if ("Custom".equals(item.period)) {
-            // 安全检查，兼容旧数据
-            int startYear = item.year > 2000 ? item.year : targetDate.getYear();
-            LocalDate startDate;
-            try {
-                startDate = LocalDate.of(startYear, item.month, item.day);
-            } catch (Exception e) {
-                return false;
-            }
-
-            // 如果当前查看的日期在起算日期之前，则不触发
-            if (targetDate.isBefore(startDate)) {
-                return false;
-            }
-
-            int value = item.durationValue > 0 ? item.durationValue : 1;
-
-            if ("Day".equals(item.durationUnit)) {
-                long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, targetDate);
-                return days % value == 0;
-            } else if ("Week".equals(item.durationUnit)) {
-                long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, targetDate);
-                return days % (7L * value) == 0;
-            } else if ("Month".equals(item.durationUnit)) {
-                // 计算相差的自然月数
-                int diffMonths = (targetDate.getYear() - startDate.getYear()) * 12 + (targetDate.getMonthValue() - startDate.getMonthValue());
-                if (diffMonths >= 0 && diffMonths % value == 0) {
-                    return startDate.plusMonths(diffMonths).equals(targetDate);
-                }
-                return false;
-            } else if ("Year".equals(item.durationUnit)) {
-                int diffYears = targetDate.getYear() - startDate.getYear();
-                if (diffYears >= 0 && diffYears % value == 0) {
-                    return startDate.plusYears(diffYears).equals(targetDate);
-                }
-                return false;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 计算每日预算
-     */
-    private double dailyBudget(LocalDate date) {
-        if (!isBudgetEnabled || monthlyBudget <= 0) return 0;
-        int daysInMonth = date.lengthOfMonth();
-        return monthlyBudget / daysInMonth;
-    }
-
-    /**
-     * 为选中的日期应用由浅入深的快速过渡动画（边框缩放+颜色渐变），并处理背景色块的淡出效果
-     * @param holder ViewHolder
-     * @param targetColor 目标颜色（主题色）
-     * @param textColor 文字颜色
-     * @param wasToday 是否是今天（需要淡出蓝色背景）
-     * @param wasBudget 是否有预算色块（需要淡出预算背景）
-     * @param dailyExpense 当日支出
-     * @param dailyBudget 每日预算
-     * @param isCurrentMonth 是否是当前月份
-     */
-    private void applySelectedDateAnimation(ViewHolder holder, int targetColor, int textColor, 
-                                           boolean wasToday, boolean wasBudget, 
-                                           double dailyExpense, double dailyBudget,
-                                           boolean isCurrentMonth) {
-        Context context = holder.itemView.getContext();
-        
-        // 创建圆角矩形边框 Shape
-        GradientDrawable shape = new GradientDrawable();
-        shape.setShape(GradientDrawable.RECTANGLE);
-        
-        // 设置圆角
-        float radius = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 12, context.getResources().getDisplayMetrics());
-        shape.setCornerRadius(radius);
-        
-        // 设置边框宽度
-        float strokeWidth = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 1.5f, context.getResources().getDisplayMetrics());
-        
-        // 创建 Inset 缩进（初始值较大，用于缩放效果）
-        int baseInset = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 4, context.getResources().getDisplayMetrics());
-        
-        // === 核心优化：确定初始背景色（用于淡出动画）===
-        final int startBgColor;
-        final int startBgAlpha; // 记录原始透明度
-        
-        // 检查是否是自定义背景模式
-        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-        boolean isCustomBg = prefs.getInt("theme_mode", -1) == 3;
-        
-        if (wasToday) {
-            // 今天的蓝色背景
-            startBgColor = targetColor;
-            // 自定义背景模式下透明度为 230，普通模式为 255
-            startBgAlpha = isCustomBg ? 230 : 255;
-        } else if (wasBudget) {
-            // 预算色块背景（使用预算专用的浅色）
-            int budgetSafeBg = context.getColor(R.color.budget_safe_bg);
-            int budgetExceedBg = context.getColor(R.color.budget_exceed_bg);
-            startBgColor = dailyExpense > dailyBudget ? budgetExceedBg : budgetSafeBg;
-            // 预算色块的透明度：自定义背景 230，普通模式 255
-            startBgAlpha = isCustomBg ? 230 : 255;
-        } else {
-            // 正常日期（非今天、非预算色块）
-            // 在自定义背景模式下，正常日期也有半透明白色背景，需要淡出动画
-            if (isCustomBg) {
-                int surfaceColor = context.getColor(R.color.white);
-                startBgColor = surfaceColor;
-                // 根据是否是当月日期设置透明度
-                startBgAlpha = isCurrentMonth ? 230 : 153;
-            } else {
-                startBgColor = Color.TRANSPARENT;
-                startBgAlpha = 0;
-            }
-        }
-        
-        // 边框颜色动画：从浅色（15%透明度）到深色（100%不透明）
-        final int startStrokeColor = androidx.core.graphics.ColorUtils.setAlphaComponent(targetColor, 38); // 15% 透明度
-        final int endStrokeColor = targetColor; // 100% 不透明
-        
-        // 创建组合动画：背景淡出 + 边框颜色渐变 + 边框缩放
-        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(100); // 100ms 动画时长
-        animator.addUpdateListener(animation -> {
-            float progress = (float) animation.getAnimatedValue();
-            
-            // 1. 背景色淡出：保持原来的颜色，透明度从原始值逐渐降到 0（由深入浅）
-            // 透明度从原始值（230 或 255）逐渐降到 0
-            int currentAlpha = (int) (startBgAlpha * (1f - progress)); // progress: 0->1, alpha: startBgAlpha->0
-            int animatedBgColor = androidx.core.graphics.ColorUtils.setAlphaComponent(startBgColor, currentAlpha);
-            shape.setColor(animatedBgColor);
-            
-            // 2. 边框颜色插值：从浅色到深色
-            int animatedStrokeColor = (int) new ArgbEvaluator().evaluate(progress, startStrokeColor, endStrokeColor);
-            shape.setStroke((int) strokeWidth, animatedStrokeColor);
-            
-            // 3. 边框缩放效果：从 0.80 到 1.0（通过调整 inset 实现）
-            float scale = 0.80f + (0.20f * progress);
-            int extraInset = (int) (baseInset * (1f - scale) * 2.5f);
-            int currentInset = baseInset + extraInset;
-            
-            InsetDrawable insetDrawable = new InsetDrawable(shape, currentInset, currentInset, currentInset, currentInset);
-            holder.itemView.setBackground(insetDrawable);
-            holder.itemView.invalidate();
-        });
-        
-        // 文字颜色过渡动画（如果是今天，文字从白色过渡到默认颜色）
-        if (wasToday) {
-            ValueAnimator textAnimator = ValueAnimator.ofFloat(0f, 1f);
-            textAnimator.setDuration(100); // 与边框动画同步
-            textAnimator.addUpdateListener(animation -> {
-                float progress = (float) animation.getAnimatedValue();
-                int animatedTextColor = (int) new ArgbEvaluator().evaluate(progress, Color.WHITE, textColor);
-                holder.tvDay.setTextColor(animatedTextColor);
-                
-                // 同时处理下方文字（tvNet）的颜色过渡
-                if (!holder.tvNet.getText().toString().isEmpty()) {
-                    holder.tvNet.setTextColor(animatedTextColor);
-                }
-            });
-            textAnimator.start();
-        } else {
-            holder.tvDay.setTextColor(textColor);
-        }
-        
-        // 下方文字（tvNet）透明度过渡动画（如果是非当月日期被选中，透明度从 0.3 恢复到 1.0）
-        if (!isCurrentMonth) {
-            ValueAnimator alphaAnimator = ValueAnimator.ofFloat(0.3f, 1.0f);
-            alphaAnimator.setDuration(100); // 与边框动画同步
-            alphaAnimator.addUpdateListener(animation -> {
-                float alpha = (float) animation.getAnimatedValue();
-                holder.tvNet.setAlpha(alpha);
-            });
-            alphaAnimator.start();
-        }
-        
-        // 启动动画
-        animator.start();
     }
 
     @Override

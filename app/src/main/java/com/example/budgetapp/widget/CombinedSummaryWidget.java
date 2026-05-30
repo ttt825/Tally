@@ -11,19 +11,16 @@ import android.util.Log;
 import com.example.budgetapp.MainActivity;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
+import com.example.budgetapp.utils.ThreadPoolManager;
 
 import java.util.Calendar;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class CombinedSummaryWidget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         final PendingResult pendingResult = goAsync();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        
-        executor.execute(() -> {
+        ThreadPoolManager.getInstance().executeDatabase(() -> {
             try {
                 AppDatabase db = AppDatabase.getDatabase(context.getApplicationContext());
 

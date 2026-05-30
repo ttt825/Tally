@@ -2,6 +2,7 @@ package com.example.budgetapp.ui;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -18,15 +19,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
-import com.example.budgetapp.database.TransactionDao;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -49,6 +46,7 @@ public class YearCalendarActivity extends AppCompatActivity {
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -190,32 +188,6 @@ public class YearCalendarActivity extends AppCompatActivity {
                 runOnUiThread(() -> renderData(direction, targetYear, monthsWithData));
             }
         });
-    }
-
-    // 使用轻量级对象查询，极大降低内存占用
-    private Map<Integer, Map<Integer, Double>> fetchYearStatsFromDb(int year) {
-        ZoneId zoneId = ZoneId.systemDefault();
-        long start = LocalDate.of(year, 1, 1).atStartOfDay(zoneId).toInstant().toEpochMilli();
-        long end = LocalDate.of(year, 12, 31).atTime(LocalTime.MAX).atZone(zoneId).toInstant().toEpochMilli();
-
-        TransactionDao dao = AppDatabase.getDatabase(this).transactionDao();
-        List<com.example.budgetapp.database.TransactionMinimal> transactions = dao.getMinimalTransactionsSync(start, end);
-
-        Map<Integer, Map<Integer, Double>> stats = new HashMap<>();
-        for (com.example.budgetapp.database.TransactionMinimal t : transactions) {
-            LocalDate date = Instant.ofEpochMilli(t.date).atZone(zoneId).toLocalDate();
-            int month = date.getMonthValue();
-            int day = date.getDayOfMonth();
-
-            if (!stats.containsKey(month)) {
-                stats.put(month, new HashMap<>());
-            }
-            Map<Integer, Double> monthMap = stats.get(month);
-
-            double amount = (t.type == 1) ? t.amount : -t.amount;
-            monthMap.put(day, monthMap.getOrDefault(day, 0.0) + amount);
-        }
-        return stats;
     }
 
     // 将数据渲染并推入屏幕的 UI 动画逻辑

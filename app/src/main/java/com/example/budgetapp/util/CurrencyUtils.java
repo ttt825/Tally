@@ -56,11 +56,7 @@ public class CurrencyUtils {
 
         // 如果是 Service/悬浮窗环境，需要设置 Window Type
         if (isOverlay) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
-            } else {
-                dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
-            }
+            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
         }
         
         // 设置背景透明，以便显示圆角

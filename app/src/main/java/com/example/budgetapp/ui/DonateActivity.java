@@ -1,5 +1,7 @@
 package com.example.budgetapp.ui;
 
+import android.util.Log;
+
 import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -66,7 +68,7 @@ public class DonateActivity extends AppCompatActivity {
         if (btnCopyGithubDonate != null) {
             btnCopyGithubDonate.setOnClickListener(v -> {
                 android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                cm.setText("https://github.com/cypressincloud/Tally");
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://github.com/cypressincloud/Tally"));
                 Toast.makeText(this, "链接已复制到剪切板", Toast.LENGTH_SHORT).show();
             });
         }
@@ -109,7 +111,7 @@ public class DonateActivity extends AppCompatActivity {
             drawable.draw(canvas);
             return bitmap;
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("Tally", "Error", e);
             return null;
         }
     }
@@ -130,7 +132,7 @@ public class DonateActivity extends AppCompatActivity {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
                 Toast.makeText(this, "已保存到相册", Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("Tally", "Error", e);
                 Toast.makeText(this, "保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         } else {

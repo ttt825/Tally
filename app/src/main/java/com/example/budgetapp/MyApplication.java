@@ -1,6 +1,7 @@
 package com.example.budgetapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,18 +10,20 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
+import com.example.budgetapp.database.AppDatabase;
+import com.example.budgetapp.security.SecureStorage;
 import com.example.budgetapp.ui.AuthActivity;
+import com.example.budgetapp.utils.ThreadPoolManager;
 
 public class MyApplication extends Application {
 
-    // 全局静态变量，记录当前是否已经解锁过
     public static boolean isUnlocked = false;
+    private boolean downgradeWarningShown = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
 
-        // 1. 监听系统锁屏广播（一旦屏幕熄灭，就将状态改为未解锁）
         IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         registerReceiver(new BroadcastReceiver() {
             @Override
@@ -31,7 +34,6 @@ public class MyApplication extends Application {
             }
         }, filter);
 
-        // 2. 全局监听所有页面的生命周期，自动拦截未解锁状态
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
@@ -40,18 +42,23 @@ public class MyApplication extends Application {
 
             @Override
             public void onActivityResumed(Activity activity) {
-                // 如果当前进入的页面不是验证页本身，检查是否需要拦截
                 if (!(activity instanceof AuthActivity)) {
-                    SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-                    String pwd = prefs.getString("app_password", "");
-                    
-                    // 如果用户设置了密码，且当前状态是“未解锁”
-                    if (!pwd.isEmpty() && !isUnlocked) {
+                    SecureStorage secureStorage = new SecureStorage(activity);
+                    if (secureStorage.hasPassword() && !isUnlocked) {
                         Intent intent = new Intent(activity, AuthActivity.class);
-                        // 去除跳转动画，让遮挡更自然
                         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION); 
                         activity.startActivity(intent);
                     }
+                }
+
+                if (AppDatabase.downgradeDetected && !downgradeWarningShown) {
+                    downgradeWarningShown = true;
+                    new AlertDialog.Builder(activity)
+                            .setTitle("数据库降级警告")
+                            .setMessage("检测到应用版本降级，数据库已被重建，历史数据可能丢失。请尽快通过备份恢复数据。")
+                            .setPositiveButton("我知道了", null)
+                            .setCancelable(false)
+                            .show();
                 }
             }
 
@@ -64,5 +71,12 @@ public class MyApplication extends Application {
             @Override
             public void onActivityDestroyed(Activity activity) {}
         });
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        ThreadPoolManager.getInstance().shutdown();
+        AppDatabase.databaseWriteExecutor.shutdown();
     }
 }

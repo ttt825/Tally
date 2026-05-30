@@ -10,19 +10,21 @@ android {
         applicationId = "com.example.budgetapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 97
-        versionName = "3.7.6"
+        versionCode = 78
+        versionName = "3.5.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -66,20 +68,18 @@ dependencies {
 
     implementation("androidx.cardview:cardview:1.0.0")
 
-    implementation("com.google.android.material:material:1.12.0")
-
     implementation("androidx.documentfile:documentfile:1.0.1")
-
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
 
     implementation("androidx.biometric:biometric:1.1.0")
 
-    implementation("cn.6tail:lunar:1.3.15")
-
     implementation("com.google.android.flexbox:flexbox:3.0.0")
 
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    implementation("cn.6tail:lunar:1.0.0")
 
-    implementation("com.caverock:androidsvg-aar:1.4")
+    // SmoothBottomBar
+    implementation("com.github.ibrahimsn98:SmoothBottomBar:1.7.9")
+
+    // BlurView - 模糊背景效果
+    implementation("com.github.Dimezis:BlurView:version-2.0.6")
 
 }

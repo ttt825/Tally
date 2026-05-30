@@ -1,5 +1,7 @@
 package com.example.budgetapp.ui;
 
+import android.util.Log;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -36,7 +38,7 @@ public class PhotoBackupSettingsActivity extends AppCompatActivity {
                         getContentResolver().takePersistableUriPermission(uri,
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     } catch (SecurityException e) {
-                        e.printStackTrace();
+                        Log.e("Tally", "Error", e);
                     }
                     
                     prefs.edit().putString("photo_backup_uri", uri.toString()).apply();

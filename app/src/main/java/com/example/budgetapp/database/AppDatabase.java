@@ -1,6 +1,7 @@
 package com.example.budgetapp.database;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -10,33 +11,31 @@ import androidx.annotation.NonNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {Transaction.class, AssetAccount.class, Goal.class}, version = 24, exportSchema = false)
+@Database(entities = {Transaction.class}, version = 20, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract TransactionDao transactionDao();
-    public abstract AssetAccountDao assetAccountDao();
-
-    public abstract GoalDao goalDao();
 
     private static volatile AppDatabase INSTANCE;
     private static final int NUMBER_OF_THREADS = 4;
     public static final ExecutorService databaseWriteExecutor = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+    public static volatile boolean downgradeDetected = false;
 
     // ... 保持之前的 MIGRATION
     static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("ALTER TABLE transactions ADD COLUMN remark TEXT DEFAULT ''"); }
     };
     static final Migration MIGRATION_3_4 = new Migration(3, 4) {
-        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("CREATE TABLE IF NOT EXISTS `asset_accounts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `amount` REAL NOT NULL, `type` INTEGER NOT NULL, `updateTime` INTEGER NOT NULL)"); }
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { /* Asset table removed - no migration needed */ }
     };
     static final Migration MIGRATION_4_5 = new Migration(4, 5) {
-        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("ALTER TABLE transactions ADD COLUMN assetId INTEGER NOT NULL DEFAULT 0"); }
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { /* Asset column removed - no migration needed */ }
     };
     static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("ALTER TABLE transactions ADD COLUMN currencySymbol TEXT DEFAULT '¥'"); }
     };
     static final Migration MIGRATION_6_7 = new Migration(6, 7) {
-        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("ALTER TABLE asset_accounts ADD COLUMN currencySymbol TEXT DEFAULT '¥'"); }
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) { /* Asset column removed - no migration needed */ }
     };
     static final Migration MIGRATION_7_8 = new Migration(7, 8) {
         @Override public void migrate(@NonNull SupportSQLiteDatabase database) { database.execSQL("ALTER TABLE transactions ADD COLUMN subCategory TEXT DEFAULT ''"); }
@@ -49,66 +48,51 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
-    // 【新增 2】版本 9 -> 10 迁移：AssetAccount 增加理财相关字段
-    // boolean 在 SQLite 中存储为 INTEGER，0 为 false，1 为 true
+    // 【新增 2】版本 9 -> 10 迁移：资产表已删除，迁移逻辑移除
     static final Migration MIGRATION_9_10 = new Migration(9, 10) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN isFixedTerm INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN durationMonths INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN interestRate REAL NOT NULL DEFAULT 0.0");
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN expectedReturn REAL NOT NULL DEFAULT 0.0");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // 2. 新增 10 -> 11 的迁移逻辑
+    // 2. 新增 10 -> 11 的迁移逻辑：资产表已删除，迁移逻辑移除
     static final Migration MIGRATION_10_11 = new Migration(10, 11) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN isCompoundInterest INTEGER NOT NULL DEFAULT 0");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // 2. 【新增】11 -> 12 的迁移逻辑
+    // 2. 【新增】11 -> 12 的迁移逻辑：资产表已删除，迁移逻辑移除
     static final Migration MIGRATION_11_12 = new Migration(11, 12) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN depositDate INTEGER NOT NULL DEFAULT 0");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // 【全新增加】12 -> 13 的迁移逻辑：新建 goals 表
     static final Migration MIGRATION_12_13 = new Migration(12, 13) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // boolean 在 SQLite 中用 INTEGER 存储，所以 isPriority 是 INTEGER
-            database.execSQL("CREATE TABLE IF NOT EXISTS `goals` (" +
-                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                    "`name` TEXT, " +
-                    "`targetAmount` REAL NOT NULL, " +
-                    "`savedAmount` REAL NOT NULL, " +
-                    "`isPriority` INTEGER NOT NULL)");
+            /* Asset table removed - no migration needed */
         }
     };
 
     static final Migration MIGRATION_13_14 = new Migration(13, 14) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // 为 goals 表增加 createdAt 字段
-            database.execSQL("ALTER TABLE goals ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // 2. 增加 14 -> 15 的迁移逻辑
     static final Migration MIGRATION_14_15 = new Migration(14, 15) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE goals ADD COLUMN isFinished INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE goals ADD COLUMN finishedDate INTEGER NOT NULL DEFAULT 0");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // 【新增】15 -> 16 的迁移逻辑：为 transactions 表的 date, type, category 添加索引，提升查询速度
     static final Migration MIGRATION_15_16 = new Migration(15, 16) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
@@ -118,20 +102,19 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
-    // 2. 【新增】16 -> 17 的迁移逻辑：增加 isIncludedInTotal 字段
+    // 2. 【新增】16 -> 17 的迁移逻辑：资产表已删除，迁移逻辑移除
     static final Migration MIGRATION_16_17 = new Migration(16, 17) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // boolean 在 SQLite 中用 INTEGER 存储，1 代表 true，0 代表 false
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN isIncludedInTotal INTEGER NOT NULL DEFAULT 1");
+            /* Asset table removed - no migration needed */
         }
     };
 
-    // ========== 新增：17 -> 18 的迁移逻辑 (添加 colorType) ==========
+    // ========== 新增：17 -> 18 的迁移逻辑 (资产表已删除) ==========
     static final Migration MIGRATION_17_18 = new Migration(17, 18) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN colorType INTEGER NOT NULL DEFAULT 0");
+            /* Asset table removed - no migration needed */
         }
     };
     // ================================================================
@@ -139,7 +122,7 @@ public abstract class AppDatabase extends RoomDatabase {
     static final Migration MIGRATION_18_19 = new Migration(18, 19) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN customColorHex TEXT DEFAULT ''");
+            /* Asset table removed - no migration needed */
         }
     };
 
@@ -151,55 +134,23 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
-    static final Migration MIGRATION_20_21 = new Migration(20, 21) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            // boolean 类型在 SQLite 中存储为 INTEGER，defaultValue "false" 对应 0
-            database.execSQL("ALTER TABLE transactions ADD COLUMN excludeFromBudget INTEGER NOT NULL DEFAULT 0");
-        }
-    };
-
-    // 【新增】21 -> 22 的迁移逻辑：添加分期相关字段
-    static final Migration MIGRATION_21_22 = new Migration(21, 22) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN totalInstallments INTEGER NOT NULL DEFAULT 0");
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN installmentAmount REAL NOT NULL DEFAULT 0.0");
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN paidInstallments TEXT DEFAULT '[]'");
-        }
-    };
-
-    // 【新增】22 -> 23 的迁移逻辑：添加资产图标字段
-    static final Migration MIGRATION_22_23 = new Migration(22, 23) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN svgIcon TEXT DEFAULT ''");
-        }
-    };
-
-    static final Migration MIGRATION_23_24 = new Migration(23, 24) {
-        @Override
-        public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE asset_accounts ADD COLUMN assetCategory TEXT DEFAULT ''");
-        }
-    };
+    private static final int CURRENT_VERSION = 20;
 
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
+                    checkDowngrade(context);
+
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "budget_database")
-                            // 【修改 3】把 MIGRATION_9_10 加到构建器中
                             .addMigrations(
                                     MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                                     MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-                                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
-                                    MIGRATION_23_24
+                                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
                             )
                             .fallbackToDestructiveMigration()
                             .build();
@@ -207,5 +158,16 @@ public abstract class AppDatabase extends RoomDatabase {
             }
         }
         return INSTANCE;
+    }
+
+    private static void checkDowngrade(Context context) {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("db_meta", Context.MODE_PRIVATE);
+            int lastVersion = prefs.getInt("last_db_version", CURRENT_VERSION);
+            if (lastVersion > CURRENT_VERSION) {
+                downgradeDetected = true;
+            }
+            prefs.edit().putInt("last_db_version", CURRENT_VERSION).apply();
+        } catch (Exception ignored) {}
     }
 }

@@ -21,6 +21,7 @@ import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
 import com.example.budgetapp.R;
+import com.example.budgetapp.security.SecureStorage;
 
 import java.util.concurrent.Executor;
 
@@ -30,6 +31,7 @@ public class SecuritySettingsActivity extends AppCompatActivity {
     private LinearLayout layoutBiometric;
     private SwitchCompat switchBiometric;
     private SharedPreferences prefs;
+    private SecureStorage secureStorage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +63,7 @@ public class SecuritySettingsActivity extends AppCompatActivity {
         // ======================================================
 
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        secureStorage = new SecureStorage(this);
 
         btnSetPassword = findViewById(R.id.btn_set_password);
         layoutBiometric = findViewById(R.id.layout_biometric);
@@ -85,8 +88,7 @@ public class SecuritySettingsActivity extends AppCompatActivity {
     }
 
     private void updateUI() {
-        String currentPassword = prefs.getString("app_password", "");
-        boolean hasPassword = !currentPassword.isEmpty();
+        boolean hasPassword = secureStorage.hasPassword();
         boolean biometricEnabled = prefs.getBoolean("biometric_enabled", false);
 
         if (hasPassword) {
@@ -118,37 +120,82 @@ public class SecuritySettingsActivity extends AppCompatActivity {
         TextView tvTitle = view.findViewById(R.id.tv_dialog_title);
         EditText etInput = view.findViewById(R.id.et_password_input);
 
-        // 直接获取按钮
         View btnClear = view.findViewById(R.id.btn_clear_password);
         View btnConfirm = view.findViewById(R.id.btn_confirm);
 
-        // 判断当前是否有密码，动态改变标题和按钮显示
-        boolean hasPassword = !prefs.getString("app_password", "").isEmpty();
+        boolean hasPassword = secureStorage.hasPassword();
         tvTitle.setText(hasPassword ? "修改应用密码" : "设置应用密码");
 
-        // 直接控制按钮本身的显隐即可
         btnClear.setVisibility(hasPassword ? View.VISIBLE : View.GONE);
 
-        // 清除密码按钮点击事件
         btnClear.setOnClickListener(v -> {
-            prefs.edit().remove("app_password").putBoolean("biometric_enabled", false).apply();
+            secureStorage.clearPassword();
+            prefs.edit().putBoolean("biometric_enabled", false).apply();
             Toast.makeText(this, "密码已清除，生物识别已自动关闭", Toast.LENGTH_SHORT).show();
             updateUI();
             dialog.dismiss();
         });
 
-        // 确定保存按钮点击事件
         btnConfirm.setOnClickListener(v -> {
             String password = etInput.getText().toString();
-            if (password.length() >= 4) {
-                prefs.edit().putString("app_password", password).apply();
-                com.example.budgetapp.MyApplication.isUnlocked = true;
-                Toast.makeText(this, "密码设置成功", Toast.LENGTH_SHORT).show();
-                updateUI();
-                dialog.dismiss();
-            } else {
+            if (password.length() < 4) {
                 Toast.makeText(this, "密码长度不能少于4位", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            if (hasPassword) {
+                if (!secureStorage.verifyPassword(password)) {
+                    Toast.makeText(this, "当前密码错误，请重试", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                showNewPasswordDialog(dialog);
+            } else {
+                if (secureStorage.savePassword(password)) {
+                    com.example.budgetapp.MyApplication.isUnlocked = true;
+                    Toast.makeText(this, "密码设置成功", Toast.LENGTH_SHORT).show();
+                    updateUI();
+                    dialog.dismiss();
+                } else {
+                    Toast.makeText(this, "密码设置失败，请重试", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void showNewPasswordDialog(AlertDialog parentDialog) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_set_password, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvTitle = view.findViewById(R.id.tv_dialog_title);
+        EditText etInput = view.findViewById(R.id.et_password_input);
+        View btnClear = view.findViewById(R.id.btn_clear_password);
+        View btnConfirm = view.findViewById(R.id.btn_confirm);
+
+        tvTitle.setText("请输入新密码");
+        etInput.setHint("请输入新密码（至少4位）");
+        btnClear.setVisibility(View.GONE);
+
+        btnConfirm.setOnClickListener(v -> {
+            String newPassword = etInput.getText().toString();
+            if (newPassword.length() < 4) {
+                Toast.makeText(this, "密码长度不能少于4位", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            secureStorage.savePassword(newPassword);
+            com.example.budgetapp.MyApplication.isUnlocked = true;
+            Toast.makeText(this, "密码修改成功", Toast.LENGTH_SHORT).show();
+            updateUI();
+            dialog.dismiss();
+            parentDialog.dismiss();
         });
 
         dialog.show();

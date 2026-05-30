@@ -10,12 +10,26 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.DiffUtil;
 
 import com.example.budgetapp.R;
 
 import java.util.List;
+import java.util.Objects;
 
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHolder> {
+
+    private static final DiffUtil.ItemCallback<String> DIFF_CALLBACK = new DiffUtil.ItemCallback<String>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull String oldItem, @NonNull String newItem) {
+            return Objects.equals(oldItem, newItem);
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull String oldItem, @NonNull String newItem) {
+            return Objects.equals(oldItem, newItem);
+        }
+    };
 
     private Context context;
     private List<String> categories;
@@ -46,7 +60,7 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         this.selectedCategory = currentCategory;
         this.listener = listener;
         
-        this.selectedColor = ContextCompat.getColor(context, R.color.app_blue);
+        this.selectedColor = ContextCompat.getColor(context, R.color.app_yellow);
         this.selectedTextColor = ContextCompat.getColor(context, R.color.cat_selected_text);
         this.unselectedColor = ContextCompat.getColor(context, R.color.cat_unselected_bg);
         this.unselectedTextColor = ContextCompat.getColor(context, R.color.cat_unselected_text);
@@ -62,17 +76,52 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     }
 
     public void updateData(List<String> newCategories) {
+        List<String> oldCategories = this.categories;
         this.categories = newCategories;
         if (!categories.contains(selectedCategory) && !categories.isEmpty()) {
             selectedCategory = categories.get(0);
             if (listener != null) listener.onCategoryClick(selectedCategory);
         }
-        notifyDataSetChanged();
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldCategories != null ? oldCategories.size() : 0;
+            }
+
+            @Override
+            public int getNewListSize() {
+                return categories != null ? categories.size() : 0;
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areItemsTheSame(
+                        oldCategories != null ? oldCategories.get(oldItemPosition) : null,
+                        categories != null ? categories.get(newItemPosition) : null);
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areContentsTheSame(
+                        oldCategories != null ? oldCategories.get(oldItemPosition) : null,
+                        categories != null ? categories.get(newItemPosition) : null);
+            }
+        });
+        result.dispatchUpdatesTo(this);
     }
     
     public void setSelectedCategory(String category) {
+        int oldPosition = -1;
+        if (categories != null && selectedCategory != null) {
+            oldPosition = categories.indexOf(selectedCategory);
+        }
         this.selectedCategory = category;
-        notifyDataSetChanged();
+        int newPosition = -1;
+        if (categories != null && category != null) {
+            newPosition = categories.indexOf(category);
+        }
+        if (oldPosition >= 0) notifyItemChanged(oldPosition);
+        if (newPosition >= 0 && newPosition != oldPosition) notifyItemChanged(newPosition);
     }
 
     public String getSelectedCategory() {

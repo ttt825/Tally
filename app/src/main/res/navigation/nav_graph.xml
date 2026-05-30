@@ -10,29 +10,40 @@
         android:name="com.example.budgetapp.ui.RecordFragment"
         android:label="记账">
         <action
-            android:id="@+id/action_to_stats"
+            android:id="@+id/action_record_to_details"
+            app:destination="@id/nav_details"
+            app:enterAnim="@anim/slide_in_from_right"
+            app:exitAnim="@anim/slide_out_to_left"
+            app:popEnterAnim="@anim/slide_in_from_left"
+            app:popExitAnim="@anim/slide_out_to_right"/>
+        <action
+            android:id="@+id/action_record_to_stats"
             app:destination="@id/nav_stats"
-            app:enterAnim="@anim/nav_enter"
-            app:exitAnim="@anim/nav_exit"
-            app:popEnterAnim="@anim/nav_enter"
-            app:popExitAnim="@anim/nav_exit"/>
+            app:enterAnim="@anim/slide_in_from_right"
+            app:exitAnim="@anim/slide_out_to_left"
+            app:popEnterAnim="@anim/slide_in_from_left"
+            app:popExitAnim="@anim/slide_out_to_right"/>
     </fragment>
-
-    <fragment
-        android:id="@+id/nav_assets"
-        android:name="com.example.budgetapp.ui.AssetsFragment"
-        android:label="资产" />
-
-    <fragment
-        android:id="@+id/nav_budget"
-        android:name="com.example.budgetapp.ui.BudgetFragment"
-        android:label="预算"
-        tools:layout="@layout/fragment_budget" />
 
     <fragment
         android:id="@+id/nav_details"
         android:name="com.example.budgetapp.ui.DetailsFragment"
-        android:label="明细" />
+        android:label="明细">
+        <action
+            android:id="@+id/action_details_to_record"
+            app:destination="@id/nav_record"
+            app:enterAnim="@anim/slide_in_from_left"
+            app:exitAnim="@anim/slide_out_to_right"
+            app:popEnterAnim="@anim/slide_in_from_right"
+            app:popExitAnim="@anim/slide_out_to_left"/>
+        <action
+            android:id="@+id/action_details_to_stats"
+            app:destination="@id/nav_stats"
+            app:enterAnim="@anim/slide_in_from_right"
+            app:exitAnim="@anim/slide_out_to_left"
+            app:popEnterAnim="@anim/slide_in_from_left"
+            app:popExitAnim="@anim/slide_out_to_right"/>
+    </fragment>
 
     <fragment
         android:id="@+id/nav_stats"
@@ -41,9 +52,9 @@
         <action
             android:id="@+id/action_to_record"
             app:destination="@id/nav_record"
-            app:enterAnim="@anim/nav_enter"
-            app:exitAnim="@anim/nav_exit"
-            app:popEnterAnim="@anim/nav_enter"
-            app:popExitAnim="@anim/nav_exit"/>
+            app:enterAnim="@anim/slide_in_from_left"
+            app:exitAnim="@anim/slide_out_to_right"
+            app:popEnterAnim="@anim/slide_in_from_right"
+            app:popExitAnim="@anim/slide_out_to_left"/>
     </fragment>
 </navigation>

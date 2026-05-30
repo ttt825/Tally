@@ -1,5 +1,7 @@
 package com.example.budgetapp.widget;
 
+import android.util.Log;
+
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,8 +15,7 @@ public class WidgetUtils {
                     TodaySummaryWidget.class,
                     MonthSummaryWidget.class,
                     CombinedSummaryWidget.class,
-                    OvertimeSummaryWidget.class,
-                    TodayBudgetWidget.class
+                    OvertimeSummaryWidget.class
             };
             
             for (Class<?> cls : widgetClasses) {
@@ -26,7 +27,7 @@ public class WidgetUtils {
                 context.sendBroadcast(intent);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("Tally", "Error", e);
         }
     }
 }

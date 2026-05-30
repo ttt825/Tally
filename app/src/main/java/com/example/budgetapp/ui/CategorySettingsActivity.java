@@ -2,6 +2,7 @@ package com.example.budgetapp.ui;
 
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +22,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
@@ -37,6 +39,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
     private SwitchCompat switchDetailedCategory; // 【新增】
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -187,13 +190,12 @@ public class CategorySettingsActivity extends AppCompatActivity {
                         saveAndRefresh(isExpense);
 
                         // 2. 在后台线程同步更新数据库里的历史账单的一级分类名称
-                        new Thread(() -> {
-                            // 【修复报错】此处将 getInstance 改为了 getDatabase
+                        ThreadPoolManager.getInstance().executeDatabase(() -> {
                             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
                             if (db != null && db.transactionDao() != null) {
                                 db.transactionDao().updateCategoryName(oldCategory, newCategory);
                             }
-                        }).start();
+                        });
 
                         dialog.dismiss();
                     }
@@ -315,13 +317,12 @@ public class CategorySettingsActivity extends AppCompatActivity {
                                         CategoryManager.saveSubCategories(this, parentCategory, subCats);
 
                                         // 2. 后台同步更新历史账单的二级分类名称
-                                        new Thread(() -> {
-                                            // 【修复报错】此处将 getInstance 改为了 getDatabase
+                                        ThreadPoolManager.getInstance().executeDatabase(() -> {
                                             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
                                             if (db != null && db.transactionDao() != null) {
                                                 db.transactionDao().updateSubCategoryName(parentCategory, subCat, newSubCat);
                                             }
-                                        }).start();
+                                        });
 
                                         chip.setText(newSubCat);
                                         editDialog.dismiss();
@@ -533,7 +534,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnUp.setTextSize(13);
             btnUp.setPadding(20, 10, 20, 10);
             if (index > 0) {
-                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_blue));
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
                 btnUp.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index - 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);
@@ -550,7 +551,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnDown.setTextSize(13);
             btnDown.setPadding(20, 10, 10, 10);
             if (index < sortableList.size() - 1) {
-                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_blue));
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
                 btnDown.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index + 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);

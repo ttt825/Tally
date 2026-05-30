@@ -9,20 +9,36 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.DiffUtil;
 import com.example.budgetapp.R;
-import com.example.budgetapp.database.AssetAccount;
 import com.example.budgetapp.database.Transaction;
-import com.example.budgetapp.util.AssetIconHelper;
+import com.example.budgetapp.model.TransactionType;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class TransactionListAdapter extends RecyclerView.Adapter<TransactionListAdapter.ViewHolder> {
+    private static final DiffUtil.ItemCallback<Transaction> DIFF_CALLBACK = new DiffUtil.ItemCallback<Transaction>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
+            return oldItem.id == newItem.id;
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
+            return oldItem.amount == newItem.amount
+                    && Objects.equals(oldItem.category, newItem.category)
+                    && Objects.equals(oldItem.note, newItem.note)
+                    && oldItem.type == newItem.type
+                    && oldItem.date == newItem.date;
+        }
+    };
+
     private List<Transaction> list = new ArrayList<>();
-    private Map<Integer, AssetAccount> assetMap = new HashMap<>();
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
@@ -33,20 +49,31 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         this.listener = listener;
     }
 
-    public void setTransactions(List<Transaction> list) {
-        this.list = list;
-        notifyDataSetChanged();
-    }
-
-    // 设置资产数据
-    public void setAssets(List<AssetAccount> assets) {
-        assetMap.clear();
-        if (assets != null) {
-            for (AssetAccount asset : assets) {
-                assetMap.put(asset.id, asset);
+    public void setTransactions(List<Transaction> newList) {
+        List<Transaction> oldList = this.list;
+        this.list = newList != null ? newList : new ArrayList<>();
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldList.size();
             }
-        }
-        notifyDataSetChanged();
+
+            @Override
+            public int getNewListSize() {
+                return list.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areItemsTheSame(oldList.get(oldItemPosition), list.get(newItemPosition));
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                return DIFF_CALLBACK.areContentsTheSame(oldList.get(oldItemPosition), list.get(newItemPosition));
+            }
+        });
+        result.dispatchUpdatesTo(this);
     }
 
     @NonNull
@@ -69,45 +96,23 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         String amountStr = String.format("%.2f", t.amount);
         String displayAmount = showCurrency ? (symbol + " " + amountStr) : amountStr;
 
-        // --- 核心逻辑：自动续费预览账单处理 ---
-        boolean isPreview = "PREVIEW_BILL".equals(t.remark);
+        // 清除背景，防止复用错乱
+        holder.itemView.setBackgroundResource(0);
 
-        if (isPreview) {
-            // 获取账单对应的日期
-            LocalDate billDate = java.time.Instant.ofEpochMilli(t.date)
-                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-            LocalDate today = LocalDate.now();
-
-            if (billDate.isAfter(today)) {
-                // 没到这个日期的时候，金额颜色是灰色，不显示边框
-                holder.tvAmount.setTextColor(Color.LTGRAY);
-                holder.itemView.setBackgroundResource(0); // 清除背景，防止复用错乱
-            } else {
-                // 到了(过了)这个日期后，变为正常颜色（由于续费是支出，使用绿色），并加上红边框提醒
-                holder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
-                holder.itemView.setBackgroundResource(R.drawable.bg_budget_exceed);
-            }
+        // 正常入库记录的颜色逻辑
+        holder.tvNote.setAlpha(1.0f);
+        if (t.type == TransactionType.INCOME.getValue()) {
+            holder.tvAmount.setTextColor(context.getColor(R.color.income_red));
+            holder.tvAmount.setText("+" + displayAmount);
+        } else if (t.type == TransactionType.LIABILITY.getValue()) {
+            holder.tvAmount.setTextColor(context.getColor(R.color.liability_orange));
+            holder.tvAmount.setText("+" + displayAmount);
+        } else if (t.type == TransactionType.LEND.getValue()) {
+            holder.tvAmount.setTextColor(context.getColor(R.color.lend_purple));
             holder.tvAmount.setText("-" + displayAmount);
-            holder.tvNote.setAlpha(0.6f); // 预览项文字稍微淡化以示区分
         } else {
-            // 正常入库记录清除背景，防止复用错乱
-            holder.itemView.setBackgroundResource(0);
-
-            // 正常入库记录的颜色逻辑
-            holder.tvNote.setAlpha(1.0f);
-            if (t.type == 2) {
-                // 🌟 资产转移
-                holder.tvAmount.setTextColor(context.getColor(R.color.app_blue));
-                holder.tvAmount.setText(displayAmount);
-            } else if (t.type == 1) {
-                // 收入
-                holder.tvAmount.setTextColor(context.getColor(R.color.income_red));
-                holder.tvAmount.setText("+" + displayAmount);
-            } else {
-                // 支出
-                holder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
-                holder.tvAmount.setText("-" + displayAmount);
-            }
+            holder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
+            holder.tvAmount.setText("-" + displayAmount);
         }
 
         // 分类与二级分类显示
@@ -119,43 +124,20 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
             holder.tvSubCategory.setVisibility(View.GONE);
         }
 
-        // 备注标识
+        // 创建时间显示（t.note字段包含创建时间）
         if (t.note != null && !t.note.isEmpty()) {
-            holder.tvNote.setVisibility(View.VISIBLE);
-            holder.tvNote.setText(t.note);
+            holder.tvTime.setVisibility(View.VISIBLE);
+            holder.tvTime.setText(t.note);
         } else {
-            holder.tvNote.setVisibility(View.GONE);
+            holder.tvTime.setVisibility(View.GONE);
         }
 
-        // --- 右下角状态指示器 ---
-        // 逻辑：如果有文字备注（非预览标识）或有照片，显示绿色，否则红色
-        boolean hasRemark = !TextUtils.isEmpty(t.remark) && !isPreview;
-        boolean hasPhoto = !TextUtils.isEmpty(t.photoPath);
-
-        int statusColor = (hasRemark || hasPhoto)
-                ? context.getColor(R.color.expense_green)
-                : context.getColor(R.color.income_red);
-
-        // 资产名称映射处理
-        AssetAccount assetAccount = (t.assetId != 0 && assetMap != null) ? assetMap.get(t.assetId) : null;
-        String assetName = assetAccount != null ? assetAccount.name : null;
-
-        if (assetName != null) {
-            holder.viewIndicator.setVisibility(View.GONE);
-            holder.llAssetInfo.setVisibility(View.VISIBLE);
-            holder.tvAssetName.setText(assetName);
-            holder.tvAssetName.setTextColor(statusColor);
-            
-            // 显示资产图标
-            if (AssetIconHelper.bindSvgIcon(holder.ivAssetIcon, assetAccount.svgIcon)) {
-                holder.ivAssetIcon.setVisibility(View.VISIBLE);
-            } else {
-                holder.ivAssetIcon.setVisibility(View.GONE);
-            }
+        // 备注显示
+        if (t.remark != null && !t.remark.isEmpty()) {
+            holder.tvNote.setVisibility(View.VISIBLE);
+            holder.tvNote.setText(t.remark);
         } else {
-            holder.llAssetInfo.setVisibility(View.GONE);
-            holder.viewIndicator.setVisibility(View.VISIBLE);
-            holder.viewIndicator.setBackgroundColor(statusColor);
+            holder.tvNote.setVisibility(View.GONE);
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -169,24 +151,16 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDate, tvAmount, tvNote;
-        View viewIndicator;
-
+        TextView tvDate, tvTime, tvAmount, tvNote;
         TextView tvSubCategory;
-        TextView tvAssetName;
-        android.widget.ImageView ivAssetIcon;
-        android.widget.LinearLayout llAssetInfo;
 
         ViewHolder(View v) {
             super(v);
             tvDate = v.findViewById(R.id.tv_detail_date);
             tvSubCategory = v.findViewById(R.id.tv_detail_sub_category);
+            tvTime = v.findViewById(R.id.tv_detail_time);
             tvAmount = v.findViewById(R.id.tv_detail_amount);
             tvNote = v.findViewById(R.id.tv_detail_note);
-            viewIndicator = v.findViewById(R.id.view_remark_indicator);
-            tvAssetName = v.findViewById(R.id.tv_asset_name);
-            ivAssetIcon = v.findViewById(R.id.iv_asset_icon);
-            llAssetInfo = v.findViewById(R.id.ll_asset_info);
         }
     }
 }

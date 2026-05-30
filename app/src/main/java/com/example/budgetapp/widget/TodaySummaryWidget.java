@@ -11,10 +11,9 @@ import android.util.Log;
 import com.example.budgetapp.MainActivity;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
+import com.example.budgetapp.utils.ThreadPoolManager;
 
 import java.util.Calendar;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TodaySummaryWidget extends AppWidgetProvider {
 
@@ -23,8 +22,7 @@ public class TodaySummaryWidget extends AppWidgetProvider {
         // 【关键修复】调用 goAsync() 保持 BroadcastReceiver 的存活，防止子线程被中断
         final PendingResult pendingResult = goAsync();
 
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
+        ThreadPoolManager.getInstance().executeDatabase(() -> {
             try {
                 // 推荐使用 getApplicationContext() 防止内存泄漏
                 AppDatabase db = AppDatabase.getDatabase(context.getApplicationContext());

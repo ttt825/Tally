@@ -1,5 +1,7 @@
 package com.example.budgetapp.ui;
 
+import android.util.Log;
+
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -7,6 +9,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ResultReceiver;
@@ -78,11 +81,16 @@ public class PhotoActionActivity extends AppCompatActivity {
     );
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         
-        resultReceiver = getIntent().getParcelableExtra(EXTRA_RECEIVER);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            resultReceiver = getIntent().getParcelableExtra(EXTRA_RECEIVER, ResultReceiver.class);
+        } else {
+            resultReceiver = getIntent().getParcelableExtra(EXTRA_RECEIVER);
+        }
         int actionType = getIntent().getIntExtra(EXTRA_ACTION_TYPE, ACTION_SELECT);
         
         switch (actionType) {
@@ -198,7 +206,7 @@ public class PhotoActionActivity extends AppCompatActivity {
                 Toast.makeText(this, "照片已保存", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("Tally", "Error", e);
             Toast.makeText(this, "保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             finish();
         }

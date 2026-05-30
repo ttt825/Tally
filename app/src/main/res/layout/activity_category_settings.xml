@@ -178,7 +178,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="+ 添加支出分类"
-                            android:textColor="@color/app_blue"/>
+                            android:textColor="@color/app_yellow"/>
 
                         <Space
                             android:layout_width="0dp"
@@ -191,7 +191,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="排序"
-                            android:textColor="@color/app_blue"/>
+                            android:textColor="@color/app_yellow"/>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -237,7 +237,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="+ 添加收入分类"
-                            android:textColor="@color/app_blue"/>
+                            android:textColor="@color/app_yellow"/>
 
                         <Space
                             android:layout_width="0dp"
@@ -250,7 +250,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="排序"
-                            android:textColor="@color/app_blue"/>
+                            android:textColor="@color/app_yellow"/>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

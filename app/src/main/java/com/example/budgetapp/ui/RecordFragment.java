@@ -365,6 +365,47 @@ public class RecordFragment extends Fragment {
             });
         }
 
+        FloatingActionButton btnBatchRecord = view.findViewById(R.id.btn_batch_record);
+        if (btnBatchRecord != null) {
+            btnBatchRecord.setOnClickListener(v -> {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+                showBatchDialog();
+            });
+
+            btnBatchRecord.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).start();
+                            break;
+                        case MotionEvent.ACTION_UP:
+                        case MotionEvent.ACTION_CANCEL:
+                            v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
+                            break;
+                    }
+                    return false;
+                }
+            });
+        }
+
+        BlurView blurFabBatch = view.findViewById(R.id.blur_fab_batch);
+        if (blurFabBatch != null) {
+            View rootView = view.findViewById(R.id.root_layout_record);
+            SharedPreferences tabPrefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+            int blurLevel = tabPrefs.getInt("tab_blur_level", 5);
+            @SuppressWarnings("deprecation")
+            var ignoredBatch = blurFabBatch.setupWith((ViewGroup) rootView, new RenderScriptBlur(requireContext()))
+                    .setBlurRadius(blurLevel);
+            blurFabBatch.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            blurFabBatch.setClipToOutline(true);
+        }
+
         BlurView blurFab = view.findViewById(R.id.blur_fab);
         if (blurFab != null) {
             View rootView = view.findViewById(R.id.root_layout_record);
@@ -463,6 +504,12 @@ public class RecordFragment extends Fragment {
                 int blurLevel = prefs.getInt("tab_blur_level", 5);
                 blurFab.setBlurRadius(blurLevel);
             }
+            BlurView blurFabBatch = view.findViewById(R.id.blur_fab_batch);
+            if (blurFabBatch != null) {
+                SharedPreferences prefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+                int blurLevel = prefs.getInt("tab_blur_level", 5);
+                blurFabBatch.setBlurRadius(blurLevel);
+            }
         }
 
         // 【新增】：根据模式动态调整本界面透明度
@@ -496,6 +543,7 @@ public class RecordFragment extends Fragment {
 
         // 获取需要调整质感的按钮
         com.google.android.material.floatingactionbutton.FloatingActionButton btnQuickRecord = view.findViewById(R.id.btn_quick_record);
+        com.google.android.material.floatingactionbutton.FloatingActionButton btnBatchRecord = view.findViewById(R.id.btn_batch_record);
 
         if (isCustomBg) {
             // 1. 顶部基础框架全透明，让底层的图片完全透出来
@@ -510,6 +558,12 @@ public class RecordFragment extends Fragment {
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
                 btnQuickRecord.setCompatElevation(0f);
             }
+            if (btnBatchRecord != null) {
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
+                btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
+                btnBatchRecord.setCompatElevation(0f);
+            }
 
         } else {
             // ================= 恢复普通系统/日间/夜间模式 =================
@@ -520,8 +574,12 @@ public class RecordFragment extends Fragment {
             if (btnQuickRecord != null) {
                 int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
-                // 【修改】：恢复为 0f，去掉普通模式下的按钮阴影
                 btnQuickRecord.setCompatElevation(0f);
+            }
+            if (btnBatchRecord != null) {
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
+                btnBatchRecord.setCompatElevation(0f);
             }
         }
     }
@@ -751,6 +809,21 @@ public class RecordFragment extends Fragment {
     private void showOvertimeDialog(LocalDate date) {
         OvertimeDialogHelper.showOvertimeDialog(requireContext(), date, transaction -> {
             viewModel.addTransaction(transaction);
+        });
+    }
+
+    private void showBatchDialog() {
+        if (getContext() == null) return;
+
+        BatchTransactionDialogHelper.showBatchDialog(getContext(), new BatchTransactionDialogHelper.OnBatchSavedListener() {
+            @Override
+            public void onBatchSaved(List<Transaction> transactions) {
+                for (Transaction t : transactions) {
+                    viewModel.addTransaction(t);
+                }
+                viewModel.setDateRange(currentStartMillis, currentEndMillis);
+                WidgetUtils.updateAllWidgets(getContext());
+            }
         });
     }
 

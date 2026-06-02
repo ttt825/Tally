@@ -195,6 +195,31 @@
     </ScrollView>
 
     <eightbitlab.com.blurview.BlurView
+        android:id="@+id/blur_fab_batch"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_toStartOf="@+id/blur_fab"
+        android:layout_alignBottom="@+id/blur_fab"
+        android:layout_marginEnd="16dp"
+        app:blurOverlayColor="#33FFFFFF"
+        android:elevation="4dp">
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btn_batch_record"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/ic_batch"
+        android:contentDescription="记多笔"
+        app:backgroundTint="#D9327FFC"
+        app:tint="@color/real_white"
+        app:elevation="0dp"
+        app:pressedTranslationZ="0dp"
+        android:stateListAnimator="@null"
+        app:fabSize="normal"
+        app:shapeAppearanceOverlay="@style/CircularFabShape" />
+</eightbitlab.com.blurview.BlurView>
+
+    <eightbitlab.com.blurview.BlurView
         android:id="@+id/blur_fab"
         android:layout_width="56dp"
         android:layout_height="56dp"

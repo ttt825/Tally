@@ -94,6 +94,32 @@ public class TransactionViewModel extends AndroidViewModel {
     // ================= 批量操作 =================
 
     /**
+     * 批量添加交易记录（用于"记多笔"）- 只触发一次自动备份计数
+     */
+    public void addBatchTransactions(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
+        repository.insertAll(transactions, count -> {
+            notifyWidgetUpdate();
+            triggerAutoBackup();
+            if (callback != null) {
+                callback.onComplete(count);
+            }
+        });
+    }
+
+    /**
+     * 拆单操作：删除原始账单并批量插入拆分账单 - 只触发一次自动备份计数
+     */
+    public void splitTransaction(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
+        repository.deleteAndInsertAll(original, splitList, count -> {
+            notifyWidgetUpdate();
+            triggerAutoBackup();
+            if (callback != null) {
+                callback.onComplete(count);
+            }
+        });
+    }
+
+    /**
      * 批量插入交易记录（用于导入）- 不触发自动备份计数
      */
     public void insertTransactions(List<Transaction> transactions, RepositoryCallback<Integer> callback) {

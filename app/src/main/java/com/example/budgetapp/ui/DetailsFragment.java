@@ -541,6 +541,22 @@ public class DetailsFragment extends Fragment {
             public void onPhotoDeleted(int transactionId) {
                 viewModel.clearPhotoPath(transactionId);
             }
+
+            @Override
+            public void onSplitRequested(Transaction transaction) {
+                SplitTransactionDialogHelper.showSplitDialog(getContext(), transaction, new SplitTransactionDialogHelper.OnSplitSavedListener() {
+                    @Override
+                    public void onSplitSaved(Transaction originalTransaction, List<Transaction> splitTransactions) {
+                        viewModel.splitTransaction(originalTransaction, splitTransactions, count -> {
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(() -> {
+                                    adapter.notifyDataSetChanged();
+                                });
+                            }
+                        });
+                    }
+                });
+            }
         });
     }
 

@@ -119,7 +119,7 @@ public class AutoBackupSettingsActivity extends AppCompatActivity {
 
         // 频次加按钮
         findViewById(R.id.btn_increase_freq).setOnClickListener(v -> {
-            if (backupFreq < 15) {
+            if (backupFreq < 30) {
                 backupFreq++;
                 prefs.edit().putInt("auto_backup_freq", backupFreq).apply();
                 updateFreqDisplay();

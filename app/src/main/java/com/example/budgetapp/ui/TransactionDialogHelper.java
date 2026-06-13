@@ -57,6 +57,7 @@ public class TransactionDialogHelper {
         void onTransactionSaved(Transaction transaction, boolean isEdit);
         void onTransactionDeleted(Transaction transaction);
         void onPhotoDeleted(int transactionId);
+        default void onSplitRequested(Transaction transaction) {}
     }
 
     public static AlertDialog showAddOrEditDialog(
@@ -86,6 +87,14 @@ public class TransactionDialogHelper {
         Button btnDelete = dialogView.findViewById(R.id.btn_delete);
         MaterialButton btnTakePhoto = dialogView.findViewById(R.id.btn_take_photo);
         MaterialButton btnViewPhoto = dialogView.findViewById(R.id.btn_view_photo);
+
+        // 根据是否编辑模式设置标题
+        TextView tvDialogTitle = dialogView.findViewById(R.id.tv_dialog_title);
+        TextView btnSplit = dialogView.findViewById(R.id.btn_split);
+        if (existingTransaction != null) {
+            tvDialogTitle.setText("编辑账单");
+            btnSplit.setVisibility(View.VISIBLE);
+        }
 
         etAmount.setFilters(new InputFilter[]{new DecimalDigitsInputFilter(2)});
 
@@ -487,6 +496,47 @@ public class TransactionDialogHelper {
             WidgetUtils.updateAllWidgets(context);
         });
 
+        // 拆单按钮逻辑
+        btnSplit.setOnClickListener(v -> {
+            v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+            if (existingTransaction == null) return;
+
+            // 构建当前编辑状态的Transaction用于拆单
+            Transaction currentTransaction = new Transaction();
+            currentTransaction.id = existingTransaction.id;
+            currentTransaction.date = calendar.getTimeInMillis();
+            currentTransaction.type = currentTypeFromRadioGroup(rgType);
+            currentTransaction.category = selectedCategory[0];
+            currentTransaction.amount = parseAmountSafe(etAmount.getText().toString().trim());
+            currentTransaction.note = etNote.getText().toString().trim();
+            currentTransaction.remark = etRemark.getText().toString().trim();
+            currentTransaction.currencySymbol = isCurrencyEnabled ? btnCurrency.getText().toString() : "¥";
+            currentTransaction.subCategory = selectedSubCategory[0];
+            currentTransaction.photoPath = currentPhotoPath[0];
+            currentTransaction.targetObject = etTargetObject.getText().toString().trim();
+
+            // 检测是否有未保存的修改
+            boolean hasChanges = existingTransaction.date != currentTransaction.date
+                    || existingTransaction.type != currentTransaction.type
+                    || Math.abs(existingTransaction.amount - currentTransaction.amount) >= 0.01
+                    || !Objects.equals(existingTransaction.category, currentTransaction.category)
+                    || !Objects.equals(existingTransaction.subCategory, currentTransaction.subCategory)
+                    || !Objects.equals(existingTransaction.note, currentTransaction.note)
+                    || !Objects.equals(existingTransaction.remark, currentTransaction.remark)
+                    || !Objects.equals(existingTransaction.currencySymbol, currentTransaction.currencySymbol)
+                    || !Objects.equals(existingTransaction.photoPath, currentTransaction.photoPath)
+                    || !Objects.equals(existingTransaction.targetObject, currentTransaction.targetObject);
+
+            if (hasChanges) {
+                // 自动保存修改后再进入拆单
+                listener.onTransactionSaved(currentTransaction, true);
+                WidgetUtils.updateAllWidgets(context);
+            }
+
+            dialog.dismiss();
+            listener.onSplitRequested(currentTransaction);
+        });
+
         dialog.setOnDismissListener(d -> {
             android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager)
                     context.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -497,6 +547,22 @@ public class TransactionDialogHelper {
 
         dialog.show();
         return dialog;
+    }
+
+    private static int currentTypeFromRadioGroup(RadioGroup rgType) {
+        int checkedId = rgType.getCheckedRadioButtonId();
+        if (checkedId == R.id.rb_income) return TransactionType.INCOME.getValue();
+        else if (checkedId == R.id.rb_liability) return TransactionType.LIABILITY.getValue();
+        else if (checkedId == R.id.rb_lend) return TransactionType.LEND.getValue();
+        else return TransactionType.EXPENSE.getValue();
+    }
+
+    private static double parseAmountSafe(String amountStr) {
+        try {
+            return Double.parseDouble(amountStr);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static void showDateTimePickerDialog(Context context, Calendar calendar, Runnable updateDateDisplay) {

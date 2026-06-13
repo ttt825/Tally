@@ -818,11 +818,12 @@ public class RecordFragment extends Fragment {
         BatchTransactionDialogHelper.showBatchDialog(getContext(), new BatchTransactionDialogHelper.OnBatchSavedListener() {
             @Override
             public void onBatchSaved(List<Transaction> transactions) {
-                for (Transaction t : transactions) {
-                    viewModel.addTransaction(t);
-                }
-                viewModel.setDateRange(currentStartMillis, currentEndMillis);
-                WidgetUtils.updateAllWidgets(getContext());
+                viewModel.addBatchTransactions(transactions, count -> {
+                    requireActivity().runOnUiThread(() -> {
+                        viewModel.setDateRange(currentStartMillis, currentEndMillis);
+                        WidgetUtils.updateAllWidgets(getContext());
+                    });
+                });
             }
         });
     }
@@ -855,6 +856,21 @@ public class RecordFragment extends Fragment {
             @Override
             public void onPhotoDeleted(int transactionId) {
                 viewModel.clearPhotoPath(transactionId);
+            }
+
+            @Override
+            public void onSplitRequested(Transaction transaction) {
+                SplitTransactionDialogHelper.showSplitDialog(getContext(), transaction, new SplitTransactionDialogHelper.OnSplitSavedListener() {
+                    @Override
+                    public void onSplitSaved(Transaction originalTransaction, List<Transaction> splitTransactions) {
+                        viewModel.splitTransaction(originalTransaction, splitTransactions, count -> {
+                            requireActivity().runOnUiThread(() -> {
+                                viewModel.setDateRange(currentStartMillis, currentEndMillis);
+                                WidgetUtils.updateAllWidgets(getContext());
+                            });
+                        });
+                    }
+                });
             }
         });
     }

@@ -63,8 +63,12 @@ public class BatchTransactionDialogHelper {
         SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
         etRecordId.setText(noteSdf.format(calendar.getTime()));
 
-        List<String> expenseCategories = CategoryManager.getExpenseCategories(context);
-        List<String> incomeCategories = CategoryManager.getIncomeCategories(context);
+        final List<String> expenseCategories = new ArrayList<>(CategoryManager.getExpenseCategories(context));
+        final List<String> incomeCategories = new ArrayList<>(CategoryManager.getIncomeCategories(context));
+
+        // 多笔记账场景下移除"自定义"选项
+        expenseCategories.remove("自定义");
+        incomeCategories.remove("自定义");
 
         int[] currentType = {TransactionType.EXPENSE.getValue()};
 
@@ -162,7 +166,9 @@ public class BatchTransactionDialogHelper {
                     if (holder.spinnerCategory.getSelectedItem() != null) {
                         category = holder.spinnerCategory.getSelectedItem().toString();
                     } else {
-                        category = "自定义";
+                        List<String> fallbackCategories = currentType[0] == TransactionType.INCOME.getValue()
+                                ? incomeCategories : expenseCategories;
+                        category = fallbackCategories.isEmpty() ? "其他" : fallbackCategories.get(0);
                     }
                 }
 

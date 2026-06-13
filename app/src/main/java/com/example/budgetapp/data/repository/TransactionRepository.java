@@ -76,6 +76,19 @@ public class TransactionRepository {
         });
     }
 
+    /**
+     * 拆单操作：删除原始账单并批量插入拆分账单（原子操作）
+     */
+    public void deleteAndInsertAll(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            transactionDao.delete(original);
+            transactionDao.insertAll(splitList);
+            if (callback != null) {
+                callback.onComplete(splitList.size());
+            }
+        });
+    }
+
     // ================= 查询操作 =================
 
     /**

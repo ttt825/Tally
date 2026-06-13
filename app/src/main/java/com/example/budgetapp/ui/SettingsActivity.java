@@ -30,14 +30,14 @@ import com.example.budgetapp.BackupManager;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.database.TransactionForDuplicate;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
+import com.example.budgetapp.utils.ThreadPoolManager;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -95,7 +95,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.CreateDocument("application/json"),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
                             BackupManager.exportToJson(this, uri, transactions);
@@ -104,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -115,7 +115,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.CreateDocument("text/csv"),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
                             BackupManager.exportTransactionsOnly(this, uri, transactions);
@@ -124,7 +124,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -133,7 +133,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             BackupData data = BackupManager.importFromJson(this, uri);
                             handleImportData(data, "导入");
@@ -141,7 +141,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -150,7 +150,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             BackupData data = BackupManager.importTransactionsCsv(this, uri);
                             handleImportTransactions(data, "CSV导入");
@@ -158,7 +158,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "CSV导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -254,7 +254,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             BackupData data = BackupManager.importFromWeChat(this, uri);
                             handleImportData(data, "微信导入");
@@ -262,7 +262,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "微信导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -271,7 +271,7 @@ public class SettingsActivity extends AppCompatActivity {
             new ActivityResultContracts.OpenDocument(),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             BackupData data = BackupManager.importFromAlipay(this, uri);
                             handleImportData(data, "支付宝导入");
@@ -279,7 +279,7 @@ public class SettingsActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "支付宝导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -388,16 +388,14 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         view.findViewById(R.id.tv_export).setOnClickListener(v -> {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            String timeStr = sdf.format(new Date()).replace(":", "-");
+            String timeStr = com.example.budgetapp.utils.DateUtils.formatBackupTimestamp(System.currentTimeMillis());
             String fileName = "Tally " + timeStr + ".json";
             exportLauncher.launch(fileName);
             dialog.dismiss();
         });
 
         view.findViewById(R.id.tv_export_excel).setOnClickListener(v -> {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            String timeStr = sdf.format(new Date());
+            String timeStr = com.example.budgetapp.utils.DateUtils.formatExportTimestamp(System.currentTimeMillis());
             String fileName = "Tally_账单_" + timeStr + ".csv";
             exportExcelLauncher.launch(fileName);
             dialog.dismiss();
@@ -462,14 +460,11 @@ public class SettingsActivity extends AppCompatActivity {
         android.widget.RadioButton rbBalance = view.findViewById(R.id.rb_display_balance);
         android.widget.RadioButton rbIncome = view.findViewById(R.id.rb_display_income);
         android.widget.RadioButton rbExpense = view.findViewById(R.id.rb_display_expense);
-        android.widget.RadioButton rbOvertime = view.findViewById(R.id.rb_display_overtime);
 
         switch (currentMode) {
             case 0: rbBalance.setChecked(true); break;
             case 1: rbIncome.setChecked(true); break;
             case 2: rbExpense.setChecked(true); break;
-            case 3:
-            case 4: rbOvertime.setChecked(true); break;
         }
 
         rgDisplay.setOnCheckedChangeListener((group, checkedId) -> {
@@ -478,10 +473,8 @@ public class SettingsActivity extends AppCompatActivity {
                 mode = 0;
             } else if (checkedId == R.id.rb_display_income) {
                 mode = 1;
-            } else if (checkedId == R.id.rb_display_expense) {
-                mode = 2;
             } else {
-                mode = 3;
+                mode = 2;
             }
 
             prefs.edit().putInt("default_record_mode", mode).apply();

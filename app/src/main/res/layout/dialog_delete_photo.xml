@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:text="确定要删除这张照片吗？\n(本地文件也将被删除)"
             android:textSize="15sp"
-            android:textColor="#666666"
+            android:textColor="@color/text_medium"
             android:gravity="center"
             android:lineSpacingExtra="4dp"
             android:layout_gravity="center_horizontal"

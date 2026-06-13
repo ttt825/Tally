@@ -45,9 +45,9 @@ import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.ui.CategoryAdapter;
 import com.example.budgetapp.ui.PhotoActionActivity;
 import com.example.budgetapp.ui.TransactionDialogHelper;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -174,7 +174,7 @@ public class QuickAddTileService extends TileService {
                 String defaultSymbol = prefs.getString("default_currency_symbol", "¥");
                 btnCurrency.setText(defaultSymbol);
                 btnCurrency.setOnClickListener(v -> {
-                    com.example.budgetapp.util.CurrencyUtils.showCurrencyDialog(themeContext, btnCurrency, true);
+                    com.example.budgetapp.utils.CurrencyUtils.showCurrencyDialog(themeContext, btnCurrency, true);
                 });
             } else {
                 btnCurrency.setVisibility(View.GONE);
@@ -199,7 +199,7 @@ public class QuickAddTileService extends TileService {
             List<String> incomeCategories = CategoryManager.getIncomeCategories(this);
 
 // 动态判断：如果是详细分类，则使用弹性流式布局；否则恢复 5 列网格布局
-            boolean isDetailed = com.example.budgetapp.util.CategoryManager.isDetailedCategoryEnabled(this);
+            boolean isDetailed = com.example.budgetapp.utils.CategoryManager.isDetailedCategoryEnabled(this);
             if (isDetailed) {
                 com.google.android.flexbox.FlexboxLayoutManager flexboxLayoutManager = new com.google.android.flexbox.FlexboxLayoutManager(themeContext);
                 flexboxLayoutManager.setFlexWrap(com.google.android.flexbox.FlexWrap.WRAP);
@@ -273,8 +273,7 @@ public class QuickAddTileService extends TileService {
                 }
             });
 
-            SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
-            etNote.setText(sdf.format(new Date()));
+            etNote.setText(DateUtils.formatNoteTime(System.currentTimeMillis()));
 
             btnSave.setOnClickListener(v -> {
                 String amountStr = etAmount.getText().toString();
@@ -348,7 +347,7 @@ public class QuickAddTileService extends TileService {
         
         // 背景遮罩
         View mask = new View(context);
-        mask.setBackgroundColor(Color.parseColor("#80000000"));
+        mask.setBackgroundColor(ContextCompat.getColor(context, R.color.scrim_dark));
         mask.setOnClickListener(v -> {
             root.removeView(mask);
             root.removeView(dialogView);

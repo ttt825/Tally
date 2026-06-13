@@ -48,8 +48,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 
 import com.example.budgetapp.database.Transaction;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
+import com.example.budgetapp.utils.SwipeHelper;
 import com.example.budgetapp.widget.WidgetUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import eightbitlab.com.blurview.BlurView;
@@ -81,7 +82,7 @@ public class RecordFragment extends Fragment {
     private LinearLayout layoutDailyTransactions;
     private TextView tvDailyDateTitle;
     private TextView tvDailySummary;
-    private TextView tvNoRecords;
+    private View layoutEmptyState;
 
     // 提取全局 RecyclerView 以便执行动画
     private RecyclerView calendarRecycler;
@@ -107,77 +108,18 @@ public class RecordFragment extends Fragment {
     private long currentStartMillis = 0;
     private long currentEndMillis = 0;
 
-    private int touchSlop;
-
     /**
      * 核心跟手引擎：接管日历的水平方向滑动
      */
     private void setupFollowHandSwipe(RecyclerView recyclerView) {
-        touchSlop = android.view.ViewConfiguration.get(requireContext()).getScaledTouchSlop();
-
-        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
-            private float initialX = 0f;
-            private float initialY = 0f;
-            private boolean isHorizontalSwipe = false;
-
-            @Override
-            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                switch (e.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        // 🌟 核心修复 1：必须使用屏幕绝对坐标 getRawX()，否则视图移动会导致坐标疯狂抵消
-                        initialX = e.getRawX();
-                        initialY = e.getRawY();
-                        isHorizontalSwipe = false;
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = e.getRawX() - initialX;
-                        float dy = e.getRawY() - initialY;
-                        if (!isHorizontalSwipe && Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy)) {
-                            isHorizontalSwipe = true;
-                            // 🌟 核心修复 2：强制剥夺父容器（如外层 ScrollView）的滑动权，保证不被外层打断
-                            if (rv.getParent() != null) {
-                                rv.getParent().requestDisallowInterceptTouchEvent(true);
-                            }
-                            return true;
-                        }
-                        break;
-                }
-                return false;
+        SwipeHelper.setup(recyclerView, direction -> {
+            if (direction == -1) {
+                // 右滑 → 上个月
+                changeCalendarPage(0, -1);
+            } else {
+                // 左滑 → 下个月
+                changeCalendarPage(0, 1);
             }
-
-            @Override
-            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                if (!isHorizontalSwipe) return;
-
-                float dx = e.getRawX() - initialX;
-                float screenWidth = rv.getWidth();
-                if (screenWidth == 0) screenWidth = 1080;
-
-                switch (e.getAction()) {
-                    case MotionEvent.ACTION_MOVE:
-                        // 跟手阻尼移动
-                        rv.setTranslationX(dx * 0.6f);
-                        rv.setAlpha(1f - (Math.abs(dx) / screenWidth) * 0.5f);
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        if (dx > screenWidth * 0.2f) {
-                            finishSwipeAnimation(rv, screenWidth, 0, -1); // 拉出上个月
-                        } else if (dx < -screenWidth * 0.2f) {
-                            finishSwipeAnimation(rv, -screenWidth, 0, 1); // 拉出下个月
-                        } else {
-                            // 距离不够，平滑恢复原位（删除了多余的 Overshoot 回弹效果）
-                            rv.animate().translationX(0f).alpha(1f).setDuration(250)
-                                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-                        }
-                        isHorizontalSwipe = false;
-                        break;
-                }
-            }
-
-            @Override
-            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
         });
     }
 
@@ -188,40 +130,13 @@ public class RecordFragment extends Fragment {
         if (calendarRecycler != null) {
             float screenWidth = calendarRecycler.getWidth();
             if (screenWidth == 0) screenWidth = 1080;
-            // 右滑拉出过去，左滑拉出未来
             float targetX = (yearOffset > 0 || monthOffset > 0) ? -screenWidth : screenWidth;
-            finishSwipeAnimation(calendarRecycler, targetX, yearOffset, monthOffset);
+            SwipeHelper.finishSwipeAnimation(calendarRecycler, targetX, (monthOffset > 0 || yearOffset > 0) ? 1 : -1, direction -> {
+                if (yearOffset != 0) currentMonth = currentMonth.plusYears(yearOffset);
+                if (monthOffset != 0) currentMonth = currentMonth.plusMonths(monthOffset);
+                updateCalendar(0);
+            });
         }
-    }
-
-    /**
-     * 结算动画：滑出 -> 切换底层数据 -> 从另一侧滑入
-     */
-    private void finishSwipeAnimation(RecyclerView rv, float targetTranslationX, int yearOffset, int monthOffset) {
-        rv.animate()
-                .translationX(targetTranslationX)
-                .alpha(0f)
-                .setDuration(150)
-                .withEndAction(() -> {
-                    // 1. 在屏幕外悄悄修改时间
-                    if (yearOffset != 0) currentMonth = currentMonth.plusYears(yearOffset);
-                    if (monthOffset != 0) currentMonth = currentMonth.plusMonths(monthOffset);
-
-                    // 2. 将列表瞬移到屏幕的另一侧，准备入场
-                    rv.setTranslationX(-targetTranslationX * 0.5f);
-
-                    // 3. 触发数据库查询与日历数据重绘（传 0 禁用原有的旧动画）
-                    updateCalendar(0);
-
-                    // 4. 减速滑入并恢复全不透明
-                    rv.animate()
-                            .translationX(0f)
-                            .alpha(1f)
-                            .setDuration(300)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                            .start();
-                })
-                .start();
     }
 
     private void fetchDataForCurrentMonth() {
@@ -310,11 +225,14 @@ public class RecordFragment extends Fragment {
         layoutDailyTransactions = view.findViewById(R.id.layout_daily_transactions);
         tvDailyDateTitle = view.findViewById(R.id.tv_daily_date_title);
         tvDailySummary = view.findViewById(R.id.tv_daily_summary);
-        tvNoRecords = view.findViewById(R.id.tv_no_records);
+        layoutEmptyState = view.findViewById(R.id.layout_empty_state);
         dailyTransactionsRecycler = view.findViewById(R.id.rv_daily_transactions);
 
         if (dailyTransactionsRecycler != null) {
             dailyTransactionsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+            FadeInItemAnimator recordAnimator = new FadeInItemAnimator();
+            recordAnimator.setReduceMotion(AnimUtils.shouldReduceAnimations(getContext()));
+            dailyTransactionsRecycler.setItemAnimator(recordAnimator);
             dailyTransactionsAdapter = new TransactionListAdapter(transaction -> {
                 LocalDate transDate = Instant.ofEpochMilli(transaction.date).atZone(ZoneId.systemDefault()).toLocalDate();
                 showAddOrEditDialog(transaction, transDate);
@@ -389,39 +307,7 @@ public class RecordFragment extends Fragment {
             });
         }
 
-        BlurView blurFabBatch = view.findViewById(R.id.blur_fab_batch);
-        if (blurFabBatch != null) {
-            View rootView = view.findViewById(R.id.root_layout_record);
-            SharedPreferences tabPrefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-            int blurLevel = tabPrefs.getInt("tab_blur_level", 5);
-            @SuppressWarnings("deprecation")
-            var ignoredBatch = blurFabBatch.setupWith((ViewGroup) rootView, new RenderScriptBlur(requireContext()))
-                    .setBlurRadius(blurLevel);
-            blurFabBatch.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
-                }
-            });
-            blurFabBatch.setClipToOutline(true);
-        }
-
-        BlurView blurFab = view.findViewById(R.id.blur_fab);
-        if (blurFab != null) {
-            View rootView = view.findViewById(R.id.root_layout_record);
-            SharedPreferences tabPrefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-            int blurLevel = tabPrefs.getInt("tab_blur_level", 5);
-            @SuppressWarnings("deprecation")
-            var ignored = blurFab.setupWith((ViewGroup) rootView, new RenderScriptBlur(requireContext()))
-                    .setBlurRadius(blurLevel);
-            blurFab.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
-                }
-            });
-            blurFab.setClipToOutline(true);
-        }
+        // BlurView 已移除，FAB 直接使用半透明背景色
 
         calendarRecycler = view.findViewById(R.id.calendar_recycler);
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 7) {
@@ -446,18 +332,7 @@ public class RecordFragment extends Fragment {
 
         int defaultMode = prefs.getInt("default_record_mode", 0);
 
-        // 新增：如果当前默认模式是加班，则读取用户上次记忆的是工资(3)还是工时(4)
-        if (defaultMode == 3 || defaultMode == 4) {
-            defaultMode = prefs.getInt("overtime_display_mode", 3);
-        }
         switchFilterMode(defaultMode);
-
-//        calendarRecycler.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-//            @Override
-//            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-//                return gestureDetector.onTouchEvent(e);
-//            }
-//        });
 
         tvMonthTitle.setOnClickListener(v -> {
             v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
@@ -498,18 +373,7 @@ public class RecordFragment extends Fragment {
         super.onResume();
         View view = getView();
         if (view != null) {
-            BlurView blurFab = view.findViewById(R.id.blur_fab);
-            if (blurFab != null) {
-                SharedPreferences prefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-                int blurLevel = prefs.getInt("tab_blur_level", 5);
-                blurFab.setBlurRadius(blurLevel);
-            }
-            BlurView blurFabBatch = view.findViewById(R.id.blur_fab_batch);
-            if (blurFabBatch != null) {
-                SharedPreferences prefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
-                int blurLevel = prefs.getInt("tab_blur_level", 5);
-                blurFabBatch.setBlurRadius(blurLevel);
-            }
+            // BlurView 已移除
         }
 
         // 【新增】：根据模式动态调整本界面透明度
@@ -553,13 +417,13 @@ public class RecordFragment extends Fragment {
 
             // 2. 快捷记账按钮：85%透明度 (216) + 去除阴影
             if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
                 int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
                 btnQuickRecord.setCompatElevation(0f);
             }
             if (btnBatchRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
                 int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
                 btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
                 btnBatchRecord.setCompatElevation(0f);
@@ -572,12 +436,12 @@ public class RecordFragment extends Fragment {
             if (weekHeader != null) weekHeader.setBackgroundResource(R.color.bar_background);
 
             if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
                 btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
                 btnQuickRecord.setCompatElevation(0f);
             }
             if (btnBatchRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
                 btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
                 btnBatchRecord.setCompatElevation(0f);
             }
@@ -718,14 +582,19 @@ public class RecordFragment extends Fragment {
             tvDailySummary.setText(buildIncomeExpenseSpan(requireContext(), dayIncome, dayExpense));
         }
 
-        // 更新列表或显示无记录提示
+        // 更新列表或显示空状态引导
         if (dayList.isEmpty()) {
             dailyTransactionsRecycler.setVisibility(View.GONE);
-            tvNoRecords.setVisibility(View.VISIBLE);
+            if (layoutEmptyState != null) {
+                layoutEmptyState.setVisibility(View.VISIBLE);
+                AnimUtils.fadeIn(layoutEmptyState, 250);
+            }
             dailyTransactionsAdapter.setTransactions(new ArrayList<>());
         } else {
             dailyTransactionsRecycler.setVisibility(View.VISIBLE);
-            tvNoRecords.setVisibility(View.GONE);
+            if (layoutEmptyState != null) {
+                layoutEmptyState.setVisibility(View.GONE);
+            }
             dailyTransactionsAdapter.setTransactions(dayList);
         }
     }
@@ -735,7 +604,10 @@ public class RecordFragment extends Fragment {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_transaction_list, null);
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
+        }
 
         currentDetailDialog = dialog;
 
@@ -760,7 +632,6 @@ public class RecordFragment extends Fragment {
         updateDetailDialogData(date);
 
         dialogView.findViewById(R.id.btn_add_transaction).setOnClickListener(v -> showAddOrEditDialog(null, date));
-        dialogView.findViewById(R.id.btn_add_overtime).setOnClickListener(v -> { dialog.dismiss(); showOvertimeDialog(date); });
         dialogView.findViewById(R.id.btn_close_dialog).setOnClickListener(v -> dialog.dismiss());
         dialog.setOnDismissListener(d -> {
             currentDetailAdapter = null;
@@ -804,12 +675,6 @@ public class RecordFragment extends Fragment {
             }
         }
         currentDetailAdapter.setTransactions(dayList);
-    }
-
-    private void showOvertimeDialog(LocalDate date) {
-        OvertimeDialogHelper.showOvertimeDialog(requireContext(), date, transaction -> {
-            viewModel.addTransaction(transaction);
-        });
     }
 
     private void showBatchDialog() {
@@ -894,7 +759,7 @@ public class RecordFragment extends Fragment {
 
         int colorExpense = ContextCompat.getColor(context, R.color.expense_green);
         int colorIncome = ContextCompat.getColor(context, R.color.income_red);
-        int colorBalance = ContextCompat.getColor(context, R.color.app_yellow);
+        int colorBalance = ContextCompat.getColor(context, R.color.app_accent);
 
         android.text.SpannableStringBuilder ssb = new android.text.SpannableStringBuilder();
 

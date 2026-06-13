@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:importantForAccessibility="noHideDescendants"
     android:background="@color/bar_background"
     android:padding="16dp">
 
@@ -57,7 +56,7 @@
                     android:layout_height="wrap_content"
                     android:text="开启后记账时将显示货币符号"
                     android:textSize="12sp"
-                    android:textColor="#888888"
+                    android:textColor="@color/currency_name_text"
                     android:layout_marginTop="4dp"/>
             </LinearLayout>
 
@@ -105,7 +104,7 @@
                 android:layout_height="wrap_content"
                 android:text="CNY (¥)"
                 android:textSize="14sp"
-                android:textColor="#888888"
+                android:textColor="@color/currency_name_text"
                 android:layout_marginEnd="8dp"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>

@@ -4,7 +4,6 @@
     android:id="@+id/settings_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:importantForAccessibility="noHideDescendants"
     android:orientation="vertical"
     android:background="@color/bar_background">
 
@@ -19,7 +18,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="设置"
+            android:text="@string/settings_title"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"/>
@@ -46,165 +45,430 @@
                 android:orientation="vertical"
                 android:paddingBottom="32dp">
 
+                <!-- 分组：数据管理 -->
                 <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="数据管理"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_tertiary"
+                    android:paddingStart="20dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="4dp"/>
+
+                <LinearLayout
                     android:id="@+id/btn_category_setting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="分类预设设置"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_settings_category"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_category"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1F888888"
+                    android:background="@color/divider_line"
                     android:layout_marginHorizontal="20dp"/>
 
-                <TextView
+                <LinearLayout
                     android:id="@+id/btn_backup_restore"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="数据备份与恢复"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_cloud_backup"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_backup"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1F888888"
+                    android:background="@color/divider_line"
                     android:layout_marginHorizontal="20dp"/>
 
-                
-
-                <TextView
-                    android:id="@+id/btn_toggle_night_mode"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="主题样式设置"
-                    android:textSize="16sp"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1F888888"
-                    android:layout_marginHorizontal="20dp"/>
-
-                
-
-                <TextView
-                    android:id="@+id/btn_currency_setting"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="货币单位设置"
-                    android:textSize="16sp"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1F888888"
-                    android:layout_marginHorizontal="20dp"/>
-
-                <TextView
-                    android:id="@+id/btn_amount_display_setting"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="金额显示设置"
-                    android:textSize="16sp"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
-
-                <View
-                    android:id="@+id/divider_donate"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1F888888"
-                    android:layout_marginHorizontal="20dp"/>
-
-                <TextView
+                <LinearLayout
                     android:id="@+id/btn_photo_backup_setting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="照片备份设置"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_photo_backup"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_photo_backup"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1F888888"
+                    android:background="@color/divider_line"
                     android:layout_marginHorizontal="20dp"/>
 
-                <TextView
+                <LinearLayout
                     android:id="@+id/btn_auto_backup_setting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="自动备份设置"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1F888888"
-                    android:layout_marginHorizontal="20dp"/>
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_cloud_backup"
+                        android:importantForAccessibility="no"/>
 
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_auto_backup"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
+
+                <!-- 分组：外观与显示 -->
                 <TextView
-                    android:id="@+id/btn_security_settings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="安全密码设置"
-                    android:textSize="16sp"
+                    android:text="外观与显示"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_tertiary"
+                    android:paddingStart="20dp"
+                    android:paddingTop="20dp"
+                    android:paddingBottom="4dp"/>
+
+                <LinearLayout
+                    android:id="@+id/btn_toggle_night_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_palette"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_theme"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1F888888"
+                    android:background="@color/divider_line"
                     android:layout_marginHorizontal="20dp"/>
 
-                <TextView
+                <LinearLayout
+                    android:id="@+id/btn_currency_setting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_currency"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_currency"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_line"
+                    android:layout_marginHorizontal="20dp"/>
+
+                <LinearLayout
+                    android:id="@+id/btn_amount_display_setting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_amount_display"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_amount_display"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_line"
+                    android:layout_marginHorizontal="20dp"/>
+
+                <LinearLayout
                     android:id="@+id/btn_tab_background_setting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="Tab背景设置"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_tab_bg"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_tab_bg"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
+
+                <!-- 分组：安全与其他 -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="安全与其他"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_tertiary"
+                    android:paddingStart="20dp"
+                    android:paddingTop="20dp"
+                    android:paddingBottom="4dp"/>
+
+                <LinearLayout
+                    android:id="@+id/btn_security_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_lock"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_security"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1F888888"
+                    android:background="@color/divider_line"
                     android:layout_marginHorizontal="20dp"/>
 
-
-                <TextView
+                <LinearLayout
                     android:id="@+id/btn_about"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:text="关于"
-                    android:textSize="16sp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
                     android:background="?android:attr/selectableItemBackground"
-                    android:textColor="?android:attr/textColorPrimary"/>
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_info"
+                        android:importantForAccessibility="no"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/settings_about"
+                        android:textSize="16sp"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:importantForAccessibility="no"
+                        app:tint="@color/text_tertiary"/>
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

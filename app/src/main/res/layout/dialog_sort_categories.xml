@@ -52,7 +52,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="@color/real_white"
-            app:backgroundTint="@color/app_yellow"
+            app:backgroundTint="@color/app_accent"
             app:cornerRadius="16dp"
             app:elevation="0dp" />
 

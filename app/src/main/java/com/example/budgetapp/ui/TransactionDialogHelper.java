@@ -16,6 +16,7 @@ import android.os.ResultReceiver;
 import android.text.InputFilter;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -33,8 +34,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
-import com.example.budgetapp.util.CurrencyUtils;
+import com.example.budgetapp.utils.CategoryManager;
+import com.example.budgetapp.utils.CurrencyUtils;
 import com.example.budgetapp.widget.WidgetUtils;
 import com.google.android.flexbox.FlexDirection;
 import com.google.android.flexbox.FlexWrap;
@@ -44,7 +45,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.List;
@@ -72,6 +73,8 @@ public class TransactionDialogHelper {
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout((int) (context.getResources().getDisplayMetrics().widthPixels * 0.9), ViewGroup.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
         }
 
         TextView tvDate = dialogView.findViewById(R.id.tv_dialog_date);
@@ -87,6 +90,7 @@ public class TransactionDialogHelper {
         Button btnDelete = dialogView.findViewById(R.id.btn_delete);
         MaterialButton btnTakePhoto = dialogView.findViewById(R.id.btn_take_photo);
         MaterialButton btnViewPhoto = dialogView.findViewById(R.id.btn_view_photo);
+        TextView tvAmountError = dialogView.findViewById(R.id.tv_amount_error);
 
         // 根据是否编辑模式设置标题
         TextView tvDialogTitle = dialogView.findViewById(R.id.tv_dialog_title);
@@ -266,17 +270,14 @@ public class TransactionDialogHelper {
         }
 
         Runnable updateDateDisplay = () -> {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.CHINA);
-            tvDate.setText(sdf.format(calendar.getTime()));
+            tvDate.setText(DateUtils.formatDialogDate(calendar.getTimeInMillis()));
 
             if (existingTransaction == null) {
-                SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
-                etNote.setText(noteSdf.format(calendar.getTime()));
+                etNote.setText(DateUtils.formatNoteTime(calendar.getTimeInMillis()));
             } else {
                 String currentNote = etNote.getText().toString().trim();
                 if (currentNote.matches("\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}.*")) {
-                    SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
-                    etNote.setText(noteSdf.format(calendar.getTime()));
+                    etNote.setText(DateUtils.formatNoteTime(calendar.getTimeInMillis()));
                 }
             }
         };
@@ -380,6 +381,7 @@ public class TransactionDialogHelper {
                 AlertDialog delDialog = delBuilder.create();
                 if (delDialog.getWindow() != null) {
                     delDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                    delDialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
                 }
 
                 TextView tvMsg = delView.findViewById(R.id.tv_dialog_message);
@@ -398,9 +400,55 @@ public class TransactionDialogHelper {
         } else {
             btnSave.setText("保 存");
             btnDelete.setVisibility(View.GONE);
-            SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
-            etNote.setText(noteSdf.format(calendar.getTime()));
+            etNote.setText(DateUtils.formatNoteTime(calendar.getTimeInMillis()));
         }
+
+        // 表单实时验证：金额为空时禁用保存按钮
+        Runnable validateForm = () -> {
+            String amountStr = etAmount.getText().toString().trim();
+            boolean valid = !amountStr.isEmpty();
+            String errorMsg = "";
+            if (amountStr.isEmpty()) {
+                errorMsg = "请输入金额";
+            } else {
+                try {
+                    double amt = Double.parseDouble(amountStr);
+                    if (amt <= 0) {
+                        valid = false;
+                        errorMsg = "金额必须大于0";
+                    } else if (amt > 99999999.99) {
+                        valid = false;
+                        errorMsg = "金额不能超过99,999,999.99";
+                    }
+                } catch (NumberFormatException e) {
+                    valid = false;
+                    errorMsg = "金额格式不正确";
+                }
+            }
+            btnSave.setEnabled(valid);
+            btnSave.setAlpha(valid ? 1.0f : 0.4f);
+            if (errorMsg.isEmpty()) {
+                tvAmountError.setVisibility(View.GONE);
+            } else if (!amountStr.isEmpty() || etAmount.hasFocus()) {
+                tvAmountError.setText(errorMsg);
+                tvAmountError.setVisibility(View.VISIBLE);
+            } else {
+                tvAmountError.setVisibility(View.GONE);
+            }
+        };
+
+        etAmount.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) { validateForm.run(); }
+        });
+
+        etAmount.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) validateForm.run();
+        });
+
+        // 初始验证
+        validateForm.run();
 
         btnSave.setOnClickListener(v -> {
             v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
@@ -491,7 +539,13 @@ public class TransactionDialogHelper {
             transaction.targetObject = targetObj;
 
             listener.onTransactionSaved(transaction, isEdit);
-            dialog.dismiss();
+
+            // 保存成功反馈：按钮短暂缩放脉冲后关闭
+            btnSave.animate().scaleX(0.95f).scaleY(0.95f).setDuration(60)
+                    .withEndAction(() -> {
+                        btnSave.animate().scaleX(1f).scaleY(1f).setDuration(80)
+                                .withEndAction(() -> dialog.dismiss()).start();
+                    }).start();
 
             WidgetUtils.updateAllWidgets(context);
         });
@@ -572,6 +626,7 @@ public class TransactionDialogHelper {
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
         }
 
         NumberPicker npYear = dialogView.findViewById(R.id.np_year);
@@ -654,8 +709,7 @@ public class TransactionDialogHelper {
     }
 
     private static String formatDate(long timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        return sdf.format(new java.util.Date(timestamp));
+        return DateUtils.formatDateShort(timestamp);
     }
 
     private static String formatDate(LocalDate date) {
@@ -734,7 +788,7 @@ public class TransactionDialogHelper {
             tvEmpty.setVisibility(View.GONE);
 
             int bgDefault = ContextCompat.getColor(context, R.color.cat_unselected_bg);
-            int bgChecked = ContextCompat.getColor(context, R.color.app_yellow);
+            int bgChecked = ContextCompat.getColor(context, R.color.app_accent);
             int textDefault = ContextCompat.getColor(context, R.color.text_primary);
             int textChecked = ContextCompat.getColor(context, R.color.cat_selected_text);
 

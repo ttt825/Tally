@@ -3,6 +3,7 @@ package com.example.budgetapp.ui;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -63,7 +64,7 @@ public class YearCalendarAdapter extends RecyclerView.Adapter<YearCalendarAdapte
         TypedValue typedValue = new TypedValue();
         context.getTheme().resolveAttribute(android.R.attr.colorPrimary, typedValue, true);
         cachedThemeColor = (typedValue.resourceId != 0) ?
-                context.getColor(typedValue.resourceId) : Color.parseColor("#6200EE");
+                ContextCompat.getColor(context, typedValue.resourceId) : ContextCompat.getColor(context, R.color.color_primary_variant);
 
         TypedArray ta = context.obtainStyledAttributes(new int[]{android.R.attr.textColorPrimary});
         cachedDefaultTextColor = ta.getColor(0, Color.BLACK);

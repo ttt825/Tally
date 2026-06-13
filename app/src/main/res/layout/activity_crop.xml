@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF000000">
+    android:background="@color/crop_bg">
 
     <com.example.budgetapp.ui.CropImageView
         android:id="@+id/crop_image_view"
@@ -15,7 +15,7 @@
         android:layout_gravity="top|center_horizontal"
         android:layout_marginTop="48dp"
         android:text="拖动和缩放图片来调整裁剪区域"
-        android:textColor="#B3FFFFFF"
+        android:textColor="@color/crop_button_text_light"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -34,9 +34,9 @@
             android:layout_height="48dp"
             android:layout_marginEnd="12dp"
             android:layout_weight="1"
-            android:backgroundTint="#555555"
+            android:backgroundTint="@color/crop_cancel_bg"
             android:text="取消"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textSize="16sp" />
 
         <Button
@@ -45,9 +45,9 @@
             android:layout_height="48dp"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:backgroundTint="#FFC107"
+            android:backgroundTint="@color/crop_confirm_bg"
             android:text="确认裁剪"
-            android:textColor="#000000"
+            android:textColor="@color/black"
             android:textSize="16sp" />
     </LinearLayout>
 

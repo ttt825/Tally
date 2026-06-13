@@ -4,7 +4,7 @@
     android:id="@+id/window_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#00000000">
+    android:background="@color/transparent">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/window_card_content"
@@ -281,7 +281,7 @@
                             android:text="确认保存"
                             android:textColor="@color/text_white"
                             android:textStyle="bold"
-                            android:backgroundTint="@color/app_yellow"
+                            android:backgroundTint="@color/app_accent"
                             app:cornerRadius="16dp"
                             app:elevation="0dp"
                             app:pressedTranslationZ="0dp"

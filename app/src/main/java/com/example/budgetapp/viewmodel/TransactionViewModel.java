@@ -20,6 +20,7 @@ import com.example.budgetapp.utils.ThreadPoolManager;
 import com.example.budgetapp.widget.WidgetUtils;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 交易记录 ViewModel
@@ -38,8 +39,8 @@ public class TransactionViewModel extends AndroidViewModel {
 
     private final MutableLiveData<String> backupFailureMessage = new MutableLiveData<>();
 
-    // 【新增】标记是否跳过自动备份计数（用于导入操作）
-    private volatile boolean skipAutoBackupCount = false;
+    // 【新增】标记是否跳过自动备份计数（用于导入操作），使用 AtomicBoolean 防止竞态条件
+    private final AtomicBoolean skipAutoBackupCount = new AtomicBoolean(false);
 
     public TransactionViewModel(@NonNull Application application) {
         super(application);
@@ -124,7 +125,7 @@ public class TransactionViewModel extends AndroidViewModel {
      */
     public void insertTransactions(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
         // 【关键】设置跳过自动备份计数标志
-        skipAutoBackupCount = true;
+        skipAutoBackupCount.set(true);
         repository.insertAll(transactions, count -> {
             notifyWidgetUpdate();
             // 【关键】导入不触发自动备份计数，只更新Widget
@@ -142,7 +143,7 @@ public class TransactionViewModel extends AndroidViewModel {
             if (callback != null) callback.onComplete(0);
             return;
         }
-        skipAutoBackupCount = true;
+        skipAutoBackupCount.set(true);
         repository.insertAll(transactions, count -> {
             notifyWidgetUpdate();
             if (callback != null) callback.onComplete(count);
@@ -196,20 +197,6 @@ public class TransactionViewModel extends AndroidViewModel {
         return repository.getTotalAmountByTypeSync(start, end, type);
     }
 
-    /**
-     * 获取指定时间段的加班总收入
-     */
-    public LiveData<Double> getOvertimeTotalAmount(long start, long end) {
-        return repository.getOvertimeTotalAmount(start, end);
-    }
-
-    /**
-     * 同步获取加班总收入
-     */
-    public double getOvertimeTotalAmountSync(long start, long end) {
-        return repository.getOvertimeTotalAmountSync(start, end);
-    }
-
     // ================= 筛选查询 =================
 
     /**
@@ -254,8 +241,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private void triggerAutoBackup() {
         ThreadPoolManager.getInstance().executeBackground(() -> {
             try {
-                if (skipAutoBackupCount) {
-                    skipAutoBackupCount = false;
+                if (skipAutoBackupCount.getAndSet(false)) {
                     backupTriggered.postValue(false);
                     return;
                 }

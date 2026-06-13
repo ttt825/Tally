@@ -21,7 +21,7 @@ import android.view.MenuItem;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.Date;
 import java.util.Locale;
 
@@ -43,6 +43,7 @@ import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.widget.TodaySummaryWidget;
 import com.example.budgetapp.ui.SettingsActivity;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
+import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import me.ibrahimsn.lib.SmoothBottomBar;
 import eightbitlab.com.blurview.BlurView;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
             new ActivityResultContracts.CreateDocument("application/json"),
             uri -> {
                 if (uri != null) {
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
                             BackupManager.exportToJson(this, uri, transactions);
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -92,10 +93,10 @@ public class MainActivity extends AppCompatActivity {
             uri -> {
                 if (uri != null) {
                     // 【修复】导入使用批量插入，避免逐条触发备份计数
-                    new Thread(() -> {
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             BackupData data = BackupManager.importFromJson(this, uri);
-                            
+
                             if (data.records != null && !data.records.isEmpty()) {
                                 for (Transaction t : data.records) {
                                     t.id = 0;
@@ -103,8 +104,8 @@ public class MainActivity extends AppCompatActivity {
                                 transactionViewModel.insertTransactionsSync(data.records, count -> {
                                     runOnUiThread(() -> {
                                         if (count > 0) {
-                                            Toast.makeText(this, 
-                                                String.format("成功导入: %d条账单", count), 
+                                            Toast.makeText(this,
+                                                String.format("成功导入: %d条账单", count),
                                                 Toast.LENGTH_LONG).show();
                                         } else {
                                             Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show();
@@ -118,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.e("Tally", "Error", e);
                             runOnUiThread(() -> Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
-                    }).start();
+                    });
                 }
             }
     );
@@ -394,8 +395,7 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("数据备份与恢复")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                        String timeStr = sdf.format(new Date()).replace(":", "-"); 
+                        String timeStr = DateUtils.formatDateTime(System.currentTimeMillis()).replace(":", "-");
                         String fileName = "Tally " + timeStr + ".json";
                         exportLauncher.launch(fileName);
                     }
@@ -448,25 +448,41 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 显示首次打开引导提示
+    // 显示首次打开引导提示（非阻塞式气泡）
     private void showLongPressHintIfNeeded() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         boolean hasShownHint = prefs.getBoolean("has_shown_long_press_hint", false);
 
         if (!hasShownHint) {
+            TextView tooltip = findViewById(R.id.tv_fab_tooltip);
+            if (tooltip == null) return;
+
             // 延迟显示，确保界面已经完全加载
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                new AlertDialog.Builder(this)
-                        .setTitle("使用提示")
-                        .setMessage("短按➕添加账单，长按➕进入设置")
-                        .setPositiveButton("知道了", (dialog, which) -> {
-                            // 用户确认后，标记为已显示
-                            prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
-                            dialog.dismiss();
-                        })
-                        .setCancelable(false)
-                        .show();
-            }, 500); // 延迟500毫秒显示
+                tooltip.setVisibility(View.VISIBLE);
+                tooltip.setAlpha(0f);
+                tooltip.animate()
+                        .alpha(1f)
+                        .setDuration(300)
+                        .start();
+
+                // 4秒后自动淡出
+                tooltip.postDelayed(() -> {
+                    tooltip.animate()
+                            .alpha(0f)
+                            .setDuration(300)
+                            .withEndAction(() -> tooltip.setVisibility(View.GONE))
+                            .start();
+                    prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
+                }, 4000);
+
+                // 点击任意位置也可关闭
+                tooltip.setOnClickListener(v -> {
+                    tooltip.animate().cancel();
+                    tooltip.setVisibility(View.GONE);
+                    prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
+                });
+            }, 800);
         }
     }
     // ==============================================================================

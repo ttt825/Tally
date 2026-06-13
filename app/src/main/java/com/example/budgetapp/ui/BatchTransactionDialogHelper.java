@@ -21,9 +21,9 @@ import android.widget.Toast;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -45,6 +45,7 @@ public class BatchTransactionDialogHelper {
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
         }
 
         TextView tvDate = dialogView.findViewById(R.id.tv_batch_date);
@@ -57,11 +58,9 @@ public class BatchTransactionDialogHelper {
 
         Calendar calendar = Calendar.getInstance();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.CHINA);
-        tvDate.setText(sdf.format(calendar.getTime()));
+        tvDate.setText(DateUtils.formatDialogDate(calendar.getTimeInMillis()));
 
-        SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
-        etRecordId.setText(noteSdf.format(calendar.getTime()));
+        etRecordId.setText(DateUtils.formatNoteTime(calendar.getTimeInMillis()));
 
         final List<String> expenseCategories = new ArrayList<>(CategoryManager.getExpenseCategories(context));
         final List<String> incomeCategories = new ArrayList<>(CategoryManager.getIncomeCategories(context));

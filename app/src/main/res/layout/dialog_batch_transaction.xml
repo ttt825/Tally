@@ -167,7 +167,7 @@
                     android:src="@drawable/ic_add"
                     android:background="@drawable/bg_input_field"
                     android:contentDescription="新增一行"
-                    app:tint="@color/app_yellow"
+                    app:tint="@color/app_accent"
                     android:scaleType="center"/>
 
                 <EditText

@@ -8,7 +8,6 @@ import android.net.Uri;
 
 import androidx.documentfile.provider.DocumentFile;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
@@ -43,8 +42,7 @@ public class ExportPathManager {
      * 格式: Tally_yyyy-MM-dd_HH-mm-ss.json
      */
     public static String generateZipFileName() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.CHINA);
-        String timeStr = sdf.format(new Date());
+        String timeStr = DateUtils.formatExportTimestamp(new Date().getTime());
         return "Tally_" + timeStr + ".json";
     }
 
@@ -53,8 +51,7 @@ public class ExportPathManager {
      * 格式: 账单导出_yyyy-MM-dd_HH-mm-ss.csv
      */
     public static String generateExcelFileName() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.CHINA);
-        String timeStr = sdf.format(new Date());
+        String timeStr = DateUtils.formatBackupTimestamp(new Date().getTime());
         return "账单导出_" + timeStr + ".csv";
     }
 

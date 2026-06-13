@@ -2,7 +2,6 @@
 <resources>
     <!-- 【修复】同步新增 app_accent 别名 -->
     <color name="app_accent">#3683f7</color>
-    <color name="app_yellow">#3683f7</color>
     <color name="ripple_yellow">#263238</color>
 
     <color name="app_background">#121212</color>
@@ -16,18 +15,20 @@
     <!-- 【修复】移除未使用的 fixed_yellow -->
     <color name="tab_unselected">#90A4AE</color>
 
-    <color name="divider_color">#2C2C2C</color>
+    <color name="divider">#2C2C2C</color>
 
     <color name="transfer_fab_bg">#2C2C2C</color>
     <color name="transfer_fab_icon_tint">#E0E0E0</color>
 
     <color name="calendar_lunar_text">#6b6d6d</color>
 
-    <color name="bottom_selected">@color/app_yellow</color>
+    <color name="bottom_selected">@color/app_accent</color>
 
-    <color name="divider">#73C5BFBF</color>
-    <color name="income_red">#EF6565</color>
-    <color name="expense_green">#A5D6A7</color>
+    <!-- 收支颜色：支出=绿色，收入=红色 -->
+    <color name="color_gain">#A5D6A7</color>
+    <color name="color_loss">#EF6565</color>
+    <color name="income_red">@color/color_loss</color>
+    <color name="expense_green">@color/color_gain</color>
     <color name="pie_food">#FFF59D</color>
     <color name="pie_fun">#A5D6A7</color>
     <color name="pie_edu">#90CAF9</color>
@@ -49,7 +50,6 @@
     <color name="selector_text">#E0E0E0</color>
     <color name="text_white">#E0E0E0</color>
     <color name="marker_bg">#2C2C2C</color>
-    <color name="text_on_dark">#E0E0E0</color>
 
     <color name="cat_unselected_bg">#2C2C2C</color>
     <color name="cat_unselected_text">#E0E0E0</color>
@@ -61,4 +61,24 @@
     <color name="currency_symbol_text_normal">#FFFFFF</color>
     <color name="currency_symbol_text_selected">#FFFFFF</color>
     <color name="currency_name_text">#AAAAAA</color>
+
+    <!-- 语义化颜色 token (暗色模式) -->
+    <color name="divider_line">#1F5A5A5A</color>
+    <color name="text_hint">#6B6B6B</color>
+    <color name="text_medium">#A0A0A0</color>
+    <color name="text_tertiary">#7A7A7A</color>
+    <color name="fab_overlay">#33FFFFFF</color>
+    <color name="overlay_mask">#000000</color>
+    <color name="crop_bg">#FF000000</color>
+    <color name="crop_cancel_bg">#444444</color>
+    <color name="crop_confirm_bg">#FFB300</color>
+    <color name="timeline_dot">#616161</color>
+    <color name="chart_marker_line">#424242</color>
+    <color name="transparent">#00000000</color>
+    <color name="crop_button_text_light">#B3FFFFFF</color>
+    <color name="button_disabled_text">#666666</color>
+    <color name="scrim_dark">#80000000</color>
+    <color name="calendar_net_positive">#64B5F6</color>
+    <color name="calendar_net_negative">#FFB74D</color>
+    <color name="color_primary_variant">#BB86FC</color>
 </resources>

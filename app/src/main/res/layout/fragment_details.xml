@@ -4,7 +4,6 @@
     android:id="@+id/root_layout_details"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:importantForAccessibility="noHideDescendants"
     android:orientation="vertical"
     android:background="@color/bar_background">
 
@@ -83,7 +82,8 @@
                 android:layout_height="48dp"
                 android:src="@drawable/ic_arrow_left"
                 android:background="@null"
-                app:tint="@color/text_primary" />
+                app:tint="@color/text_primary"
+                android:contentDescription="前一页"/>
 
             <TextView
                 android:id="@+id/tv_current_date_range"
@@ -120,14 +120,57 @@
                 android:layout_marginEnd="4dp"
                 android:src="@drawable/ic_filter"
                 android:background="@null"
-                app:tint="@color/text_primary" />
+                app:tint="@color/text_primary"
+                android:contentDescription="筛选"/>
         </LinearLayout>
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_details"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="120dp"
-        android:background="@color/bar_background"/> </LinearLayout>
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_details"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="120dp"
+            android:background="@color/bar_background"/>
+
+        <LinearLayout
+            android:id="@+id/layout_details_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingBottom="120dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_nav_details"
+                android:alpha="0.25"
+                android:contentDescription="@string/empty_details_title"
+                app:tint="@color/text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/empty_details_title"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/empty_details_hint"
+                android:textColor="@color/text_tertiary"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:paddingHorizontal="48dp" />
+        </LinearLayout>
+    </FrameLayout> </LinearLayout>

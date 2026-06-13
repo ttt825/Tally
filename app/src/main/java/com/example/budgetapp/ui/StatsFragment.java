@@ -14,6 +14,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewStub;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -39,7 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
@@ -87,15 +88,16 @@ public class StatsFragment extends Fragment {
     private PieChart expensePieChart;
     private PieChart incomePieChart;
     private TextView tvIncomeTitle;
+    private ViewStub stubIncomeChart;
+    private boolean incomeChartInflated = false;
     private LinearLayout layoutTrend;
     private LinearLayout layoutExpense;
     private LinearLayout layoutSummary;
+    private View layoutStatsEmpty;
     private RadioGroup rgTimeScope;
     private TextView tvDateRange;
     private TextView tvSummaryTitle;
     private TextView tvSummaryContent;
-    private View dividerOvertime;
-    private TextView tvOvertimeContent;
     private ScrollView scrollView;
     private int currentMode = 2; // 0=Year, 1=Month, 2=Week
     private LocalDate selectedDate = LocalDate.now();
@@ -170,16 +172,16 @@ public class StatsFragment extends Fragment {
         layoutTrend = view.findViewById(R.id.layout_trend_section);
         layoutExpense = view.findViewById(R.id.layout_expense_section);
         layoutSummary = view.findViewById(R.id.layout_summary_section);
+        layoutStatsEmpty = view.findViewById(R.id.layout_stats_empty);
         lineChart = view.findViewById(R.id.chart_line);
         expensePieChart = view.findViewById(R.id.chart_pie);
-        incomePieChart = view.findViewById(R.id.chart_pie_income);
-        tvIncomeTitle = view.findViewById(R.id.tv_income_title);
+        stubIncomeChart = view.findViewById(R.id.stub_income_chart);
+        // incomePieChart and tvIncomeTitle are resolved lazily via ensureIncomeChartInflated()
         rgTimeScope = view.findViewById(R.id.rg_time_scope);
         tvDateRange = view.findViewById(R.id.tv_current_date_range);
         tvSummaryTitle = view.findViewById(R.id.tv_summary_title);
         tvSummaryContent = view.findViewById(R.id.tv_summary_content);
-        dividerOvertime = view.findViewById(R.id.divider_overtime);
-        tvOvertimeContent = view.findViewById(R.id.tv_overtime_content);
+
         scrollView = view.findViewById(R.id.scroll_view_stats);
 
         dividerIncome = view.findViewById(R.id.divider_income);
@@ -188,8 +190,25 @@ public class StatsFragment extends Fragment {
 
     }
 
+    /**
+     * Lazily inflate the income chart ViewStub.
+     * Returns true if the chart is available (either already inflated or just inflated).
+     */
+    private boolean ensureIncomeChartInflated() {
+        if (incomeChartInflated) return incomePieChart != null;
+        if (stubIncomeChart == null) return false;
+        View inflated = stubIncomeChart.inflate();
+        incomeChartInflated = true;
+        incomePieChart = inflated.findViewById(R.id.chart_pie_income);
+        tvIncomeTitle = inflated.findViewById(R.id.tv_income_title);
+        if (incomePieChart != null) {
+            initPieChartStyle(incomePieChart, 1);
+        }
+        return incomePieChart != null;
+    }
+
     // ... (中间的 setupGestures, setupListeners, changeDate, updateDateRangeDisplay 等未修改方法省略，保持原样) ...
-    // 为了篇幅，这里假设 setupGestures, setupListeners, changeDate, updateDateRangeDisplay, showCustomDatePicker, updatePreviewText, refreshData, processYearlyData, processMonthlyData, processWeeklyData, aggregateData, updateCharts, updateSinglePieChart, updateSummarySection, checkHasOvertime, calculateAndShowOvertime, generateThemeColors, createLineDataSet, setupLineChart, setupPieCharts, initPieChartStyle 均保持原样。
+    // 为了篇幅，这里假设 setupGestures, setupListeners, changeDate, updateDateRangeDisplay, showCustomDatePicker, updatePreviewText, refreshData, processYearlyData, processMonthlyData, processWeeklyData, aggregateData, updateCharts, updateSinglePieChart, updateSummarySection, generateThemeColors, createLineDataSet, setupLineChart, setupPieCharts, initPieChartStyle 均保持原样。
     // 请确保您的代码中包含这些方法。
 
     // 【修改】showCategoryDetailDialog 方法
@@ -217,7 +236,10 @@ public class StatsFragment extends Fragment {
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_transaction_list, null);
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
+        }
 
         currentCategoryDetailDialog = dialog;
 
@@ -230,6 +252,9 @@ public class StatsFragment extends Fragment {
 
         RecyclerView rv = dialogView.findViewById(R.id.rv_detail_list);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+        FadeInItemAnimator dialogAnimator = new FadeInItemAnimator();
+        dialogAnimator.setReduceMotion(AnimUtils.shouldReduceAnimations(requireContext()));
+        rv.setItemAnimator(dialogAnimator);
 
         TransactionListAdapter adapter = new TransactionListAdapter(t -> {
             LocalDate date = Instant.ofEpochMilli(t.date).atZone(ZoneId.systemDefault()).toLocalDate();
@@ -245,12 +270,6 @@ public class StatsFragment extends Fragment {
 
         // 初始化加载数据
         updateCategoryDetailDialogData();
-
-        // 隐藏不必要的按钮
-        View btnOvertime = dialogView.findViewById(R.id.btn_add_overtime);
-        View btnAdd = dialogView.findViewById(R.id.btn_add_transaction);
-        if (btnOvertime != null) btnOvertime.setVisibility(View.GONE);
-        if (btnAdd != null) btnAdd.setVisibility(View.GONE);
 
         Button btnClose = dialogView.findViewById(R.id.btn_close_dialog);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
@@ -295,7 +314,6 @@ public class StatsFragment extends Fragment {
         double totalScopeAmount = 0;
         for (Transaction t : allTransactions) {
             if (t.date >= startMillis && t.date < endMillis && t.type == currentDetailType) {
-                if (currentDetailType == 1 && "加班".equals(t.category)) continue;
                 categorySums.put(t.category, categorySums.getOrDefault(t.category, 0.0) + t.amount);
                 totalScopeAmount += t.amount;
             }
@@ -305,8 +323,6 @@ public class StatsFragment extends Fragment {
         List<Transaction> baseList = new ArrayList<>();
         for (Transaction t : allTransactions) {
             if (t.date >= startMillis && t.date < endMillis && t.type == currentDetailType) {
-                if (currentDetailType == 1 && "加班".equals(t.category)) continue;
-
                 boolean isMatch = false;
                 if ("其他".equals(currentDetailCategory)) {
                     Double catSum = categorySums.get(t.category);
@@ -354,7 +370,7 @@ public class StatsFragment extends Fragment {
                 currentDetailChipGroup.removeAllViews();
 
                 int bgDefault = ContextCompat.getColor(requireContext(), R.color.cat_unselected_bg);
-                int bgChecked = ContextCompat.getColor(requireContext(), R.color.app_yellow);
+                int bgChecked = ContextCompat.getColor(requireContext(), R.color.app_accent);
                 int textDefault = ContextCompat.getColor(requireContext(), R.color.text_primary);
                 int textChecked = ContextCompat.getColor(requireContext(), R.color.cat_selected_text);
                 int[][] states = new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}};
@@ -499,7 +515,25 @@ public class StatsFragment extends Fragment {
             else if (checkedId == R.id.rb_week) currentMode = 2;
 
             updateDateRangeDisplay();
-            loadYearData();
+
+            // 切换时间范围时，内容区淡出再淡入
+            if (!AnimUtils.shouldReduceAnimations(requireContext())) {
+                View[] contentViews = {layoutTrend, layoutExpense, layoutSummary};
+                for (View v : contentViews) {
+                    if (v != null && v.getVisibility() == View.VISIBLE) {
+                        v.animate().alpha(0f).setDuration(120).start();
+                    }
+                }
+                loadYearData();
+                for (View v : contentViews) {
+                    if (v != null && v.getVisibility() == View.VISIBLE) {
+                        v.setAlpha(0f);
+                        v.animate().alpha(1f).setDuration(200).start();
+                    }
+                }
+            } else {
+                loadYearData();
+            }
         });
 
         btnPrev.setOnClickListener(v -> {
@@ -620,73 +654,11 @@ public class StatsFragment extends Fragment {
 
     private void showCustomDatePicker() {
         if (getContext() == null) return;
-        final BottomSheetDialog dialog = new BottomSheetDialog(getContext());
-        dialog.setContentView(R.layout.dialog_bottom_date_picker);
-        dialog.setOnShowListener(dialogInterface -> {
-            BottomSheetDialog bottomSheetDialog = (BottomSheetDialog) dialogInterface;
-            View bottomSheet = bottomSheetDialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (bottomSheet != null) bottomSheet.setBackgroundResource(android.R.color.transparent);
-        });
-        int curYear = selectedDate.getYear();
-        int curMonth = selectedDate.getMonthValue();
-        int curDay = selectedDate.getDayOfMonth();
-        NumberPicker npYear = dialog.findViewById(R.id.np_year);
-        NumberPicker npMonth = dialog.findViewById(R.id.np_month);
-        NumberPicker npDay = dialog.findViewById(R.id.np_day);
-        TextView tvPreview = dialog.findViewById(R.id.tv_date_preview);
-        Button btnCancel = dialog.findViewById(R.id.btn_cancel);
-        Button btnConfirm = dialog.findViewById(R.id.btn_confirm);
-        if (npYear == null || npMonth == null || npDay == null || btnConfirm == null || btnCancel == null) return;
-        npYear.setMinValue(2000);
-        npYear.setMaxValue(2050);
-        npYear.setValue(curYear);
-        npMonth.setMinValue(1);
-        npMonth.setMaxValue(12);
-        npMonth.setValue(curMonth);
-        npDay.setMinValue(1);
-        int maxDays = YearMonth.of(curYear, curMonth).lengthOfMonth();
-        npDay.setMaxValue(maxDays);
-        npDay.setValue(curDay);
-        NumberPicker.OnValueChangeListener dateChangeListener = (picker, oldVal, newVal) -> {
-            // 新增：在数值发生变化（即滚动）时触发清脆的滴答振动
-            picker.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
-
-            int y = npYear.getValue();
-            int m = npMonth.getValue();
-            int newMaxDays = YearMonth.of(y, m).lengthOfMonth();
-            if (npDay.getMaxValue() != newMaxDays) {
-                int currentD = npDay.getValue();
-                npDay.setMaxValue(newMaxDays);
-                if (currentD > newMaxDays) npDay.setValue(newMaxDays);
-            }
-            updatePreviewText(tvPreview, y, m, npDay.getValue());
-        };
-        npYear.setOnValueChangedListener(dateChangeListener);
-        npMonth.setOnValueChangedListener(dateChangeListener);
-        npDay.setOnValueChangedListener(dateChangeListener);
-        updatePreviewText(tvPreview, curYear, curMonth, curDay);
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        btnConfirm.setOnClickListener(v -> {
-            int year = npYear.getValue();
-            int month = npMonth.getValue();
-            int day = npDay.getValue();
+        DatePickerHelper.showDatePicker(getContext(), selectedDate, (year, month, day) -> {
             selectedDate = LocalDate.of(year, month, day);
             updateDateRangeDisplay();
             loadYearData();
-            dialog.dismiss();
         });
-        dialog.show();
-    }
-
-    private void updatePreviewText(TextView tv, int year, int month, int day) {
-        if (tv == null) return;
-        try {
-            LocalDate date = LocalDate.of(year, month, day);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINA);
-            tv.setText(date.format(formatter));
-        } catch (Exception e) {
-            tv.setText(year + "年" + month + "月" + day + "日");
-        }
     }
 
     private void refreshData() {
@@ -738,10 +710,8 @@ public class StatsFragment extends Fragment {
             int index = extractor.getIndex(t);
             if (index != -1) {
                 if (t.type == TransactionType.INCOME.getValue()) {
-                    if (!"加班".equals(t.category)) {
-                        incomeMap.put(index, incomeMap.getOrDefault(index, 0.0) + t.amount);
-                        incomePieCats.put(t.category, incomePieCats.getOrDefault(t.category, 0.0) + t.amount);
-                    }
+                    incomeMap.put(index, incomeMap.getOrDefault(index, 0.0) + t.amount);
+                    incomePieCats.put(t.category, incomePieCats.getOrDefault(t.category, 0.0) + t.amount);
                 } else if (t.type == TransactionType.EXPENSE.getValue()) {
                     expenseMap.put(index, expenseMap.getOrDefault(index, 0.0) + t.amount);
                     expensePieCats.put(t.category, expensePieCats.getOrDefault(t.category, 0.0) + t.amount);
@@ -756,6 +726,19 @@ public class StatsFragment extends Fragment {
                               int maxX, String suffix, String[] customLabels) {
 
         boolean hasTrendData = !incomeMap.isEmpty() || !expenseMap.isEmpty();
+        boolean hasExpenseData = !expensePieMap.isEmpty();
+        boolean hasAnyData = hasTrendData || hasExpenseData;
+
+        // 显示/隐藏空状态引导
+        if (layoutStatsEmpty != null) {
+            if (hasAnyData) {
+                layoutStatsEmpty.setVisibility(View.GONE);
+            } else {
+                layoutStatsEmpty.setVisibility(View.VISIBLE);
+                AnimUtils.fadeIn(layoutStatsEmpty, 250);
+            }
+        }
+
         if (layoutTrend != null) {
             layoutTrend.setVisibility(hasTrendData ? View.VISIBLE : View.GONE);
         }
@@ -778,7 +761,7 @@ public class StatsFragment extends Fragment {
 
             LineDataSet setIn = createLineDataSet(inEntries, "收入", R.color.income_red);
             LineDataSet setOut = createLineDataSet(outEntries, "支出", R.color.expense_green);
-            LineDataSet setNet = createLineDataSet(netEntries, "净收支", R.color.app_yellow);
+            LineDataSet setNet = createLineDataSet(netEntries, "净收支", R.color.app_accent);
             setNet.enableDashedLine(10f, 5f, 0f);
 
             LineData lineData = new LineData(setIn, setOut, setNet);
@@ -812,7 +795,6 @@ public class StatsFragment extends Fragment {
             lineChart.invalidate();
         }
 
-        boolean hasExpenseData = !expensePieMap.isEmpty();
         if (layoutExpense != null) {
             layoutExpense.setVisibility(hasExpenseData ? View.VISIBLE : View.GONE);
         }
@@ -824,12 +806,15 @@ public class StatsFragment extends Fragment {
         for (Double val : incomePieMap.values()) totalIncome += val;
 
         if (totalIncome > 0) {
-            tvIncomeTitle.setVisibility(View.VISIBLE);
-            incomePieChart.setVisibility(View.VISIBLE);
-            updateSinglePieChart(incomePieChart, incomePieMap);
+            ensureIncomeChartInflated();
+            if (tvIncomeTitle != null) tvIncomeTitle.setVisibility(View.VISIBLE);
+            if (incomePieChart != null) {
+                incomePieChart.setVisibility(View.VISIBLE);
+                updateSinglePieChart(incomePieChart, incomePieMap);
+            }
         } else {
-            tvIncomeTitle.setVisibility(View.GONE);
-            incomePieChart.setVisibility(View.GONE);
+            if (tvIncomeTitle != null) tvIncomeTitle.setVisibility(View.GONE);
+            if (incomePieChart != null) incomePieChart.setVisibility(View.GONE);
         }
 
         double totalExpense = 0;
@@ -920,7 +905,6 @@ public class StatsFragment extends Fragment {
                 allTransactions,
                 tvSummaryTitle, tvSummaryContent,
                 layoutSummary,
-                dividerOvertime, tvOvertimeContent,
                 dividerIncome, tvIncomeSummaryTitle, tvIncomeSummaryContent);
     }
 
@@ -982,7 +966,7 @@ public class StatsFragment extends Fragment {
 
     private void setupPieCharts() {
         initPieChartStyle(expensePieChart, 0);
-        initPieChartStyle(incomePieChart, 1);
+        // incomePieChart is initialized lazily in ensureIncomeChartInflated()
     }
 
     private void initPieChartStyle(PieChart chart, int type) {
@@ -1032,7 +1016,8 @@ public class StatsFragment extends Fragment {
         // 【修改】获取三个图表和总结卡片
         View chartLine = view.findViewById(R.id.chart_line);
         View chartPie = view.findViewById(R.id.chart_pie);
-        View chartPieIncome = view.findViewById(R.id.chart_pie_income);
+        // chart_pie_income may be inside a ViewStub; use the field if already inflated
+        View chartPieIncome = incomePieChart;
         View cardSummary = view.findViewById(R.id.card_summary);
 
         if (isCustomBg) {

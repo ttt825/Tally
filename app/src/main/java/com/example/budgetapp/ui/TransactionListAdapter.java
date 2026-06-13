@@ -2,6 +2,7 @@ package com.example.budgetapp.ui;
 
 import android.content.Context;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -102,10 +103,10 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         // 正常入库记录的颜色逻辑
         holder.tvNote.setAlpha(1.0f);
         if (t.type == TransactionType.INCOME.getValue()) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.income_red));
+            holder.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.income_red));
             holder.tvAmount.setText("+" + displayAmount);
         } else if (t.type == TransactionType.LIABILITY.getValue()) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.liability_orange));
+            holder.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.liability_orange));
             holder.tvAmount.setText("+" + displayAmount);
         } else if (t.type == TransactionType.LEND.getValue()) {
             holder.tvAmount.setTextColor(context.getColor(R.color.lend_purple));
@@ -141,6 +142,8 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         }
 
         holder.itemView.setOnClickListener(v -> {
+            // 按压反馈
+            AnimUtils.pressFeedback(v, 0.97f, 60);
             if (listener != null) listener.onItemClick(t);
         });
     }

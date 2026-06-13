@@ -20,9 +20,9 @@ import android.widget.Toast;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -45,6 +45,7 @@ public class SplitTransactionDialogHelper {
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
         }
 
         TextView tvOriginalAmount = dialogView.findViewById(R.id.tv_split_original_amount);
@@ -59,10 +60,9 @@ public class SplitTransactionDialogHelper {
         tvOriginalAmount.setText(String.format(Locale.CHINA, "原始金额: %.2f", originalAmount));
 
         // 初始化记录标识
-        SimpleDateFormat noteSdf = new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA);
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(originalTransaction.date);
-        etRecordId.setText(originalTransaction.note != null ? originalTransaction.note : noteSdf.format(calendar.getTime()));
+        etRecordId.setText(originalTransaction.note != null ? originalTransaction.note : DateUtils.formatNoteTime(calendar.getTimeInMillis()));
 
         // 类型保持与原始账单一致，不允许修改
         int currentType = originalTransaction.type;

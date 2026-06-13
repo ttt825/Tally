@@ -9,7 +9,7 @@ import android.util.Log;
 
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.BufferedReader;
@@ -17,7 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -130,8 +130,7 @@ public class BackupManager {
                 return new BackupResult(false, "备份目录不存在或权限已丢失，请重新设置备份路径");
             }
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.CHINA);
-            String backupFileName = "Tally_自动备份_" + sdf.format(new Date()) + ".json";
+            String backupFileName = "Tally_自动备份_" + DateUtils.formatBackupTimestamp(new Date().getTime()) + ".json";
             androidx.documentfile.provider.DocumentFile backupFile = tree.createFile("application/json", backupFileName);
 
             if (backupFile == null || !backupFile.exists()) {
@@ -169,15 +168,15 @@ public class BackupManager {
             BackupResult result = performAutoBackup(context, transactions);
             if (result.success) {
                 prefs.edit().putInt("auto_backup_change_count", 0).apply();
-                Log.d("BackupManager", "自动备份成功，变动计数已重置");
+                Log.d("Tally", "自动备份成功，变动计数已重置");
                 return result;
             } else {
                 prefs.edit().putInt("auto_backup_change_count", 0).apply();
-                Log.d("BackupManager", "自动备份失败，变动计数已重置，将在下次达到频次时重试");
+                Log.d("Tally", "自动备份失败，变动计数已重置，将在下次达到频次时重试");
                 return result;
             }
         } else {
-            Log.d("BackupManager", "当前变动计数: " + currentCount + "，还需变动 " + (backupFreq - currentCount) + " 次触发备份");
+            Log.d("Tally", "当前变动计数: " + currentCount + "，还需变动 " + (backupFreq - currentCount) + " 次触发备份");
             return new BackupResult(false, null);
         }
     }
@@ -236,7 +235,7 @@ public class BackupManager {
                             default: editor.putString(key, item.value); break;
                         }
                     } catch (Exception e) {
-                        Log.e("BackupManager", "恢复配置异常", e);
+                        Log.e("Tally", "恢复配置异常", e);
                     }
                 }
                 editor.apply();
@@ -284,11 +283,10 @@ public class BackupManager {
         csvBuilder.append('\ufeff');
 
         csvBuilder.append("交易ID,时间,类型,分类,金额,记录标识,备注,二级分类,币种,对象\n");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日", Locale.CHINA);
 
         for (Transaction t : transactions) {
             csvBuilder.append(t.id).append(",");
-            csvBuilder.append(sdf.format(new Date(t.date))).append(",");
+            csvBuilder.append(DateUtils.formatDate(t.date)).append(",");
             csvBuilder.append(TransactionType.fromValue(t.type).getLabel()).append(",");
             csvBuilder.append(escapeCsv(t.category)).append(",");
             csvBuilder.append(String.format("%.2f", t.amount)).append(",");
@@ -322,7 +320,6 @@ public class BackupManager {
         if (lines.get(0).startsWith("\ufeff")) lines.set(0, lines.get(0).substring(1));
 
         List<Transaction> transactions = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日", Locale.CHINA);
 
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i).trim();
@@ -337,7 +334,7 @@ public class BackupManager {
                 try { t.id = Integer.parseInt(tokens.get(0)); } catch (Exception e) { t.id = 0; }
 
                 String timeStr = tokens.get(1).trim();
-                try { t.date = sdf.parse(timeStr).getTime(); } catch (Exception e) { continue; }
+                try { t.date = DateUtils.parseDate(timeStr); } catch (Exception e) { continue; }
 
                 String typeStr = tokens.get(2).trim();
                 t.type = TransactionType.fromLabel(typeStr).getValue();
@@ -357,7 +354,7 @@ public class BackupManager {
 
                 transactions.add(t);
             } catch (Exception e) {
-                Log.e("BackupManager", "解析交易行失败: " + line, e);
+                Log.e("Tally", "解析交易行失败: " + line, e);
             }
         }
 
@@ -423,7 +420,6 @@ public class BackupManager {
 
             String line;
             boolean isDataSection = false;
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
             int lineCount = 0;
 
             while ((line = reader.readLine()) != null) {
@@ -446,8 +442,7 @@ public class BackupManager {
                 Transaction t = new Transaction();
                 String timeStr = tokens.get(0);
                 try {
-                    Date date = sdf.parse(timeStr);
-                    t.date = (date != null) ? date.getTime() : System.currentTimeMillis();
+                    t.date = DateUtils.parseDateTime(timeStr);
                 } catch (Exception e) {
                     continue;
                 }
@@ -507,7 +502,6 @@ public class BackupManager {
 
             String line;
             boolean isDataSection = false;
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
             int timeIdx = -1, typeIdx = -1, amountIdx = -1, descIdx = -1, paymentIdx = -1, tradeCatIdx = -1;
 
@@ -546,8 +540,7 @@ public class BackupManager {
                 Transaction t = new Transaction();
                 String timeStr = tokens.get(timeIdx).trim();
                 try {
-                    Date date = sdf.parse(timeStr);
-                    t.date = (date != null) ? date.getTime() : System.currentTimeMillis();
+                    t.date = DateUtils.parseDateTime(timeStr);
                 } catch (Exception e) {
                     continue;
                 }

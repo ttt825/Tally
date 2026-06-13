@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.BudgetApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/app_yellow</item>
+        <item name="colorPrimary">@color/app_accent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowBackground">@color/app_background</item>

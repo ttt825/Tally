@@ -1,4 +1,4 @@
-package com.example.budgetapp.util;
+package com.example.budgetapp.utils;
 
 import android.app.AlertDialog;
 import android.content.Context;

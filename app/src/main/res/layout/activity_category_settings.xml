@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:importantForAccessibility="noHideDescendants"
     android:background="@color/bar_background">
 
     <TextView
@@ -178,7 +177,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="+ 添加支出分类"
-                            android:textColor="@color/app_yellow"/>
+                            android:textColor="@color/app_accent"/>
 
                         <Space
                             android:layout_width="0dp"
@@ -191,7 +190,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="排序"
-                            android:textColor="@color/app_yellow"/>
+                            android:textColor="@color/app_accent"/>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -237,7 +236,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="+ 添加收入分类"
-                            android:textColor="@color/app_yellow"/>
+                            android:textColor="@color/app_accent"/>
 
                         <Space
                             android:layout_width="0dp"
@@ -250,7 +249,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="排序"
-                            android:textColor="@color/app_yellow"/>
+                            android:textColor="@color/app_accent"/>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -260,7 +259,7 @@
                 android:layout_height="wrap_content"
                 android:text="点击分类可编辑，长按分类可管理二级分类"
                 android:gravity="center"
-                android:textColor="#999999"
+                android:textColor="@color/text_tertiary"
                 android:textSize="12sp"
                 android:layout_marginTop="32dp"
                 android:layout_marginBottom="20dp"/>

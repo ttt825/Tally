@@ -18,10 +18,12 @@ import java.util.concurrent.ExecutorService;
  */
 public class TransactionRepository {
 
+    private final AppDatabase database;
     private final TransactionDao transactionDao;
     private final ExecutorService executor;
 
     public TransactionRepository(AppDatabase database) {
+        this.database = database;
         this.transactionDao = database.transactionDao();
         this.executor = AppDatabase.databaseWriteExecutor;
     }
@@ -81,8 +83,10 @@ public class TransactionRepository {
      */
     public void deleteAndInsertAll(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
         executor.execute(() -> {
-            transactionDao.delete(original);
-            transactionDao.insertAll(splitList);
+            database.runInTransaction(() -> {
+                transactionDao.delete(original);
+                transactionDao.insertAll(splitList);
+            });
             if (callback != null) {
                 callback.onComplete(splitList.size());
             }
@@ -141,21 +145,6 @@ public class TransactionRepository {
      */
     public double getTotalAmountByTypeSync(long start, long end, TransactionType type) {
         Double result = transactionDao.getTotalAmountByTypeSync(start, end, type.getValue());
-        return result != null ? result : 0.0;
-    }
-
-    /**
-     * 获取加班总收入
-     */
-    public LiveData<Double> getOvertimeTotalAmount(long start, long end) {
-        return transactionDao.getOvertimeTotalAmountLive(start, end);
-    }
-
-    /**
-     * 同步获取加班总收入
-     */
-    public double getOvertimeTotalAmountSync(long start, long end) {
-        Double result = transactionDao.getOvertimeTotalAmountSync(start, end);
         return result != null ? result : 0.0;
     }
 

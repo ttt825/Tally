@@ -3,6 +3,7 @@ package com.example.budgetapp.ui;
 
 import android.content.Context;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -42,6 +43,8 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
     private int cachedIncomeRed = Color.GRAY;
     private int cachedExpenseGreen = Color.GRAY;
     private int cachedLunarTextColor = Color.GRAY;
+    private int cachedNetPositive = Color.GRAY;
+    private int cachedNetNegative = Color.GRAY;
     private boolean themeColorsCached = false;
 
     // 缓存的自定义背景开关
@@ -85,10 +88,12 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
     public void cacheThemeColors(Context context) {
         cachedColorPrimaryText = getThemeColor(context, android.R.attr.textColorPrimary);
         cachedColorSecondaryText = getThemeColor(context, android.R.attr.textColorSecondary);
-        cachedThemeColor = context.getColor(R.color.app_yellow);
-        cachedIncomeRed = context.getColor(R.color.income_red);
+        cachedThemeColor = context.getColor(R.color.app_accent);
+        cachedIncomeRed = ContextCompat.getColor(context, R.color.income_red);
         cachedExpenseGreen = context.getColor(R.color.expense_green);
         cachedLunarTextColor = context.getColor(R.color.calendar_lunar_text);
+        cachedNetPositive = ContextCompat.getColor(context, R.color.calendar_net_positive);
+        cachedNetNegative = ContextCompat.getColor(context, R.color.calendar_net_negative);
         themeColorsCached = true;
     }
 
@@ -127,7 +132,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         TypedValue typedValue = new TypedValue();
         if (context.getTheme().resolveAttribute(attr, typedValue, true)) {
             if (typedValue.resourceId != 0) {
-                return context.getColor(typedValue.resourceId);
+                return ContextCompat.getColor(context, typedValue.resourceId);
             }
             return typedValue.data;
         }
@@ -167,38 +172,20 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
                     switch (filterMode) {
                         case 0: // 结余
                             if (t.type == 1) {
-                                if (!"加班".equals(t.category)) {
-                                    dailySum += t.amount;
-                                    dailyIncome += t.amount;
-                                }
+                                dailySum += t.amount;
+                                dailyIncome += t.amount;
                             } else if (t.type == 0) {
                                 dailySum -= t.amount;
                             }
                             break;
                         case 1: // 收入
-                            if (t.type == 1 && !"加班".equals(t.category)) {
+                            if (t.type == 1) {
                                 dailySum += t.amount;
                                 dailyIncome += t.amount;
                             }
                             break;
                         case 2: // 支出
                             if (t.type == 0) dailySum += t.amount;
-                            break;
-                        case 3: // 加班工资
-                            if (t.type == 1 && "加班".equals(t.category)) dailySum += t.amount;
-                            break;
-                        case 4: // 加班工时
-                            if (t.type == 1 && "加班".equals(t.category)) {
-                                if (t.note != null) {
-                                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("时长:\\s*([0-9.]+)\\s*小时").matcher(t.note);
-                                    if (m.find()) {
-                                        try {
-                                            dailyHours += Double.parseDouble(m.group(1));
-                                        } catch (NumberFormatException ignored) {}
-                                    }
-                                }
-                                dailySum += t.amount;
-                            }
                             break;
                     }
                 }
@@ -210,12 +197,9 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
             cache.dailyExpense = dailyExpense;
 
             // 判断是否有收支数据
-            if (dailySum != 0 || dailyHours > 0 || (filterMode == 0 && (dailyIncome > 0 || dailyExpense > 0))) {
+            if (dailySum != 0 || (filterMode == 0 && (dailyIncome > 0 || dailyExpense > 0))) {
                 cache.hasData = true;
-                if (filterMode == 4) {
-                    cache.netText = String.format("%.1fh", dailyHours);
-                    cache.netColor = Color.parseColor("#2196F3");
-                } else if (filterMode == 0) {
+                if (filterMode == 0) {
                     // 【修改】结余模式：分别显示收入（红色）和支出（绿色）
                     // 两者都有时显示差额（收入-支出）
                     boolean hasIncome = dailyIncome > 0;
@@ -239,7 +223,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
                     if (filterMode == 2) {
                         cache.netColor = cachedExpenseGreen;
                     } else if (filterMode == 3) {
-                        cache.netColor = Color.parseColor("#FF9800");
+                        cache.netColor = cachedNetNegative;
                     } else {
                         cache.netColor = dailySum > 0 ? cachedIncomeRed : cachedExpenseGreen;
                     }
@@ -339,7 +323,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         if (isSelected) {
             holder.itemView.setBackgroundResource(R.drawable.bg_calendar_today);
             Drawable bg = holder.itemView.getBackground();
-            if (bg != null) bg.setTint(Color.parseColor("#2196F3"));
+            if (bg != null) bg.setTint(ContextCompat.getColor(context, R.color.calendar_net_positive));
 
             holder.tvDay.setTextColor(Color.WHITE);
             holder.tvDay.setAlpha(1.0f);
@@ -348,7 +332,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         } else if (isToday) {
             holder.itemView.setBackgroundResource(R.drawable.bg_selected_date);
             Drawable bg = holder.itemView.getBackground();
-            if (bg != null) bg.setTint(Color.parseColor("#2196F3"));
+            if (bg != null) bg.setTint(ContextCompat.getColor(context, R.color.calendar_net_positive));
 
             holder.tvDay.setTextColor(defaultDayColor);
             holder.tvDay.setAlpha(1.0f);

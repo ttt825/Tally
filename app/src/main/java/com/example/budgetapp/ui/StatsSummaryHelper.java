@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class StatsSummaryHelper {
 
@@ -36,7 +34,6 @@ public class StatsSummaryHelper {
                                             List<Transaction> allTransactions,
                                             TextView tvSummaryTitle, TextView tvSummaryContent,
                                             View layoutSummary,
-                                            View dividerOvertime, TextView tvOvertimeContent,
                                             View dividerIncome, TextView tvIncomeSummaryTitle,
                                             TextView tvIncomeSummaryContent) {
         String scopeStr;
@@ -58,19 +55,15 @@ public class StatsSummaryHelper {
             endOfPeriod = selectedDate.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         }
 
-        boolean hasOvertime = checkHasOvertime(startOfPeriod, endOfPeriod, allTransactions);
         boolean hasExpense = !pieMap.isEmpty() && totalAmount > 0;
         boolean hasIncome = !incomePieMap.isEmpty() && totalIncomeAmount > 0;
 
-        if (!hasExpense && !hasOvertime && !hasIncome) {
+        if (!hasExpense && !hasIncome) {
             if (layoutSummary != null) layoutSummary.setVisibility(View.GONE);
             return;
         }
 
         if (layoutSummary != null) layoutSummary.setVisibility(View.VISIBLE);
-
-        if (dividerOvertime != null) dividerOvertime.setVisibility(View.GONE);
-        if (tvOvertimeContent != null) tvOvertimeContent.setVisibility(View.GONE);
 
         if (!hasExpense) {
             tvSummaryContent.setText("暂无消费记录");
@@ -81,9 +74,9 @@ public class StatsSummaryHelper {
             SpannableStringBuilder ssb = new SpannableStringBuilder();
             String[] prefixes = {"最多是", "其次是", "然后是"};
 
-            int yellowColor = ContextCompat.getColor(context, R.color.app_yellow);
-            int greenColor = ContextCompat.getColor(context, R.color.expense_green);
-            int redColor = ContextCompat.getColor(context, R.color.income_red);
+            int yellowColor = ContextCompat.getColor(context, R.color.app_accent);
+            int expenseGreenColor = ContextCompat.getColor(context, R.color.expense_green);
+            int incomeRedColor = ContextCompat.getColor(context, R.color.income_red);
 
             int count = Math.min(sortedEntries.size(), 3);
             for (int i = 0; i < count; i++) {
@@ -105,7 +98,7 @@ public class StatsSummaryHelper {
                 String percentStr = String.format(Locale.CHINA, "%.1f%%", percent);
                 int startPer = ssb.length();
                 ssb.append(percentStr);
-                ssb.setSpan(new ForegroundColorSpan(greenColor), startPer, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new ForegroundColorSpan(expenseGreenColor), startPer, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                 ssb.append(", ");
                 ssb.append("消费");
@@ -113,7 +106,7 @@ public class StatsSummaryHelper {
                 String amountStr = String.format(Locale.CHINA, "%.2f", e.getValue());
                 int startAmt = ssb.length();
                 ssb.append(amountStr);
-                ssb.setSpan(new ForegroundColorSpan(redColor), startAmt, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new ForegroundColorSpan(expenseGreenColor), startAmt, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                 ssb.append("元");
             }
@@ -135,7 +128,7 @@ public class StatsSummaryHelper {
             String totalStr = String.format(Locale.CHINA, "%.2f", totalAmount);
             int startTotal = ssb.length();
             ssb.append(totalStr);
-            ssb.setSpan(new ForegroundColorSpan(redColor), startTotal, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new ForegroundColorSpan(expenseGreenColor), startTotal, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             ssb.append("元, ");
             ssb.append("日均消费");
@@ -143,7 +136,7 @@ public class StatsSummaryHelper {
             String avgStr = String.format(Locale.CHINA, "%.2f", dailyAvg);
             int startAvg = ssb.length();
             ssb.append(avgStr);
-            ssb.setSpan(new ForegroundColorSpan(redColor), startAvg, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new ForegroundColorSpan(expenseGreenColor), startAvg, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             ssb.append("元");
 
             tvSummaryContent.setText(ssb);
@@ -164,9 +157,9 @@ public class StatsSummaryHelper {
                 SpannableStringBuilder incomeSsb = new SpannableStringBuilder();
                 String[] prefixes = {"最多是", "其次是", "然后是"};
 
-                int yellowColor = ContextCompat.getColor(context, R.color.app_yellow);
-                int greenColor = ContextCompat.getColor(context, R.color.expense_green);
-                int redColor = ContextCompat.getColor(context, R.color.income_red);
+                int yellowColor = ContextCompat.getColor(context, R.color.app_accent);
+                int expenseGreenColor = ContextCompat.getColor(context, R.color.expense_green);
+                int incomeRedColor = ContextCompat.getColor(context, R.color.income_red);
 
                 int count = Math.min(sortedIncome.size(), 3);
                 for (int i = 0; i < count; i++) {
@@ -186,14 +179,14 @@ public class StatsSummaryHelper {
                     String percentStr = String.format(Locale.CHINA, "%.1f%%", percent);
                     int startPer = incomeSsb.length();
                     incomeSsb.append(percentStr);
-                    incomeSsb.setSpan(new ForegroundColorSpan(greenColor), startPer, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    incomeSsb.setSpan(new ForegroundColorSpan(incomeRedColor), startPer, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                     incomeSsb.append(", 收入");
 
                     String amountStr = String.format(Locale.CHINA, "%.2f", e.getValue());
                     int startAmt = incomeSsb.length();
                     incomeSsb.append(amountStr);
-                    incomeSsb.setSpan(new ForegroundColorSpan(redColor), startAmt, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    incomeSsb.setSpan(new ForegroundColorSpan(incomeRedColor), startAmt, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                     incomeSsb.append("元");
                 }
@@ -202,7 +195,7 @@ public class StatsSummaryHelper {
                 String totalIncStr = String.format(Locale.CHINA, "%.2f", totalIncomeAmount);
                 int startTotal = incomeSsb.length();
                 incomeSsb.append(totalIncStr);
-                incomeSsb.setSpan(new ForegroundColorSpan(redColor), startTotal, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                incomeSsb.setSpan(new ForegroundColorSpan(incomeRedColor), startTotal, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 incomeSsb.append("元");
 
                 if (currentMode == 0 || currentMode == 1) {
@@ -214,7 +207,7 @@ public class StatsSummaryHelper {
                     int startBalance = incomeSsb.length();
                     incomeSsb.append(balanceStr);
 
-                    int balanceColor = balance >= 0 ? redColor : greenColor;
+                    int balanceColor = balance >= 0 ? incomeRedColor : expenseGreenColor;
                     incomeSsb.setSpan(new ForegroundColorSpan(balanceColor), startBalance, incomeSsb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                     incomeSsb.append("元");
@@ -227,107 +220,5 @@ public class StatsSummaryHelper {
             if (tvIncomeSummaryTitle != null) tvIncomeSummaryTitle.setVisibility(View.GONE);
             if (tvIncomeSummaryContent != null) tvIncomeSummaryContent.setVisibility(View.GONE);
         }
-
-        if (hasOvertime) {
-            calculateAndShowOvertime(context, startOfPeriod, endOfPeriod, scopeStr,
-                    allTransactions, currentMode,
-                    dividerOvertime, tvOvertimeContent);
-        }
-    }
-
-    private static boolean checkHasOvertime(LocalDate start, LocalDate end, List<Transaction> allTransactions) {
-        long startMillis = start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        long endMillis = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        for (Transaction t : allTransactions) {
-            if (t.date >= startMillis && t.date < endMillis && t.type == 1 && "加班".equals(t.category)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void calculateAndShowOvertime(Context context,
-                                                  LocalDate start, LocalDate end, String scopeStr,
-                                                  List<Transaction> allTransactions, int currentMode,
-                                                  View dividerOvertime, TextView tvOvertimeContent) {
-        long startMillis = start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        long endMillis = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
-        double totalOvertimeHours = 0;
-        double weekdayOvertimeHours = 0;
-        double holidayOvertimeHours = 0;
-        double totalOvertimeIncome = 0;
-
-        Pattern pattern = Pattern.compile("时长:\\s*([0-9.]+)\\s*小时");
-
-        for (Transaction t : allTransactions) {
-            if (t.date >= startMillis && t.date < endMillis && t.type == 1 && "加班".equals(t.category)) {
-                totalOvertimeIncome += t.amount;
-
-                if (t.note != null) {
-                    Matcher matcher = pattern.matcher(t.note);
-                    if (matcher.find()) {
-                        try {
-                            double hours = Double.parseDouble(matcher.group(1));
-                            totalOvertimeHours += hours;
-
-                            LocalDate transDate = Instant.ofEpochMilli(t.date).atZone(ZoneId.systemDefault()).toLocalDate();
-                            DayOfWeek dayOfWeek = transDate.getDayOfWeek();
-                            if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
-                                holidayOvertimeHours += hours;
-                            } else {
-                                weekdayOvertimeHours += hours;
-                            }
-                        } catch (NumberFormatException e) {
-                        }
-                    }
-                }
-            }
-        }
-
-        SpannableStringBuilder ssb = new SpannableStringBuilder();
-        int redColor = ContextCompat.getColor(context, R.color.income_red);
-        int primaryColor = ContextCompat.getColor(context, R.color.text_primary);
-
-        String title = scopeStr + "加班";
-        int startTitle = ssb.length();
-        ssb.append(title);
-        ssb.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), startTitle, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ssb.setSpan(new AbsoluteSizeSpan(16, true), startTitle, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ssb.setSpan(new ForegroundColorSpan(primaryColor), startTitle, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        ssb.append("\n");
-
-        ssb.append("共计");
-        String totalHoursStr = String.format(Locale.CHINA, "%.1f", totalOvertimeHours);
-        int startTotalH = ssb.length();
-        ssb.append(totalHoursStr);
-        ssb.setSpan(new ForegroundColorSpan(redColor), startTotalH, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        ssb.append("小时, 共计获得");
-        String amountStr = String.format(Locale.CHINA, "%.2f", totalOvertimeIncome);
-        int startAmount = ssb.length();
-        ssb.append(amountStr);
-        ssb.setSpan(new ForegroundColorSpan(redColor), startAmount, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        ssb.append("元\n");
-
-        ssb.append("工作日加班");
-        String weekdayHoursStr = String.format(Locale.CHINA, "%.1f", weekdayOvertimeHours);
-        int startWeekday = ssb.length();
-        ssb.append(weekdayHoursStr);
-        ssb.setSpan(new ForegroundColorSpan(redColor), startWeekday, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        ssb.append("小时, 节假日加班");
-        String holidayHoursStr = String.format(Locale.CHINA, "%.1f", holidayOvertimeHours);
-        int startHoliday = ssb.length();
-        ssb.append(holidayHoursStr);
-        ssb.setSpan(new ForegroundColorSpan(redColor), startHoliday, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ssb.append("小时");
-
-        tvOvertimeContent.setText(ssb);
-
-        if (dividerOvertime != null) dividerOvertime.setVisibility(View.VISIBLE);
-        if (tvOvertimeContent != null) tvOvertimeContent.setVisibility(View.VISIBLE);
     }
 }

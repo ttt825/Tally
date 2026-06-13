@@ -102,27 +102,4 @@ public class SecureStorage {
 
     // ================= 兼容旧接口 =================
 
-    /**
-     * @deprecated 不再支持明文获取密码
-     */
-    @Deprecated
-    public String getPassword() {
-        return null;
-    }
-
-    /**
-     * @deprecated Keystore 加密已移除
-     */
-    @Deprecated
-    public String encrypt(String plaintext) {
-        return null;
-    }
-
-    /**
-     * @deprecated Keystore 解密已移除
-     */
-    @Deprecated
-    public String decrypt(String ciphertext) {
-        return null;
-    }
 }

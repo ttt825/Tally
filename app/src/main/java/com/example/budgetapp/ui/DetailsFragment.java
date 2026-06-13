@@ -48,12 +48,12 @@ import com.example.budgetapp.R;
 import com.example.budgetapp.BackupManager;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
+import com.example.budgetapp.utils.SwipeHelper;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
-import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -80,6 +80,7 @@ public class DetailsFragment extends Fragment {
     private DetailsAdapter adapter;
     private List<Transaction> allTransactions = new ArrayList<>();
     private TextView tvDateRange;
+    private View layoutDetailsEmpty;
 
     // 🌟 修改点：使用常规的 List 替代 PagingData
     private androidx.lifecycle.LiveData<List<Transaction>> currentFilteredDataLive;
@@ -91,10 +92,24 @@ public class DetailsFragment extends Fragment {
     private static final String PREFS_NAME = "details_prefs";
     private static final String KEY_TIME_MODE = "time_mode";
 
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-    private final SimpleDateFormat displayDateFormat = new SimpleDateFormat("MM月dd日 EEEE", Locale.getDefault());
+    /**
+     * 核心跟手引擎：接管列表的水平方向滑动
+     */
+    private void setupFollowHandSwipe(RecyclerView recyclerView) {
+        SwipeHelper.setup(recyclerView, direction -> {
+            finishSwipeAnimation(recyclerView, direction > 0 ? -recyclerView.getWidth() : recyclerView.getWidth(), direction);
+        });
+    }
 
-    private int touchSlop;
+    private void finishSwipeAnimation(RecyclerView rv, float targetTranslationX, int offset) {
+        SwipeHelper.finishSwipeAnimation(rv, targetTranslationX, offset, direction -> {
+            if (currentMode == 0) selectedDate = selectedDate.plusYears(offset);
+            else if (currentMode == 1) selectedDate = selectedDate.plusMonths(offset);
+            else selectedDate = selectedDate.plusWeeks(offset);
+            updateDateRangeDisplay();
+            processAndDisplayData(0);
+        });
+    }
 
     // CSV导出相关
     private final ActivityResultLauncher<String> exportCsvLauncher = registerForActivityResult(
@@ -118,96 +133,6 @@ public class DetailsFragment extends Fragment {
                 }
             }
     );
-
-    private void setupFollowHandSwipe(RecyclerView recyclerView) {
-        touchSlop = android.view.ViewConfiguration.get(requireContext()).getScaledTouchSlop();
-
-        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
-            private float initialX = 0f;
-            private float initialY = 0f;
-            private boolean isHorizontalSwipe = false;
-
-            @Override
-            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                switch (e.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        initialX = e.getRawX();
-                        initialY = e.getRawY();
-                        isHorizontalSwipe = false;
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = e.getRawX() - initialX;
-                        float dy = e.getRawY() - initialY;
-                        if (!isHorizontalSwipe && Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy)) {
-                            isHorizontalSwipe = true;
-                            if (rv.getParent() != null) {
-                                rv.getParent().requestDisallowInterceptTouchEvent(true);
-                            }
-                            return true;
-                        }
-                        break;
-                }
-                return false;
-            }
-
-            @Override
-            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                if (!isHorizontalSwipe) return;
-
-                float dx = e.getRawX() - initialX;
-                float screenWidth = rv.getWidth();
-                if (screenWidth == 0) screenWidth = 1080;
-
-                switch (e.getAction()) {
-                    case MotionEvent.ACTION_MOVE:
-                        rv.setTranslationX(dx * 0.6f);
-                        rv.setAlpha(1f - (Math.abs(dx) / screenWidth) * 0.5f);
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        if (dx > screenWidth * 0.2f) {
-                            finishSwipeAnimation(rv, screenWidth, -1);
-                        } else if (dx < -screenWidth * 0.2f) {
-                            finishSwipeAnimation(rv, -screenWidth, 1);
-                        } else {
-                            rv.animate().translationX(0f).alpha(1f).setDuration(250)
-                                    .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
-                        }
-                        isHorizontalSwipe = false;
-                        break;
-                }
-            }
-
-            @Override
-            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
-        });
-    }
-
-    private void finishSwipeAnimation(RecyclerView rv, float targetTranslationX, int offset) {
-        rv.animate()
-                .translationX(targetTranslationX)
-                .alpha(0f)
-                .setDuration(150)
-                .withEndAction(() -> {
-                    if (currentMode == 0) selectedDate = selectedDate.plusYears(offset);
-                    else if (currentMode == 1) selectedDate = selectedDate.plusMonths(offset);
-                    else selectedDate = selectedDate.plusWeeks(offset);
-                    updateDateRangeDisplay();
-
-                    rv.setTranslationX(-targetTranslationX * 0.5f);
-
-                    processAndDisplayData(0);
-
-                    rv.animate()
-                            .translationX(0f)
-                            .alpha(1f)
-                            .setDuration(300)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                            .start();
-                })
-                .start();
-    }
 
     private static class FilterCriteria {
         Float minAmount, maxAmount;
@@ -288,7 +213,17 @@ public class DetailsFragment extends Fragment {
             else if (checkedId == R.id.rb_week) currentMode = 2;
             detailsPrefs.edit().putInt(KEY_TIME_MODE, currentMode).apply();
             updateDateRangeDisplay();
-            processAndDisplayData(0);
+
+            // 切换时间范围时，列表淡出再淡入
+            if (!AnimUtils.shouldReduceAnimations(getContext()) && recyclerView != null) {
+                recyclerView.animate().alpha(0f).setDuration(120).withEndAction(() -> {
+                    processAndDisplayData(0);
+                    recyclerView.setAlpha(0f);
+                    recyclerView.animate().alpha(1f).setDuration(200).start();
+                }).start();
+            } else {
+                processAndDisplayData(0);
+            }
         });
 
         btnPrev.setOnClickListener(v -> changeDate(-1, -1));
@@ -297,8 +232,11 @@ public class DetailsFragment extends Fragment {
         btnFilter.setOnClickListener(v -> showFilterDialog());
 
         recyclerView = view.findViewById(R.id.recycler_details);
+        layoutDetailsEmpty = view.findViewById(R.id.layout_details_empty);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setItemAnimator(null);
+        FadeInItemAnimator itemAnimator = new FadeInItemAnimator();
+        itemAnimator.setReduceMotion(AnimUtils.shouldReduceAnimations(getContext()));
+        recyclerView.setItemAnimator(itemAnimator);
 
         adapter = new DetailsAdapter();
         adapter.setOnTransactionClickListener(t -> {
@@ -348,78 +286,11 @@ public class DetailsFragment extends Fragment {
 
     private void showCustomDatePicker() {
         if (getContext() == null) return;
-
-        final BottomSheetDialog dialog = new BottomSheetDialog(getContext());
-        dialog.setContentView(R.layout.dialog_bottom_date_picker);
-
-        dialog.setOnShowListener(dialogInterface -> {
-            BottomSheetDialog bottomSheetDialog = (BottomSheetDialog) dialogInterface;
-            View bottomSheet = bottomSheetDialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (bottomSheet != null) {
-                bottomSheet.setBackgroundResource(android.R.color.transparent);
-            }
-        });
-
-        NumberPicker npYear = dialog.findViewById(R.id.np_year);
-        NumberPicker npMonth = dialog.findViewById(R.id.np_month);
-        NumberPicker npDay = dialog.findViewById(R.id.np_day);
-        TextView tvPreview = dialog.findViewById(R.id.tv_date_preview);
-        Button btnCancel = dialog.findViewById(R.id.btn_cancel);
-        Button btnConfirm = dialog.findViewById(R.id.btn_confirm);
-
-        if (npYear == null || npMonth == null || npDay == null || btnConfirm == null || btnCancel == null) return;
-
-        int curYear = selectedDate.getYear();
-        int curMonth = selectedDate.getMonthValue();
-        int curDay = selectedDate.getDayOfMonth();
-
-        npYear.setMinValue(2000);
-        npYear.setMaxValue(2050);
-        npYear.setValue(curYear);
-
-        npMonth.setMinValue(1);
-        npMonth.setMaxValue(12);
-        npMonth.setValue(curMonth);
-
-        npDay.setMinValue(1);
-        int maxDays = java.time.YearMonth.of(curYear, curMonth).lengthOfMonth();
-        npDay.setMaxValue(maxDays);
-        npDay.setValue(curDay);
-
-        NumberPicker.OnValueChangeListener dateChangeListener = (picker, oldVal, newVal) -> {
-            picker.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
-            int y = npYear.getValue();
-            int m = npMonth.getValue();
-            int newMaxDays = java.time.YearMonth.of(y, m).lengthOfMonth();
-            if (npDay.getMaxValue() != newMaxDays) {
-                npDay.setMaxValue(newMaxDays);
-                if (npDay.getValue() > newMaxDays) npDay.setValue(newMaxDays);
-            }
-            updatePreviewText(tvPreview, y, m, npDay.getValue());
-        };
-
-        npYear.setOnValueChangedListener(dateChangeListener);
-        npMonth.setOnValueChangedListener(dateChangeListener);
-        npDay.setOnValueChangedListener(dateChangeListener);
-
-        updatePreviewText(tvPreview, curYear, curMonth, curDay);
-
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-
-        btnConfirm.setOnClickListener(v -> {
-            v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
-            int year = npYear.getValue();
-            int month = npMonth.getValue();
-            int day = npDay.getValue();
-
+        DatePickerHelper.showDatePicker(getContext(), selectedDate, (year, month, day) -> {
             selectedDate = LocalDate.of(year, month, day);
             updateDateRangeDisplay();
             processAndDisplayData(0);
-
-            dialog.dismiss();
         });
-
-        dialog.show();
     }
 
     private void exportCurrentData() {
@@ -444,17 +315,6 @@ public class DetailsFragment extends Fragment {
         fileName += ".csv";
 
         exportCsvLauncher.launch(fileName);
-    }
-
-    private void updatePreviewText(TextView tv, int year, int month, int day) {
-        if (tv == null) return;
-        try {
-            LocalDate date = LocalDate.of(year, month, day);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINA);
-            tv.setText(date.format(formatter));
-        } catch (Exception e) {
-            tv.setText(year + "年" + month + "月" + day + "日");
-        }
     }
 
     private void processAndDisplayData(int direction) {
@@ -483,6 +343,20 @@ public class DetailsFragment extends Fragment {
             if (list != null) {
                 // 🌟 修改点：将分页流替换为常规的 List 更新
                 adapter.setTransactions(list);
+
+                // 显示/隐藏空状态引导
+                boolean isEmpty = list.isEmpty();
+                if (layoutDetailsEmpty != null) {
+                    if (isEmpty) {
+                        layoutDetailsEmpty.setVisibility(View.VISIBLE);
+                        AnimUtils.fadeIn(layoutDetailsEmpty, 250);
+                    } else {
+                        layoutDetailsEmpty.setVisibility(View.GONE);
+                    }
+                }
+                if (recyclerView != null) {
+                    recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+                }
             }
 
             if (getContext() != null && recyclerView != null && direction != 0) {
@@ -563,7 +437,10 @@ public class DetailsFragment extends Fragment {
         private void showFilterDialog() {
         View v = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_details_filter, null);
         AlertDialog dialog = new AlertDialog.Builder(getContext()).setView(v).create();
-        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
+        }
 
         EditText etMin = v.findViewById(R.id.et_min_amount);
         EditText etMax = v.findViewById(R.id.et_max_amount);

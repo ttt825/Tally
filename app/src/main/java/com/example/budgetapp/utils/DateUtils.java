@@ -17,6 +17,13 @@ public class DateUtils {
     public static final String FORMAT_DATE_SHORT = "yyyy-MM-dd";
     public static final String FORMAT_MONTH = "yyyy年MM月";
     public static final String FORMAT_TIME = "HH:mm";
+    public static final String FORMAT_DISPLAY_DATE = "MM月dd日 EEEE";
+    public static final String FORMAT_COMPARE_DATE = "yyyyMMdd";
+    public static final String FORMAT_DIALOG_DATE = "yyyy年MM月dd日 HH:mm";
+    public static final String FORMAT_NOTE_TIME = "MM-dd HH:mm";
+    public static final String FORMAT_PHOTO_TIMESTAMP = "yyyyMMdd_HHmmss";
+    public static final String FORMAT_BACKUP_TIMESTAMP = "yyyy-MM-dd_HH-mm-ss";
+    public static final String FORMAT_EXPORT_TIMESTAMP = "yyyy-MM-dd_HH-mm";
 
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
             ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_DATE, Locale.CHINA));
@@ -28,6 +35,20 @@ public class DateUtils {
             ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_MONTH, Locale.CHINA));
     private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT =
             ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_TIME, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> DISPLAY_DATE_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_DISPLAY_DATE, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> COMPARE_DATE_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_COMPARE_DATE, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> DIALOG_DATE_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_DIALOG_DATE, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> NOTE_TIME_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_NOTE_TIME, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> PHOTO_TIMESTAMP_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_PHOTO_TIMESTAMP, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> BACKUP_TIMESTAMP_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_BACKUP_TIMESTAMP, Locale.CHINA));
+    private static final ThreadLocal<SimpleDateFormat> EXPORT_TIMESTAMP_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat(FORMAT_EXPORT_TIMESTAMP, Locale.CHINA));
 
     // ================= 格式化方法 =================
 
@@ -67,11 +88,74 @@ public class DateUtils {
     }
 
     /**
+     * 格式化显示日期（MM月dd日 星期X）
+     */
+    public static String formatDisplayDate(long timestamp) {
+        return DISPLAY_DATE_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化比较日期（yyyyMMdd）
+     */
+    public static String formatCompareDate(long timestamp) {
+        return COMPARE_DATE_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化对话框日期（yyyy年MM月dd日 HH:mm）
+     */
+    public static String formatDialogDate(long timestamp) {
+        return DIALOG_DATE_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化备注时间（MM-dd HH:mm）
+     */
+    public static String formatNoteTime(long timestamp) {
+        return NOTE_TIME_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化照片时间戳（yyyyMMdd_HHmmss）
+     */
+    public static String formatPhotoTimestamp(long timestamp) {
+        return PHOTO_TIMESTAMP_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化备份时间戳（yyyy-MM-dd_HH-mm-ss）
+     */
+    public static String formatBackupTimestamp(long timestamp) {
+        return BACKUP_TIMESTAMP_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
+     * 格式化导出时间戳（yyyy-MM-dd_HH-mm）
+     */
+    public static String formatExportTimestamp(long timestamp) {
+        return EXPORT_TIMESTAMP_FORMAT.get().format(new Date(timestamp));
+    }
+
+    /**
      * 格式化日期（自定义格式）
      */
     public static String format(long timestamp, String pattern) {
         SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.CHINA);
         return sdf.format(new Date(timestamp));
+    }
+
+    /**
+     * 解析日期字符串（yyyy年MM月dd日）
+     */
+    public static long parseDate(String dateStr) throws Exception {
+        return DATE_FORMAT.get().parse(dateStr).getTime();
+    }
+
+    /**
+     * 解析日期时间字符串（yyyy-MM-dd HH:mm:ss）
+     */
+    public static long parseDateTime(String dateTimeStr) throws Exception {
+        return DATE_TIME_FORMAT.get().parse(dateTimeStr).getTime();
     }
 
     // ================= 时间计算 =================

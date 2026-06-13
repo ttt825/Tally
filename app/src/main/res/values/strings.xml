@@ -4,12 +4,89 @@
     <string name="widget_name_today">今日财务概览</string>
     <string name="widget_name_month">本月财务汇总</string>
     <string name="widget_name_combined">财务全景仪表盘</string>
-    <string name="widget_name_overtime">加班薪资统计</string>
-    
 
     <!-- 交易类型 -->
     <string name="type_expense">支出</string>
     <string name="type_income">收入</string>
     <string name="type_liability">借入</string>
     <string name="type_lend">借出</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_category">分类预设设置</string>
+    <string name="settings_backup">数据备份与恢复</string>
+    <string name="settings_theme">主题样式设置</string>
+    <string name="settings_currency">货币单位设置</string>
+    <string name="settings_amount_display">金额显示设置</string>
+    <string name="settings_photo_backup">照片备份设置</string>
+    <string name="settings_auto_backup">自动备份设置</string>
+    <string name="settings_security">安全密码设置</string>
+    <string name="settings_tab_bg">Tab背景设置</string>
+    <string name="settings_about">关于</string>
+
+    <!-- Widget -->
+    <string name="widget_today_balance">今日结余</string>
+    <string name="widget_today_income">今日收入</string>
+    <string name="widget_today_expense">今日支出</string>
+    <string name="widget_month_balance">本月结余</string>
+    <string name="widget_month_income">本月收入</string>
+    <string name="widget_month_expense">本月支出</string>
+
+    <string name="widget_today">今日</string>
+    <string name="widget_month">本月</string>
+    <string name="label_balance">结余</string>
+    <string name="label_income">收入</string>
+    <string name="label_expense">支出</string>
+
+    <!-- 捐赠 -->
+    <string name="donate_title">捐赠支持</string>
+    <string name="donate_subtitle">请作者喝杯咖啡</string>
+    <string name="donate_wechat">微信支付</string>
+    <string name="donate_alipay">支付宝</string>
+    <string name="donate_save_qr">点击二维码保存到相册</string>
+    <string name="click_to_copy">点击后复制到剪切板</string>
+
+    <!-- 用户须知 -->
+    <string name="user_notice_title">用户须知</string>
+    <string name="notice_project_intro">项目简介</string>
+    <string name="notice_defaults">功能默认情况</string>
+    <string name="notice_permissions">项目权限清单</string>
+    <string name="notice_backup_info">数据备份说明</string>
+    <string name="notice_privacy">隐私安全承诺</string>
+    <string name="notice_contact">联系我</string>
+
+    <!-- 对话框 -->
+    <string name="dialog_add_record">记一笔</string>
+    <string name="dialog_split">拆单</string>
+    <string name="btn_reset">重 置</string>
+    <string name="btn_confirm">确 认</string>
+    <string name="dialog_advanced_filter">高级筛选</string>
+    <string name="label_transaction_type">账单类型</string>
+    <string name="label_amount_range">金额区间</string>
+    <string name="label_category_keyword">分类关键字</string>
+    <string name="label_remark_contains">备注包含</string>
+    <string name="btn_delete">删除</string>
+    <string name="btn_save_changes">保存修改</string>
+
+    <!-- 其他 -->
+    <string name="no_records_today">当日暂无记账记录</string>
+    <string name="currency_cny">人民币</string>
+
+    <!-- 空状态引导 -->
+    <string name="empty_record_title">还没有记录</string>
+    <string name="empty_record_hint">点击右下角按钮开始记账</string>
+    <string name="empty_stats_title">暂无统计数据</string>
+    <string name="empty_stats_hint">记账后在此展示收支趋势和分类架构</string>
+    <string name="empty_details_title">暂无明细</string>
+    <string name="empty_details_hint">记账后可在此查看和筛选所有账单</string>
+    <string name="fab_tooltip_hint">点此记一笔，长按进入设置</string>
+
+    <!-- 星期 -->
+    <string name="weekday_mon">一</string>
+    <string name="weekday_tue">二</string>
+    <string name="weekday_wed">三</string>
+    <string name="weekday_thu">四</string>
+    <string name="weekday_fri">五</string>
+    <string name="weekday_sat">六</string>
+    <string name="weekday_sun">日</string>
 </resources>

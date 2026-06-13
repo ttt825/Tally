@@ -23,8 +23,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="本月结余"
-                android:textSize="11sp"
+                android:text="@string/widget_month_balance"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
             <TextView
                 android:id="@+id/tv_widget_balance"
@@ -46,8 +46,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="本月收入"
-                android:textSize="11sp"
+                android:text="@string/widget_month_income"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
             <TextView
                 android:id="@+id/tv_widget_income"
@@ -69,8 +69,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="本月支出"
-                android:textSize="11sp"
+                android:text="@string/widget_month_expense"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
             <TextView
                 android:id="@+id/tv_widget_expense"

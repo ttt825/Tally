@@ -16,7 +16,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="高级筛选"
+            android:text="@string/dialog_advanced_filter"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
@@ -26,7 +26,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="账单类型"
+            android:text="@string/label_transaction_type"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
@@ -45,7 +45,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="金额区间"
+            android:text="@string/label_amount_range"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
@@ -68,7 +68,7 @@
                 android:textSize="14sp"/>
 
             <View android:layout_width="12dp" android:layout_height="1dp"
-                android:background="@color/divider_color"
+                android:background="@color/divider"
                 android:layout_gravity="center"
                 android:layout_marginHorizontal="8dp"/>
 
@@ -87,7 +87,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="分类关键字"
+            android:text="@string/label_category_keyword"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
@@ -105,7 +105,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="备注包含"
+            android:text="@string/label_remark_contains"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="8dp"/>
@@ -130,7 +130,7 @@
                 android:layout_width="0dp"
                 android:layout_height="56dp"
                 android:layout_weight="1"
-                android:text="重 置"
+                android:text="@string/btn_reset"
                 android:textColor="@color/text_primary"
                 android:backgroundTint="@color/input_bg"
                 app:cornerRadius="16dp"
@@ -142,9 +142,9 @@
                 android:layout_width="0dp"
                 android:layout_height="56dp"
                 android:layout_weight="1"
-                android:text="确 认"
+                android:text="@string/btn_confirm"
                 android:textColor="@color/text_white"
-                android:backgroundTint="@color/app_yellow"
+                android:backgroundTint="@color/app_accent"
                 app:cornerRadius="16dp"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
         </LinearLayout>

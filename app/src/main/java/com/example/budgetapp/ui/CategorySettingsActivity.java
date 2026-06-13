@@ -21,7 +21,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.AppDatabase;
-import com.example.budgetapp.util.CategoryManager;
+import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -102,7 +102,7 @@ public class CategorySettingsActivity extends AppCompatActivity {
             });
         } else {
             // 如果走到这里，说明 XML 布局文件没有生效（多半是因为深色模式加载了旧布局）
-            android.util.Log.e("CategorySettings", "未找到 switch_detailed_category 控件，请检查布局文件！");
+            android.util.Log.e("Tally", "未找到 switch_detailed_category 控件，请检查布局文件！");
         }
     }
 
@@ -534,14 +534,14 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnUp.setTextSize(13);
             btnUp.setPadding(20, 10, 20, 10);
             if (index > 0) {
-                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_accent));
                 btnUp.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index - 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);
                     buildReorderList(container, sortableList, isExpense);
                 });
             } else {
-                btnUp.setTextColor(android.graphics.Color.parseColor("#CCCCCC"));
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.button_disabled_text));
             }
             itemLayout.addView(btnUp);
 
@@ -551,14 +551,14 @@ public class CategorySettingsActivity extends AppCompatActivity {
             btnDown.setTextSize(13);
             btnDown.setPadding(20, 10, 10, 10);
             if (index < sortableList.size() - 1) {
-                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_yellow));
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_accent));
                 btnDown.setOnClickListener(v -> {
                     java.util.Collections.swap(sortableList, index, index + 1);
                     updateOriginalListAndRefresh(isExpense, sortableList);
                     buildReorderList(container, sortableList, isExpense);
                 });
             } else {
-                btnDown.setTextColor(android.graphics.Color.parseColor("#CCCCCC"));
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.button_disabled_text));
             }
             itemLayout.addView(btnDown);
 

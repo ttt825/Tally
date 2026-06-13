@@ -63,15 +63,7 @@
                 android:layout_marginBottom="8dp"
                 android:buttonTint="?attr/colorPrimary"/>
 
-            <RadioButton
-                android:id="@+id/rb_display_overtime"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="加班"
-                android:textSize="16sp"
-                android:textColor="?android:attr/textColorPrimary"
-                android:padding="12dp"
-                android:buttonTint="?attr/colorPrimary"/>
+
         </RadioGroup>
 
         <Button

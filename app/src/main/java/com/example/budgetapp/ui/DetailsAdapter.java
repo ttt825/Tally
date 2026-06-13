@@ -16,8 +16,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import com.example.budgetapp.R;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
+import com.example.budgetapp.utils.DateUtils;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -49,9 +49,6 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
 
     private List<Transaction> transactions = new ArrayList<>();
     private OnTransactionClickListener listener;
-
-    private final SimpleDateFormat displayFormat = new SimpleDateFormat("MM月dd日 EEEE", Locale.CHINA);
-    private final SimpleDateFormat compareFormat = new SimpleDateFormat("yyyyMMdd", Locale.CHINA);
 
     public interface OnTransactionClickListener {
         void onTransactionClick(Transaction transaction);
@@ -141,9 +138,9 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         Transaction previous = position > 0 ? transactions.get(position - 1) : null;
         Transaction next = position < getItemCount() - 1 ? transactions.get(position + 1) : null;
 
-        String currentDateStr = compareFormat.format(new Date(current.date));
-        String previousDateStr = previous != null ? compareFormat.format(new Date(previous.date)) : "";
-        String nextDateStr = next != null ? compareFormat.format(new Date(next.date)) : "";
+        String currentDateStr = DateUtils.formatCompareDate(current.date);
+        String previousDateStr = previous != null ? DateUtils.formatCompareDate(previous.date) : "";
+        String nextDateStr = next != null ? DateUtils.formatCompareDate(next.date) : "";
 
         // 判断当前元素是否处于一天的顶部或底部
         boolean isTop = (previous == null || !currentDateStr.equals(previousDateStr));
@@ -151,7 +148,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
 
         if (isTop) {
             holder.tvHeader.setVisibility(View.VISIBLE);
-            holder.tvHeader.setText(displayFormat.format(new Date(current.date)));
+            holder.tvHeader.setText(DateUtils.formatDisplayDate(current.date));
         } else {
             holder.tvHeader.setVisibility(View.GONE);
         }
@@ -190,7 +187,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
             holder.tvAmount.setTextColor(context.getColor(R.color.lend_purple));
             holder.tvAmount.setText("-" + displayAmount);
         } else {
-            holder.tvAmount.setTextColor(context.getColor(R.color.expense_green));
+            holder.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.expense_green));
             holder.tvAmount.setText("-" + displayAmount);
         }
 
@@ -220,6 +217,8 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         }
 
         holder.cardView.setOnClickListener(v -> {
+            // 按压反馈
+            AnimUtils.pressFeedback(v, 0.97f, 60);
             if (listener != null) listener.onTransactionClick(current);
         });
     }

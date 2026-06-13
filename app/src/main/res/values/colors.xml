@@ -15,15 +15,16 @@
     <color name="bottom_bar_active_color">#1677FF</color>
     <color name="bottom_bar_inactive_color">#808080</color>
 
-    <!-- 【修复】重命名：app_yellow 实际是蓝紫色，改为语义正确的名称 -->
+    <!-- 主题强调色 -->
     <color name="app_accent">#D9327FFC</color>
-    <!-- 保留旧名称作为别名，避免外部引用断裂 -->
-    <color name="app_yellow">#D9327FFC</color>
     <color name="ripple_yellow">#FFF59D</color>
     <color name="app_background">#FFFFFF</color>
 
-    <color name="income_red">#FF5252</color>
-    <color name="expense_green">#4CAF50</color>
+    <!-- 收支颜色：支出=绿色，收入=红色 -->
+    <color name="color_gain">#4CAF50</color>
+    <color name="color_loss">#FF5252</color>
+    <color name="income_red">@color/color_loss</color>
+    <color name="expense_green">@color/color_gain</color>
     <color name="text_primary">#333333</color>
     <color name="text_secondary">#757575</color>
 
@@ -36,9 +37,7 @@
 
     <!-- 【修复】移除未使用的 fixed_yellow（与 colorPrimary 重复） -->
 
-    <!-- 【修复】统一 divider 和 divider_color 为一个定义 -->
     <color name="divider">#E0E0E0</color>
-    <color name="divider_color">#E0E0E0</color>
 
     <color name="tab_unselected">#757575</color>
 
@@ -53,8 +52,6 @@
     <color name="pie_fun">#A5D6A7</color>
     <color name="pie_edu">#90CAF9</color>
     <color name="pie_shop">#EF9A9A</color>
-
-    <color name="text_on_dark">#333333</color>
 
     <color name="input_bg">#F5F5F5</color>
 
@@ -83,4 +80,24 @@
     <color name="income_green">#4CAF50</color>
     <color name="liability_orange">#FF9800</color>
     <color name="lend_purple">#9C27B0</color>
+
+    <!-- 语义化颜色 token -->
+    <color name="divider_line">#1F888888</color>
+    <color name="text_hint">#AAAAAA</color>
+    <color name="text_medium">#666666</color>
+    <color name="text_tertiary">#999999</color>
+    <color name="fab_overlay">#33FFFFFF</color>
+    <color name="overlay_mask">#000000</color>
+    <color name="crop_bg">#FF000000</color>
+    <color name="crop_cancel_bg">#555555</color>
+    <color name="crop_confirm_bg">#FFC107</color>
+    <color name="timeline_dot">#BDBDBD</color>
+    <color name="chart_marker_line">#DDDDDD</color>
+    <color name="transparent">#00000000</color>
+    <color name="crop_button_text_light">#B3FFFFFF</color>
+    <color name="button_disabled_text">#CCCCCC</color>
+    <color name="scrim_dark">#80000000</color>
+    <color name="calendar_net_positive">#2196F3</color>
+    <color name="calendar_net_negative">#FF9800</color>
+    <color name="color_primary_variant">#6200EE</color>
 </resources>

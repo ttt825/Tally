@@ -60,13 +60,13 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         this.selectedCategory = currentCategory;
         this.listener = listener;
         
-        this.selectedColor = ContextCompat.getColor(context, R.color.app_yellow);
+        this.selectedColor = ContextCompat.getColor(context, R.color.app_accent);
         this.selectedTextColor = ContextCompat.getColor(context, R.color.cat_selected_text);
         this.unselectedColor = ContextCompat.getColor(context, R.color.cat_unselected_bg);
         this.unselectedTextColor = ContextCompat.getColor(context, R.color.cat_unselected_text);
 
         // 【新增】初始化时读取开关状态
-        this.isDetailed = com.example.budgetapp.util.CategoryManager.isDetailedCategoryEnabled(context);
+        this.isDetailed = com.example.budgetapp.utils.CategoryManager.isDetailedCategoryEnabled(context);
 
     }
 
@@ -202,6 +202,8 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         holder.tvIcon.setBackground(background);
 
         holder.itemView.setOnClickListener(v -> {
+            // 按压反馈：轻微缩小后恢复
+            AnimUtils.pressFeedback(v, 0.92f, 80);
             selectedCategory = category;
             notifyDataSetChanged();
             if (listener != null) {

@@ -4,7 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:importantForAccessibility="noHideDescendants"
     android:id="@+id/root_layout_stats"
     android:background="@color/bar_background">
 
@@ -12,7 +11,6 @@
         android:id="@+id/tv_top_title"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@color/bar_background"
         android:gravity="center"
         android:text="统计"
         android:textSize="20sp"
@@ -91,30 +89,58 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@drawable/ic_arrow_left"
-                    android:background="@null"
+                    android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="@color/text_primary"
                     android:contentDescription="前一页"/>
 
                 <TextView
                     android:id="@+id/tv_current_date_range"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="center"
                     android:text="2024年5月 第3周"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:paddingHorizontal="4dp"/>
+                    android:textColor="@color/text_primary" />
 
                 <ImageButton
                     android:id="@+id/btn_next"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@drawable/ic_arrow_right"
-                    android:background="@null"
+                    android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="@color/text_primary"
                     android:contentDescription="后一页"/>
+            </LinearLayout>
+
+            <!-- 空状态引导 -->
+            <LinearLayout
+                android:id="@+id/layout_stats_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingVertical="64dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_nav_stats"
+                    android:alpha="0.25"
+                    android:contentDescription="@string/empty_stats_title"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/empty_stats_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:gravity="center"
+                    android:paddingHorizontal="40dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -130,7 +156,7 @@
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
-                    android:paddingStart="20dp"
+                    android:layout_marginStart="16dp"
                     android:paddingTop="16dp"
                     android:paddingBottom="12dp"/>
 
@@ -147,7 +173,7 @@
                     android:layout_height="1dp"
                     android:background="@color/divider"
                     android:layout_marginVertical="24dp"
-                    android:layout_marginHorizontal="20dp"/>
+                    android:layout_marginHorizontal="16dp"/>
             </LinearLayout>
 
             <LinearLayout
@@ -163,7 +189,7 @@
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
-                    android:paddingStart="20dp"
+                    android:layout_marginStart="16dp"
                     android:paddingBottom="12dp"/>
 
                 <com.github.mikephil.charting.charts.PieChart
@@ -176,27 +202,12 @@
 
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_income_title"
+            <ViewStub
+                android:id="@+id/stub_income_chart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="收入构成"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:paddingStart="20dp"
-                android:paddingTop="24dp"
-                android:paddingBottom="12dp"
-                android:visibility="gone"/>
-
-            <com.github.mikephil.charting.charts.PieChart
-                android:id="@+id/chart_pie_income"
-                android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:layout_marginHorizontal="16dp"
-                                    android:visibility="gone"
-                                    android:background="@drawable/bg_input_field"
-                                    android:padding="16dp"/>
+                android:inflatedId="@+id/layout_income_chart"
+                android:layout="@layout/stub_income_chart_content" />
 
             <LinearLayout
                 android:id="@+id/layout_summary_section"
@@ -209,7 +220,7 @@
                     android:layout_height="1dp"
                     android:background="@color/divider"
                     android:layout_marginVertical="24dp"
-                    android:layout_marginHorizontal="20dp"/>
+                    android:layout_marginHorizontal="16dp"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -218,7 +229,7 @@
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
-                    android:paddingStart="20dp"
+                    android:layout_marginStart="16dp"
                     android:paddingBottom="12dp"/>
 
                 <LinearLayout
@@ -278,34 +289,7 @@
                         android:lineSpacingExtra="6dp"
                         android:visibility="gone"/>
 
-                    <View
-                        android:id="@+id/divider_overtime"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/divider"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:visibility="gone"/>
 
-                    <TextView
-                        android:id="@+id/tv_overtime_title"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="本周加班"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp"
-                        android:visibility="gone"/>
-
-                    <TextView
-                        android:id="@+id/tv_overtime_content"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:lineSpacingExtra="6dp"
-                        android:visibility="gone"/>
                 </LinearLayout>
             </LinearLayout>
 

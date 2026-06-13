@@ -29,7 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
+import com.example.budgetapp.utils.DateUtils;
 import java.util.Date;
 import java.util.Locale;
 
@@ -171,7 +171,7 @@ public class PhotoActionActivity extends AppCompatActivity {
     }
 
     private File createImageFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String timeStamp = DateUtils.formatPhotoTimestamp(System.currentTimeMillis());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         return File.createTempFile(imageFileName, ".jpg", storageDir);
@@ -195,7 +195,7 @@ public class PhotoActionActivity extends AppCompatActivity {
                 return;
             }
 
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            String timeStamp = DateUtils.formatPhotoTimestamp(System.currentTimeMillis());
             String fileName = "Tally_" + timeStamp + ".jpg";
             DocumentFile newFile = pickedDir.createFile("image/jpeg", fileName);
 

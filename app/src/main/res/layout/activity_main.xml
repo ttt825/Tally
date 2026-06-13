@@ -4,7 +4,6 @@
     android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:importantForAccessibility="noHideDescendants"
     android:background="@color/bar_background">
 
     <!-- 遮罩图层 - 独立于内容布局，确保能覆盖状态栏 -->
@@ -13,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="false"
-        android:background="#000000"
+        android:background="@color/overlay_mask"
         android:visibility="gone"/>
 
     <FrameLayout
@@ -65,5 +64,22 @@
                 app:duration="300" />
         </eightbitlab.com.blurview.BlurView>
     </FrameLayout>
+
+    <!-- 首次使用引导气泡 -->
+    <TextView
+        android:id="@+id/tv_fab_tooltip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="190dp"
+        android:background="@drawable/bg_tooltip_bubble"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
+        android:text="@string/fab_tooltip_hint"
+        android:textColor="@color/real_white"
+        android:textSize="13sp"
+        android:visibility="gone"
+        android:elevation="8dp" />
 
 </FrameLayout>

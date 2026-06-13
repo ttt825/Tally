@@ -6,8 +6,8 @@ import androidx.annotation.StringRes;
 import com.example.budgetapp.R;
 
 public enum TransactionType {
-    EXPENSE(0, "支出", R.color.expense_red, R.string.type_expense),
-    INCOME(1, "收入", R.color.income_green, R.string.type_income),
+    EXPENSE(0, "支出", R.color.expense_green, R.string.type_expense),
+    INCOME(1, "收入", R.color.income_red, R.string.type_income),
     LIABILITY(3, "借入", R.color.liability_orange, R.string.type_liability),
     LEND(4, "借出", R.color.lend_purple, R.string.type_lend);
 

@@ -41,6 +41,7 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
 
     private List<Transaction> list = new ArrayList<>();
     private OnItemClickListener listener;
+    private boolean showCurrency;
 
     public interface OnItemClickListener {
         void onItemClick(Transaction transaction);
@@ -89,9 +90,11 @@ public class TransactionListAdapter extends RecyclerView.Adapter<TransactionList
         Transaction t = list.get(position);
         Context context = holder.itemView.getContext();
 
-        // 基础配置：货币单位与符号
-        boolean showCurrency = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .getBoolean("enable_currency", false);
+        // 基础配置：货币单位与符号（缓存 showCurrency，避免每次 bind 读取 SharedPreferences）
+        if (position == 0) {
+            showCurrency = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    .getBoolean("enable_currency", false);
+        }
 
         String symbol = (t.currencySymbol != null && !t.currencySymbol.isEmpty()) ? t.currencySymbol : "¥";
         String amountStr = String.format("%.2f", t.amount);

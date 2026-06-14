@@ -88,10 +88,12 @@ public class PhotoBackupSettingsActivity extends AppCompatActivity {
         }
 
         switchBackup.setOnCheckedChangeListener((v, checked) -> {
-            prefs.edit().putBoolean("enable_photo_backup", checked).apply();
             if (checked && prefs.getString("photo_backup_uri", "").isEmpty()) {
+                switchBackup.setChecked(false);
                 Toast.makeText(this, "请先设置照片存储路径", Toast.LENGTH_LONG).show();
+                return;
             }
+            prefs.edit().putBoolean("enable_photo_backup", checked).apply();
         });
 
         findViewById(R.id.btn_select_path).setOnClickListener(v -> {

@@ -128,13 +128,13 @@
         android:layout_below="@id/layout_week_header"
         android:fillViewport="true"
         android:clipToPadding="false"
-        android:paddingBottom="80dp">
+        android:paddingBottom="160dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="60dp">
+            android:paddingBottom="140dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/calendar_recycler"
@@ -192,7 +192,7 @@
                         android:id="@+id/iv_empty_icon"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:src="@drawable/ic_add"
+                        android:src="@drawable/ic_nav_record"
                         android:alpha="0.25"
                         android:contentDescription="@string/empty_record_title"
                         app:tint="@color/text_secondary" />

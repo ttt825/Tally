@@ -27,7 +27,7 @@ import java.util.List;
 public class YearCalendarAdapter extends RecyclerView.Adapter<YearCalendarAdapter.MonthViewHolder> {
 
     private int year;
-    // 🌟 优化：不再存储全量金额数据，只存储有记账记录的月份列表 (例如 [1, 3, 5])
+    // 只存储有记账记录的月份列表 (例如 [1, 3, 5])
     private final List<Integer> monthsWithData;
     private final RecyclerView.RecycledViewPool viewPool;
     private OnMonthClickListener listener;
@@ -43,7 +43,7 @@ public class YearCalendarAdapter extends RecyclerView.Adapter<YearCalendarAdapte
         this.listener = listener;
     }
 
-    // 🌟 构造函数同步修改为接收 List<Integer>
+    // 构造函数接收 List<Integer>
     public YearCalendarAdapter(int year, List<Integer> monthsWithData, RecyclerView.RecycledViewPool viewPool) {
         this.year = year;
         this.monthsWithData = monthsWithData != null ? monthsWithData : new ArrayList<>();
@@ -76,7 +76,7 @@ public class YearCalendarAdapter extends RecyclerView.Adapter<YearCalendarAdapte
         int month = position + 1;
         holder.tvMonthName.setText(month + "月");
 
-        // 🌟 1. 核心逻辑：检查当前月份是否在有数据的列表中，并修改字体颜色
+        // 检查当前月份是否在有数据的列表中，并修改字体颜色
         if (monthsWithData.contains(month)) {
             holder.tvMonthName.setTextColor(cachedThemeColor);
         } else {
@@ -129,20 +129,18 @@ public class YearCalendarAdapter extends RecyclerView.Adapter<YearCalendarAdapte
 
     static class MonthViewHolder extends RecyclerView.ViewHolder {
         TextView tvMonthName;
-        // 🌟 移除 monthIndicator 变量
         RecyclerView rvMonthGrid;
 
         public MonthViewHolder(@NonNull View itemView, RecyclerView.RecycledViewPool pool) {
             super(itemView);
             tvMonthName = itemView.findViewById(R.id.tv_month_name);
-            // 🌟 移除对 R.id.view_month_indicator 的绑定
             rvMonthGrid = itemView.findViewById(R.id.rv_month_grid);
             rvMonthGrid.setRecycledViewPool(pool);
             rvMonthGrid.setNestedScrollingEnabled(false);
         }
     }
 
-    // 🌟 内部日期适配器精简：去除了所有的统计数据引用
+    // 内部日期适配器
     static class MonthGridAdapter extends RecyclerView.Adapter<MonthGridAdapter.DayViewHolder> {
         private final List<LocalDate> days;
         private final int themeColor;

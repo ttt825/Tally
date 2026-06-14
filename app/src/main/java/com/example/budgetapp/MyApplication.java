@@ -17,7 +17,7 @@ import com.example.budgetapp.utils.ThreadPoolManager;
 
 public class MyApplication extends Application {
 
-    public static boolean isUnlocked = false;
+    public static volatile boolean isUnlocked = false;
     private boolean downgradeWarningShown = false;
 
     @Override

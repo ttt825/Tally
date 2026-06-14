@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
 import com.example.budgetapp.utils.CategoryManager;
@@ -19,6 +20,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import com.example.budgetapp.utils.DateUtils;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +34,18 @@ public class BackupManager {
     private static final String JSON_FILE_NAME = "backup_data.json";
     private static final int MAX_IMPORT_LINES = 50000;
     private static final int MAX_JSON_SIZE_BYTES = 10 * 1024 * 1024;
+
+    // 自动备份固定文件名
+    private static final String AUTO_BACKUP_FILE_NAME = "Tally_自动备份.json";
+    private static final String AUTO_BACKUP_TEMP_FILE_NAME = "Tally_自动备份.tmp";
+
+    // 增量备份变更追踪的 SharedPreferences 键
+    private static final String KEY_DIRTY_IDS = "auto_backup_dirty_ids";
+    private static final String KEY_DELETED_IDS = "auto_backup_deleted_ids";
+    private static final String KEY_LAST_RECORD_COUNT = "auto_backup_last_record_count";
+
+    // 增量备份回退阈值：变更比例超过此值时执行全量备份
+    private static final double INCREMENTAL_FALLBACK_RATIO = 0.5;
 
     public static class BackupResult {
         public final boolean success;
@@ -53,6 +67,9 @@ public class BackupManager {
         EXCLUDED_PREF_KEYS.add("auto_backup_uri");
         EXCLUDED_PREF_KEYS.add("auto_backup_freq");
         EXCLUDED_PREF_KEYS.add("auto_backup_change_count");
+        EXCLUDED_PREF_KEYS.add("auto_backup_dirty_ids");
+        EXCLUDED_PREF_KEYS.add("auto_backup_deleted_ids");
+        EXCLUDED_PREF_KEYS.add("auto_backup_last_record_count");
     }
 
     // ============================================================================================
@@ -108,12 +125,49 @@ public class BackupManager {
     }
 
     // ============================================================================================
-    // 自动备份功能
+    // 自动备份功能（增量备份优化）
     // ============================================================================================
+
     /**
-     * 执行自动备份到指定文件夹（导出全部数据为JSON）
+     * 标记交易记录为脏数据（新增或修改），下次自动备份时增量更新
      */
-    public static BackupResult performAutoBackup(Context context, List<Transaction> transactions) {
+    public static void markTransactionDirty(Context context, int transactionId) {
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        Set<String> dirtyIds = new HashSet<>(prefs.getStringSet(KEY_DIRTY_IDS, Collections.<String>emptySet()));
+        dirtyIds.add(String.valueOf(transactionId));
+        prefs.edit().putStringSet(KEY_DIRTY_IDS, dirtyIds).apply();
+    }
+
+    /**
+     * 标记交易记录为已删除，下次自动备份时从备份文件中移除
+     */
+    public static void markTransactionDeleted(Context context, int transactionId) {
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        Set<String> deletedIds = new HashSet<>(prefs.getStringSet(KEY_DELETED_IDS, Collections.<String>emptySet()));
+        deletedIds.add(String.valueOf(transactionId));
+        prefs.edit().putStringSet(KEY_DELETED_IDS, deletedIds).apply();
+        // 同时从脏数据集合中移除（已删除的记录无需再更新）
+        Set<String> dirtyIds = new HashSet<>(prefs.getStringSet(KEY_DIRTY_IDS, Collections.<String>emptySet()));
+        if (dirtyIds.remove(String.valueOf(transactionId))) {
+            prefs.edit().putStringSet(KEY_DIRTY_IDS, dirtyIds).apply();
+        }
+    }
+
+    /**
+     * 清除所有变更追踪数据（备份成功后调用）
+     */
+    private static void clearChangeTracking(Context context) {
+        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove(KEY_DIRTY_IDS)
+                .remove(KEY_DELETED_IDS)
+                .apply();
+    }
+
+    /**
+     * 执行自动备份（增量优先，回退到全量）
+     */
+    public static BackupResult performAutoBackup(Context context) {
         SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
         boolean isEnabled = prefs.getBoolean("enable_auto_backup", false);
         String uriStr = prefs.getString("auto_backup_uri", "");
@@ -125,20 +179,21 @@ public class BackupManager {
         try {
             Uri treeUri = Uri.parse(uriStr);
             androidx.documentfile.provider.DocumentFile tree = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, treeUri);
-            
+
             if (tree == null || !tree.exists()) {
                 return new BackupResult(false, "备份目录不存在或权限已丢失，请重新设置备份路径");
             }
 
-            String backupFileName = "Tally_自动备份_" + DateUtils.formatBackupTimestamp(new Date().getTime()) + ".json";
-            androidx.documentfile.provider.DocumentFile backupFile = tree.createFile("application/json", backupFileName);
+            // 查找已有的自动备份文件
+            androidx.documentfile.provider.DocumentFile existingFile = findDocumentFile(tree, AUTO_BACKUP_FILE_NAME);
 
-            if (backupFile == null || !backupFile.exists()) {
-                return new BackupResult(false, "无法创建备份文件，存储空间可能不足");
+            if (existingFile != null && existingFile.exists()) {
+                // 尝试增量备份
+                return performIncrementalBackup(context, tree, existingFile);
+            } else {
+                // 首次备份，执行全量备份
+                return performFullBackup(context, tree);
             }
-
-            exportToJson(context, backupFile.getUri(), transactions);
-            return new BackupResult(true, null);
 
         } catch (Exception e) {
             Log.e("Tally", "Error", e);
@@ -147,25 +202,285 @@ public class BackupManager {
     }
 
     /**
+     * 全量备份：导出所有数据到固定文件名
+     */
+    private static BackupResult performFullBackup(Context context, androidx.documentfile.provider.DocumentFile tree) {
+        try {
+            List<Transaction> allTransactions = AppDatabase.getDatabase(context)
+                    .transactionDao().getAllTransactionsSync();
+
+            // 查找或创建备份文件
+            androidx.documentfile.provider.DocumentFile backupFile = findDocumentFile(tree, AUTO_BACKUP_FILE_NAME);
+            if (backupFile != null) {
+                backupFile.delete();
+            }
+            backupFile = tree.createFile("application/json", AUTO_BACKUP_FILE_NAME);
+
+            if (backupFile == null || !backupFile.exists()) {
+                return new BackupResult(false, "无法创建备份文件，存储空间可能不足");
+            }
+
+            exportToJson(context, backupFile.getUri(), allTransactions);
+
+            // 记录备份记录数
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(KEY_LAST_RECORD_COUNT, allTransactions.size())
+                    .apply();
+            clearChangeTracking(context);
+
+            Log.d("Tally", "全量自动备份完成，记录数: " + allTransactions.size());
+            return new BackupResult(true, null);
+
+        } catch (Exception e) {
+            Log.e("Tally", "全量备份失败", e);
+            return new BackupResult(false, "全量备份失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 增量备份：仅更新自上次备份以来变化的数据
+     */
+    private static BackupResult performIncrementalBackup(Context context,
+                                                         androidx.documentfile.provider.DocumentFile tree,
+                                                         androidx.documentfile.provider.DocumentFile existingFile) {
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        Set<String> dirtyIds = new HashSet<>(prefs.getStringSet(KEY_DIRTY_IDS, Collections.<String>emptySet()));
+        Set<String> deletedIds = new HashSet<>(prefs.getStringSet(KEY_DELETED_IDS, Collections.<String>emptySet()));
+
+        // 没有任何变更，跳过备份
+        if (dirtyIds.isEmpty() && deletedIds.isEmpty()) {
+            Log.d("Tally", "无数据变更，跳过自动备份");
+            return new BackupResult(true, null);
+        }
+
+        // 判断是否需要回退到全量备份
+        int lastRecordCount = prefs.getInt(KEY_LAST_RECORD_COUNT, 0);
+        int changeCount = dirtyIds.size() + deletedIds.size();
+        if (lastRecordCount > 0 && changeCount > lastRecordCount * INCREMENTAL_FALLBACK_RATIO) {
+            Log.d("Tally", "变更比例超过阈值，回退到全量备份");
+            return performFullBackup(context, tree);
+        }
+
+        try {
+            // 1. 读取已有备份文件
+            BackupData existingData = readBackupFromFile(context, existingFile.getUri());
+            if (existingData == null) {
+                Log.w("Tally", "读取备份文件失败，回退到全量备份");
+                return performFullBackup(context, tree);
+            }
+
+            // 2. 构建 ID → Transaction 映射
+            Map<Integer, Transaction> recordMap = new HashMap<>();
+            if (existingData.records != null) {
+                for (Transaction t : existingData.records) {
+                    recordMap.put(t.id, t);
+                }
+            }
+
+            // 3. 移除已删除的记录
+            for (String idStr : deletedIds) {
+                try {
+                    recordMap.remove(Integer.parseInt(idStr));
+                } catch (NumberFormatException ignored) {}
+            }
+
+            // 4. 从数据库获取脏数据的最新版本并更新/添加
+            if (!dirtyIds.isEmpty()) {
+                List<Integer> idList = new ArrayList<>();
+                for (String idStr : dirtyIds) {
+                    try {
+                        idList.add(Integer.parseInt(idStr));
+                    } catch (NumberFormatException ignored) {}
+                }
+                if (!idList.isEmpty()) {
+                    List<Transaction> dirtyRecords = AppDatabase.getDatabase(context)
+                            .transactionDao().getTransactionsByIds(idList);
+                    for (Transaction t : dirtyRecords) {
+                        recordMap.put(t.id, t);
+                    }
+                }
+            }
+
+            // 5. 更新分类和偏好设置（数据量小，每次都更新）
+            updateCategoriesAndPreferences(context, existingData);
+
+            // 6. 更新记录列表和时间戳
+            existingData.records = new ArrayList<>(recordMap.values());
+            existingData.createTime = System.currentTimeMillis();
+
+            // 7. 原子写入备份文件
+            writeBackupDataSafely(context, tree, existingFile, existingData);
+
+            // 8. 记录备份记录数并清除追踪
+            prefs.edit()
+                    .putInt(KEY_LAST_RECORD_COUNT, existingData.records.size())
+                    .apply();
+            clearChangeTracking(context);
+
+            Log.d("Tally", "增量自动备份完成，脏数据: " + dirtyIds.size() + "，删除: " + deletedIds.size()
+                    + "，总记录数: " + existingData.records.size());
+            return new BackupResult(true, null);
+
+        } catch (Exception e) {
+            Log.e("Tally", "增量备份失败，回退到全量备份", e);
+            return performFullBackup(context, tree);
+        }
+    }
+
+    /**
+     * 读取备份文件并解析为 BackupData
+     */
+    private static BackupData readBackupFromFile(Context context, Uri fileUri) {
+        try (InputStream inputStream = context.getContentResolver().openInputStream(fileUri);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+                if (sb.length() > MAX_JSON_SIZE_BYTES) {
+                    Log.e("Tally", "备份文件过大，无法读取");
+                    return null;
+                }
+            }
+            Gson gson = new Gson();
+            return gson.fromJson(sb.toString(), BackupData.class);
+        } catch (Exception e) {
+            Log.e("Tally", "读取备份文件失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 更新 BackupData 中的分类和偏好设置
+     */
+    private static void updateCategoriesAndPreferences(Context context, BackupData data) {
+        List<String> expenseCats = CategoryManager.getExpenseCategories(context);
+        List<String> incomeCats = CategoryManager.getIncomeCategories(context);
+        data.expenseCategories = expenseCats;
+        data.incomeCategories = incomeCats;
+
+        Map<String, List<String>> subMap = new HashMap<>();
+        List<String> allCats = new ArrayList<>(expenseCats);
+        allCats.addAll(incomeCats);
+        for (String parent : allCats) {
+            List<String> subs = CategoryManager.getSubCategories(context, parent);
+            if (subs != null && !subs.isEmpty()) {
+                subMap.put(parent, subs);
+            }
+        }
+        data.subCategoryMap = subMap;
+        data.subCategoryEnabled = CategoryManager.isSubCategoryEnabled(context);
+        data.detailedCategoryEnabled = CategoryManager.isDetailedCategoryEnabled(context);
+
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        Map<String, BackupData.PrefItem> prefsMap = new HashMap<>();
+        for (Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+            if (entry.getValue() != null) {
+                String key = entry.getKey();
+                if (EXCLUDED_PREF_KEYS.contains(key)) continue;
+                String type = entry.getValue().getClass().getSimpleName();
+                String value = String.valueOf(entry.getValue());
+                if ("theme_mode".equals(key)) {
+                    try {
+                        int mode = Integer.parseInt(value);
+                        if (mode == 3) continue;
+                    } catch (NumberFormatException ignored) {}
+                }
+                prefsMap.put(key, new BackupData.PrefItem(type, value));
+            }
+        }
+        data.appPreferences = prefsMap;
+    }
+
+    /**
+     * 原子写入备份数据：先写临时文件，再替换原文件，确保数据一致性
+     */
+    private static void writeBackupDataSafely(Context context,
+                                              androidx.documentfile.provider.DocumentFile tree,
+                                              androidx.documentfile.provider.DocumentFile existingFile,
+                                              BackupData data) throws Exception {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String jsonString = gson.toJson(data);
+        byte[] jsonBytes = jsonString.getBytes(StandardCharsets.UTF_8);
+
+        // 1. 写入临时文件
+        androidx.documentfile.provider.DocumentFile tempFile = findDocumentFile(tree, AUTO_BACKUP_TEMP_FILE_NAME);
+        if (tempFile != null) tempFile.delete();
+        tempFile = tree.createFile("application/json", AUTO_BACKUP_TEMP_FILE_NAME);
+        if (tempFile == null) {
+            throw new Exception("无法创建临时备份文件");
+        }
+
+        try (OutputStream os = context.getContentResolver().openOutputStream(tempFile.getUri())) {
+            os.write(jsonBytes);
+            os.flush();
+        }
+
+        // 2. 验证临时文件可读（确保写入完整）
+        try (InputStream is = context.getContentResolver().openInputStream(tempFile.getUri())) {
+            if (is == null) {
+                throw new Exception("临时备份文件验证失败");
+            }
+        }
+
+        // 3. 删除原备份文件
+        existingFile.delete();
+
+        // 4. 创建新备份文件并从临时文件复制内容
+        androidx.documentfile.provider.DocumentFile newFile = tree.createFile("application/json", AUTO_BACKUP_FILE_NAME);
+        if (newFile == null) {
+            throw new Exception("无法创建备份文件");
+        }
+
+        try (InputStream is = context.getContentResolver().openInputStream(tempFile.getUri());
+             OutputStream os = context.getContentResolver().openOutputStream(newFile.getUri())) {
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = is.read(buffer)) > 0) {
+                os.write(buffer, 0, len);
+            }
+            os.flush();
+        }
+
+        // 5. 删除临时文件
+        tempFile.delete();
+    }
+
+    /**
+     * 在 DocumentFile 目录中查找指定名称的文件
+     */
+    private static androidx.documentfile.provider.DocumentFile findDocumentFile(
+            androidx.documentfile.provider.DocumentFile tree, String fileName) {
+        if (tree == null || !tree.exists()) return null;
+        try {
+            return tree.findFile(fileName);
+        } catch (Exception e) {
+            Log.e("Tally", "查找文件失败: " + fileName, e);
+            return null;
+        }
+    }
+
+    /**
      * 增加账单变动计数，并在达到设定频次时触发自动备份
      */
-    public static BackupResult incrementChangeCountAndBackup(Context context, List<Transaction> transactions) {
+    public static BackupResult incrementChangeCountAndBackup(Context context) {
         SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
         boolean isEnabled = prefs.getBoolean("enable_auto_backup", false);
         String uriStr = prefs.getString("auto_backup_uri", "");
-        
+
         if (!isEnabled || uriStr.isEmpty()) {
             return new BackupResult(false, null);
         }
 
         int backupFreq = prefs.getInt("auto_backup_freq", 1);
         int currentCount = prefs.getInt("auto_backup_change_count", 0);
-        
+
         currentCount++;
         prefs.edit().putInt("auto_backup_change_count", currentCount).apply();
-        
+
         if (currentCount >= backupFreq) {
-            BackupResult result = performAutoBackup(context, transactions);
+            BackupResult result = performAutoBackup(context);
             if (result.success) {
                 prefs.edit().putInt("auto_backup_change_count", 0).apply();
                 Log.d("Tally", "自动备份成功，变动计数已重置");

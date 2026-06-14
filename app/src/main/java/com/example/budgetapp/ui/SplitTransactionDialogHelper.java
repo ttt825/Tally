@@ -180,8 +180,10 @@ public class SplitTransactionDialogHelper {
                 totalAmount += amount;
             }
 
-            // 验证总金额
-            if (Math.abs(totalAmount - originalAmount) > 0.01) {
+            // 验证总金额（转换为分比较，避免浮点精度问题）
+            long totalCents = Math.round(totalAmount * 100);
+            long originalCents = Math.round(originalAmount * 100);
+            if (totalCents != originalCents) {
                 Toast.makeText(context,
                         String.format(Locale.CHINA, "金额总和不等于原始金额\n原始: %.2f  当前: %.2f", originalAmount, totalAmount),
                         Toast.LENGTH_LONG).show();

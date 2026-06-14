@@ -73,10 +73,10 @@
     <string name="currency_cny">人民币</string>
 
     <!-- 空状态引导 -->
-    <string name="empty_record_title">还没有记录</string>
-    <string name="empty_record_hint">点击右下角按钮开始记账</string>
-    <string name="empty_stats_title">暂无统计数据</string>
-    <string name="empty_stats_hint">记账后在此展示收支趋势和分类架构</string>
+    <string name="empty_record_title">暂无记录</string>
+    <string name="empty_record_hint">点击右下角悬浮按钮开始记账</string>
+    <string name="empty_stats_title">暂无统计</string>
+    <string name="empty_stats_hint">记账后可在此查看收支趋势和账单分类</string>
     <string name="empty_details_title">暂无明细</string>
     <string name="empty_details_hint">记账后可在此查看和筛选所有账单</string>
     <string name="fab_tooltip_hint">点此记一笔，长按进入设置</string>

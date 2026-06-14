@@ -31,6 +31,8 @@ import java.util.Locale;
 
 public class BatchTransactionDialogHelper {
 
+    private static final long MAX_AMOUNT_CENTS = 9999999999L; // 99,999,999.99 * 100
+
     public interface OnBatchSavedListener {
         void onBatchSaved(List<Transaction> transactions);
     }
@@ -143,7 +145,7 @@ public class BatchTransactionDialogHelper {
                     return;
                 }
 
-                if (amount <= 0 || amount > 99999999.99) {
+                if (amount <= 0 || Math.round(amount * 100) > MAX_AMOUNT_CENTS) {
                     Toast.makeText(context, "第" + (i + 1) + "行：金额范围：0.01 ~ 99,999,999.99", Toast.LENGTH_SHORT).show();
                     return;
                 }

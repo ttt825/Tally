@@ -8,7 +8,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -54,6 +53,9 @@ import java.util.Objects;
 
 public class TransactionDialogHelper {
 
+    private static final float DIALOG_WIDTH_RATIO = 0.9f;
+    private static final long MAX_AMOUNT_CENTS = 9999999999L; // 99,999,999.99 * 100
+
     public interface OnTransactionSavedListener {
         void onTransactionSaved(Transaction transaction, boolean isEdit);
         void onTransactionDeleted(Transaction transaction);
@@ -73,7 +75,7 @@ public class TransactionDialogHelper {
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout((int) (context.getResources().getDisplayMetrics().widthPixels * 0.9), ViewGroup.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setLayout((int) (context.getResources().getDisplayMetrics().widthPixels * DIALOG_WIDTH_RATIO), ViewGroup.LayoutParams.WRAP_CONTENT);
             dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
         }
 
@@ -416,7 +418,7 @@ public class TransactionDialogHelper {
                     if (amt <= 0) {
                         valid = false;
                         errorMsg = "金额必须大于0";
-                    } else if (amt > 99999999.99) {
+                    } else if (Math.round(amt * 100) > MAX_AMOUNT_CENTS) {
                         valid = false;
                         errorMsg = "金额不能超过99,999,999.99";
                     }
@@ -467,7 +469,7 @@ public class TransactionDialogHelper {
                 return;
             }
 
-            if (amount <= 0 || amount > 99999999.99) {
+            if (amount <= 0 || Math.round(amount * 100) > MAX_AMOUNT_CENTS) {
                 Toast.makeText(context, "金额范围：0.01 ~ 99,999,999.99", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -506,24 +508,16 @@ public class TransactionDialogHelper {
 
             boolean isEdit = existingTransaction != null;
             if (isEdit) {
-                boolean unchanged = existingTransaction.date == ts
-                        && existingTransaction.type == type
-                        && Math.abs(existingTransaction.amount - amount) < 0.01
-                        && Objects.equals(existingTransaction.category, category)
-                        && Objects.equals(existingTransaction.subCategory, selectedSubCategory[0])
-                        && Objects.equals(existingTransaction.note, noteContent)
-                        && Objects.equals(existingTransaction.remark, userRemark)
-                        && Objects.equals(existingTransaction.currencySymbol, currencySymbol)
-                        && Objects.equals(existingTransaction.photoPath, currentPhotoPath[0])
-                        && Objects.equals(existingTransaction.targetObject, targetObj);
-                if (unchanged) {
+                if (isTransactionUnchanged(existingTransaction, ts, type, amount, category,
+                        selectedSubCategory[0], noteContent, userRemark, currencySymbol,
+                        currentPhotoPath[0], targetObj)) {
                     dialog.dismiss();
                     Toast.makeText(context, "未做任何修改", Toast.LENGTH_SHORT).show();
                     return;
                 }
             }
 
-            Transaction transaction = isEdit ? new Transaction() : new Transaction();
+            Transaction transaction = new Transaction();
             if (isEdit) {
                 transaction.id = existingTransaction.id;
             }
@@ -570,16 +564,12 @@ public class TransactionDialogHelper {
             currentTransaction.targetObject = etTargetObject.getText().toString().trim();
 
             // 检测是否有未保存的修改
-            boolean hasChanges = existingTransaction.date != currentTransaction.date
-                    || existingTransaction.type != currentTransaction.type
-                    || Math.abs(existingTransaction.amount - currentTransaction.amount) >= 0.01
-                    || !Objects.equals(existingTransaction.category, currentTransaction.category)
-                    || !Objects.equals(existingTransaction.subCategory, currentTransaction.subCategory)
-                    || !Objects.equals(existingTransaction.note, currentTransaction.note)
-                    || !Objects.equals(existingTransaction.remark, currentTransaction.remark)
-                    || !Objects.equals(existingTransaction.currencySymbol, currentTransaction.currencySymbol)
-                    || !Objects.equals(existingTransaction.photoPath, currentTransaction.photoPath)
-                    || !Objects.equals(existingTransaction.targetObject, currentTransaction.targetObject);
+            boolean hasChanges = !isTransactionUnchanged(existingTransaction,
+                    currentTransaction.date, currentTransaction.type, currentTransaction.amount,
+                    currentTransaction.category, currentTransaction.subCategory,
+                    currentTransaction.note, currentTransaction.remark,
+                    currentTransaction.currencySymbol, currentTransaction.photoPath,
+                    currentTransaction.targetObject);
 
             if (hasChanges) {
                 // 自动保存修改后再进入拆单
@@ -609,6 +599,22 @@ public class TransactionDialogHelper {
         else if (checkedId == R.id.rb_liability) return TransactionType.LIABILITY.getValue();
         else if (checkedId == R.id.rb_lend) return TransactionType.LEND.getValue();
         else return TransactionType.EXPENSE.getValue();
+    }
+
+    private static boolean isTransactionUnchanged(Transaction existing, long date, int type,
+                                                   double amount, String category, String subCategory,
+                                                   String note, String remark, String currencySymbol,
+                                                   String photoPath, String targetObject) {
+        return existing.date == date
+                && existing.type == type
+                && Math.round(existing.amount * 100) == Math.round(amount * 100)
+                && Objects.equals(existing.category, category)
+                && Objects.equals(existing.subCategory, subCategory)
+                && Objects.equals(existing.note, note)
+                && Objects.equals(existing.remark, remark)
+                && Objects.equals(existing.currencySymbol, currencySymbol)
+                && Objects.equals(existing.photoPath, photoPath)
+                && Objects.equals(existing.targetObject, targetObject);
     }
 
     private static double parseAmountSafe(String amountStr) {
@@ -710,10 +716,6 @@ public class TransactionDialogHelper {
 
     private static String formatDate(long timestamp) {
         return DateUtils.formatDateShort(timestamp);
-    }
-
-    private static String formatDate(LocalDate date) {
-        return date.toString();
     }
 
     public static class DecimalDigitsInputFilter implements InputFilter {

@@ -26,8 +26,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-// 恢复为标准的 RecyclerView.Adapter
 public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHolder> {
+
+    private final android.graphics.drawable.GradientDrawable reusableShape = new android.graphics.drawable.GradientDrawable();
 
     private static final DiffUtil.ItemCallback<Transaction> DIFF_CALLBACK = new DiffUtil.ItemCallback<Transaction>() {
         @Override
@@ -86,13 +87,18 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         result.dispatchUpdatesTo(this);
     }
 
-    // 🌟 新增：获取当前显示的交易列表（用于导出）
+    // 获取当前显示的交易列表（用于导出）
     public List<Transaction> getCurrentTransactions() {
         return transactions;
     }
 
+    private float cachedDensity = 0;
+
     private int dpToPx(Context context, int dp) {
-        return (int) (dp * context.getResources().getDisplayMetrics().density);
+        if (cachedDensity == 0) {
+            cachedDensity = context.getResources().getDisplayMetrics().density;
+        }
+        return (int) (dp * cachedDensity);
     }
 
     @NonNull
@@ -154,19 +160,18 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         }
 
         // ================= 2. 完美还原动态圆角与间距 =================
-        android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
-        shape.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        reusableShape.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         float radius = dpToPx(context, 16);
 
-        if (isTop && isBottom) shape.setCornerRadii(new float[]{radius, radius, radius, radius, radius, radius, radius, radius});
-        else if (isTop) shape.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
-        else if (isBottom) shape.setCornerRadii(new float[]{0, 0, 0, 0, radius, radius, radius, radius});
-        else shape.setCornerRadii(new float[]{0, 0, 0, 0, 0, 0, 0, 0});
+        if (isTop && isBottom) reusableShape.setCornerRadii(new float[]{radius, radius, radius, radius, radius, radius, radius, radius});
+        else if (isTop) reusableShape.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        else if (isBottom) reusableShape.setCornerRadii(new float[]{0, 0, 0, 0, radius, radius, radius, radius});
+        else reusableShape.setCornerRadii(new float[]{0, 0, 0, 0, 0, 0, 0, 0});
 
         int surfaceColor = ContextCompat.getColor(context, R.color.white);
         if (isCustomBg) surfaceColor = androidx.core.graphics.ColorUtils.setAlphaComponent(surfaceColor, 230);
-        shape.setColor(surfaceColor);
-        holder.cardView.setBackground(shape);
+        reusableShape.setColor(surfaceColor);
+        holder.cardView.setBackground(reusableShape);
 
         LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.cardView.getLayoutParams();
         params.setMargins(dpToPx(context, 16), isTop ? dpToPx(context, 4) : 0, dpToPx(context, 16), isBottom ? dpToPx(context, 12) : 0);
@@ -223,7 +228,7 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         });
     }
 
-    // 🌟 新增：标准 Adapter 必须实现的方法
+
     @Override
     public int getItemCount() {
         return transactions.size();

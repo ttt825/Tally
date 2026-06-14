@@ -12,7 +12,7 @@ import java.util.List;
 @Dao
 public interface TransactionDao {
     @Insert
-    void insert(Transaction transaction);
+    long insert(Transaction transaction);
 
     @Delete
     void delete(Transaction transaction);
@@ -27,7 +27,11 @@ public interface TransactionDao {
     List<Transaction> getAllTransactionsSync();
 
     @Insert
-    void insertAll(List<Transaction> transactions);
+    List<Long> insertAll(List<Transaction> transactions);
+
+    // 增量备份专用：按ID列表查询交易记录
+    @Query("SELECT * FROM transactions WHERE id IN (:ids)")
+    List<Transaction> getTransactionsByIds(List<Integer> ids);
 
     @Query("DELETE FROM transactions")
     void deleteAll();

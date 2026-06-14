@@ -31,11 +31,12 @@ public class TransactionRepository {
     // ================= 基础 CRUD 操作 =================
 
     /**
-     * 插入单条交易记录
+     * 插入单条交易记录，插入后自动设置生成的ID
      */
     public void insert(Transaction transaction, RepositoryCallback<Void> callback) {
         executor.execute(() -> {
-            transactionDao.insert(transaction);
+            long id = transactionDao.insert(transaction);
+            transaction.id = (int) id;
             if (callback != null) {
                 callback.onComplete(null);
             }
@@ -43,11 +44,14 @@ public class TransactionRepository {
     }
 
     /**
-     * 批量插入交易记录
+     * 批量插入交易记录，插入后自动设置每条记录生成的ID
      */
     public void insertAll(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
         executor.execute(() -> {
-            transactionDao.insertAll(transactions);
+            List<Long> ids = transactionDao.insertAll(transactions);
+            for (int i = 0; i < transactions.size() && i < ids.size(); i++) {
+                transactions.get(i).id = ids.get(i).intValue();
+            }
             if (callback != null) {
                 callback.onComplete(transactions.size());
             }
@@ -79,13 +83,16 @@ public class TransactionRepository {
     }
 
     /**
-     * 拆单操作：删除原始账单并批量插入拆分账单（原子操作）
+     * 拆单操作：删除原始账单并批量插入拆分账单（原子操作），插入后自动设置ID
      */
     public void deleteAndInsertAll(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
         executor.execute(() -> {
             database.runInTransaction(() -> {
                 transactionDao.delete(original);
-                transactionDao.insertAll(splitList);
+                List<Long> ids = transactionDao.insertAll(splitList);
+                for (int i = 0; i < splitList.size() && i < ids.size(); i++) {
+                    splitList.get(i).id = ids.get(i).intValue();
+                }
             });
             if (callback != null) {
                 callback.onComplete(splitList.size());
@@ -107,6 +114,16 @@ public class TransactionRepository {
      */
     public List<Transaction> getAllTransactionsSync() {
         return transactionDao.getAllTransactionsSync();
+    }
+
+    /**
+     * 增量备份专用：按ID列表同步查询交易记录
+     */
+    public List<Transaction> getTransactionsByIdsSync(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return transactionDao.getTransactionsByIds(ids);
     }
 
     /**

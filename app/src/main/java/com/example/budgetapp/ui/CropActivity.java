@@ -63,10 +63,10 @@ public class CropActivity extends AppCompatActivity {
                     File destFile = new File(dir, "bg_" + suffix + ".png");
                     if (destFile.exists()) destFile.delete();
 
-                    FileOutputStream fos = new FileOutputStream(destFile);
-                    cropped.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                    fos.flush();
-                    fos.close();
+                    try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                        cropped.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        fos.flush();
+                    }
                     cropped.recycle();
 
                     Intent result = new Intent();
@@ -84,18 +84,17 @@ public class CropActivity extends AppCompatActivity {
 
     private void loadImage(Uri uri) {
         try {
-            InputStream is = getContentResolver().openInputStream(uri);
-            if (is == null) {
-                Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show();
-                setResult(RESULT_CANCELED);
-                finish();
-                return;
-            }
-
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
-            BitmapFactory.decodeStream(is, null, options);
-            is.close();
+            try (InputStream is = getContentResolver().openInputStream(uri)) {
+                if (is == null) {
+                    Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_CANCELED);
+                    finish();
+                    return;
+                }
+                BitmapFactory.decodeStream(is, null, options);
+            }
 
             int maxDim = Math.max(options.outWidth, options.outHeight);
             int sampleSize = 1;
@@ -103,11 +102,12 @@ public class CropActivity extends AppCompatActivity {
                 sampleSize *= 2;
             }
 
-            is = getContentResolver().openInputStream(uri);
-            options.inJustDecodeBounds = false;
-            options.inSampleSize = sampleSize;
-            Bitmap bitmap = BitmapFactory.decodeStream(is, null, options);
-            is.close();
+            Bitmap bitmap;
+            try (InputStream is = getContentResolver().openInputStream(uri)) {
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = sampleSize;
+                bitmap = BitmapFactory.decodeStream(is, null, options);
+            }
 
             if (bitmap != null) {
                 cropImageView.setImageBitmap(bitmap);

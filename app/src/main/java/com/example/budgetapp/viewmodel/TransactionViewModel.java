@@ -10,6 +10,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.example.budgetapp.BackupManager;
 import com.example.budgetapp.data.repository.TransactionRepository;
 import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
@@ -68,6 +69,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void addTransaction(Transaction transaction) {
         repository.insert(transaction, id -> {
             notifyWidgetUpdate();
+            BackupManager.markTransactionDirty(getApplication(), transaction.id);
             triggerAutoBackup();
         });
     }
@@ -78,6 +80,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void updateTransaction(Transaction transaction) {
         repository.update(transaction, result -> {
             notifyWidgetUpdate();
+            BackupManager.markTransactionDirty(getApplication(), transaction.id);
             triggerAutoBackup();
         });
     }
@@ -86,8 +89,10 @@ public class TransactionViewModel extends AndroidViewModel {
      * 删除交易记录（触发自动备份计数）
      */
     public void deleteTransaction(Transaction transaction) {
+        int deletedId = transaction.id;
         repository.delete(transaction, result -> {
             notifyWidgetUpdate();
+            BackupManager.markTransactionDeleted(getApplication(), deletedId);
             triggerAutoBackup();
         });
     }
@@ -100,6 +105,9 @@ public class TransactionViewModel extends AndroidViewModel {
     public void addBatchTransactions(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
         repository.insertAll(transactions, count -> {
             notifyWidgetUpdate();
+            for (Transaction t : transactions) {
+                BackupManager.markTransactionDirty(getApplication(), t.id);
+            }
             triggerAutoBackup();
             if (callback != null) {
                 callback.onComplete(count);
@@ -111,8 +119,13 @@ public class TransactionViewModel extends AndroidViewModel {
      * 拆单操作：删除原始账单并批量插入拆分账单 - 只触发一次自动备份计数
      */
     public void splitTransaction(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
+        int deletedId = original.id;
         repository.deleteAndInsertAll(original, splitList, count -> {
             notifyWidgetUpdate();
+            BackupManager.markTransactionDeleted(getApplication(), deletedId);
+            for (Transaction t : splitList) {
+                BackupManager.markTransactionDirty(getApplication(), t.id);
+            }
             triggerAutoBackup();
             if (callback != null) {
                 callback.onComplete(count);
@@ -236,7 +249,7 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /**
-     * 【修改】触发自动备份，但检查是否跳过计数
+     * 【优化】触发自动备份，不再查询全量数据，由 BackupManager 自行决定增量或全量备份
      */
     private void triggerAutoBackup() {
         ThreadPoolManager.getInstance().executeBackground(() -> {
@@ -246,9 +259,8 @@ public class TransactionViewModel extends AndroidViewModel {
                     return;
                 }
                 
-                List<Transaction> allTx = repository.getAllTransactionsSync();
-                com.example.budgetapp.BackupManager.BackupResult result =
-                        com.example.budgetapp.BackupManager.incrementChangeCountAndBackup(getApplication(), allTx);
+                BackupManager.BackupResult result =
+                        BackupManager.incrementChangeCountAndBackup(getApplication());
                 if (result.success) {
                     backupTriggered.postValue(true);
                 } else {

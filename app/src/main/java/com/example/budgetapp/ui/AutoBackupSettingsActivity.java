@@ -98,10 +98,12 @@ public class AutoBackupSettingsActivity extends AppCompatActivity {
         updateFreqDisplay();
 
         switchBackup.setOnCheckedChangeListener((v, checked) -> {
-            prefs.edit().putBoolean("enable_auto_backup", checked).apply();
             if (checked && prefs.getString("auto_backup_uri", "").isEmpty()) {
-                Toast.makeText(this, "请先设置备份存储路径", Toast.LENGTH_LONG).show();
+                switchBackup.setChecked(false);
+                Toast.makeText(this, "请先设置备份文件存储路径", Toast.LENGTH_LONG).show();
+                return;
             }
+            prefs.edit().putBoolean("enable_auto_backup", checked).apply();
         });
 
         findViewById(R.id.btn_select_path).setOnClickListener(v -> {

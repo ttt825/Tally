@@ -27,6 +27,7 @@ public class CropImageView extends View {
     private final Paint overlayPaint;
     private final Paint borderPaint;
     private final Paint cornerPaint;
+    private final Paint gridPaint;
 
     public CropImageView(Context context) {
         this(context, null);
@@ -51,6 +52,11 @@ public class CropImageView extends View {
         cornerPaint.setColor(Color.WHITE);
         cornerPaint.setStyle(Paint.Style.STROKE);
         cornerPaint.setStrokeWidth(dpToPx(3));
+
+        gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        gridPaint.setColor(0x33FFFFFF);
+        gridPaint.setStyle(Paint.Style.STROKE);
+        gridPaint.setStrokeWidth(dpToPx(0.5f));
     }
 
     private float dpToPx(float dp) {
@@ -156,11 +162,6 @@ public class CropImageView extends View {
 
             canvas.drawLine(r, b, r - cornerLen, b, cornerPaint);
             canvas.drawLine(r, b, r, b - cornerLen, cornerPaint);
-
-            Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            gridPaint.setColor(0x33FFFFFF);
-            gridPaint.setStyle(Paint.Style.STROKE);
-            gridPaint.setStrokeWidth(dpToPx(0.5f));
 
             float thirdW = cropRect.width() / 3;
             float thirdH = cropRect.height() / 3;

@@ -121,20 +121,21 @@
 
     
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/layout_week_header"
         android:fillViewport="true"
         android:clipToPadding="false"
-        android:paddingBottom="160dp">
+        android:overScrollMode="never"
+        android:paddingBottom="100dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="140dp">
+            android:paddingBottom="80dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/calendar_recycler"
@@ -218,7 +219,7 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btn_batch_record"

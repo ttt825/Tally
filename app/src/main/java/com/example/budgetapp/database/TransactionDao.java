@@ -96,4 +96,15 @@ public interface TransactionDao {
     @Query("SELECT date, type, amount, category, subCategory, note, remark FROM transactions")
     List<TransactionForDuplicate> getTransactionsForDuplicateSync();
 
+    // ================= 账户关联查询 =================
+
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId")
+    List<Transaction> getTransactionsByAccountSync(int accountId);
+
+    @Query("UPDATE transactions SET accountId = :newAccountId WHERE accountId = :oldAccountId")
+    void updateAccountId(int oldAccountId, Integer newAccountId);
+
+    @Query("UPDATE transactions SET accountId = NULL WHERE accountId = :accountId")
+    void clearAccountId(int accountId);
+
 }

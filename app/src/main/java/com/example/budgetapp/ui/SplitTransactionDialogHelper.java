@@ -175,6 +175,7 @@ public class SplitTransactionDialogHelper {
                 transaction.subCategory = "";
                 transaction.photoPath = "";
                 transaction.targetObject = targetObject;
+                transaction.accountId = originalTransaction.accountId;
 
                 transactions.add(transaction);
                 totalAmount += amount;

@@ -89,6 +89,12 @@
             android:theme="@style/Theme.BudgetApp"
             android:exported="false"/>
 
+        <activity
+            android:name=".ui.AccountSettingsActivity"
+            android:label="账户管理"
+            android:theme="@style/Theme.BudgetApp"
+            android:exported="false"/>
+
         
 
         <activity

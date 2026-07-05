@@ -19,36 +19,16 @@ import com.example.budgetapp.model.TransactionType;
 import com.example.budgetapp.utils.DateUtils;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHolder> {
+public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.GroupViewHolder> {
 
-    private final android.graphics.drawable.GradientDrawable reusableShape = new android.graphics.drawable.GradientDrawable();
-
-    private static final DiffUtil.ItemCallback<Transaction> DIFF_CALLBACK = new DiffUtil.ItemCallback<Transaction>() {
-        @Override
-        public boolean areItemsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            return oldItem.id == newItem.id;
-        }
-
-        @Override
-        public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            return oldItem.amount == newItem.amount
-                    && Objects.equals(oldItem.category, newItem.category)
-                    && Objects.equals(oldItem.note, newItem.note)
-                    && Objects.equals(oldItem.remark, newItem.remark)
-                    && Objects.equals(oldItem.subCategory, newItem.subCategory)
-                    && oldItem.type == newItem.type
-                    && oldItem.date == newItem.date;
-        }
-    };
-
-    private List<Transaction> transactions = new ArrayList<>();
+    private List<Transaction> rawTransactions = new ArrayList<>();
+    private List<TransactionGroup> groups = new ArrayList<>();
     private OnTransactionClickListener listener;
 
     public interface OnTransactionClickListener {
@@ -59,37 +39,82 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
         this.listener = listener;
     }
 
-    // 新增：用于接收常规的 List 数据并刷新
+    public static class TransactionGroup {
+        String dateStr;      // yyyyMMdd
+        String displayDate;  // MM月dd日 星期X
+        List<Transaction> transactions;
+
+        TransactionGroup(String dateStr, String displayDate, List<Transaction> transactions) {
+            this.dateStr = dateStr;
+            this.displayDate = displayDate;
+            this.transactions = transactions;
+        }
+    }
+
     public void setTransactions(List<Transaction> newList) {
-        List<Transaction> oldList = this.transactions;
-        this.transactions = newList == null ? new ArrayList<>() : newList;
+        List<TransactionGroup> oldGroups = this.groups;
+
+        this.rawTransactions = newList == null ? new ArrayList<>() : new ArrayList<>(newList);
+        this.groups = groupByDate(this.rawTransactions);
+
         DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
-                return oldList.size();
+                return oldGroups.size();
             }
 
             @Override
             public int getNewListSize() {
-                return transactions.size();
+                return groups.size();
             }
 
             @Override
             public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                return DIFF_CALLBACK.areItemsTheSame(oldList.get(oldItemPosition), transactions.get(newItemPosition));
+                return oldGroups.get(oldItemPosition).dateStr.equals(groups.get(newItemPosition).dateStr);
             }
 
             @Override
             public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                return DIFF_CALLBACK.areContentsTheSame(oldList.get(oldItemPosition), transactions.get(newItemPosition));
+                TransactionGroup oldG = oldGroups.get(oldItemPosition);
+                TransactionGroup newG = groups.get(newItemPosition);
+                if (!oldG.dateStr.equals(newG.dateStr)) return false;
+                if (oldG.transactions.size() != newG.transactions.size()) return false;
+                for (int i = 0; i < oldG.transactions.size(); i++) {
+                    Transaction t1 = oldG.transactions.get(i);
+                    Transaction t2 = newG.transactions.get(i);
+                    if (t1.id != t2.id
+                            || t1.amount != t2.amount
+                            || !Objects.equals(t1.category, t2.category)
+                            || !Objects.equals(t1.note, t2.note)
+                            || !Objects.equals(t1.remark, t2.remark)
+                            || !Objects.equals(t1.subCategory, t2.subCategory)
+                            || t1.type != t2.type
+                            || t1.date != t2.date) {
+                        return false;
+                    }
+                }
+                return true;
             }
         });
         result.dispatchUpdatesTo(this);
     }
 
-    // 获取当前显示的交易列表（用于导出）
+    private List<TransactionGroup> groupByDate(List<Transaction> list) {
+        Map<String, List<Transaction>> map = new LinkedHashMap<>();
+        for (Transaction t : list) {
+            String key = DateUtils.formatCompareDate(t.date);
+            map.computeIfAbsent(key, k -> new ArrayList<>()).add(t);
+        }
+        List<TransactionGroup> result = new ArrayList<>();
+        for (Map.Entry<String, List<Transaction>> entry : map.entrySet()) {
+            String display = DateUtils.formatDisplayDate(entry.getValue().get(0).date);
+            result.add(new TransactionGroup(entry.getKey(), display, entry.getValue()));
+        }
+        return result;
+    }
+
     public List<Transaction> getCurrentTransactions() {
-        return transactions;
+        return rawTransactions;
     }
 
     private float cachedDensity = 0;
@@ -103,151 +128,130 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.ViewHold
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        Context context = parent.getContext();
-
-        // 动态创建一个 LinearLayout 包裹器，避免修改 XML
-        LinearLayout wrapper = new LinearLayout(context);
-        wrapper.setOrientation(LinearLayout.VERTICAL);
-        wrapper.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        // 动态创建一个日期头部 TextView
-        TextView tvHeader = new TextView(context);
-        tvHeader.setTextSize(13);
-        tvHeader.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
-        tvHeader.setPadding(dpToPx(context, 20), dpToPx(context, 16), dpToPx(context, 20), dpToPx(context, 8));
-        tvHeader.setVisibility(View.GONE);
-
-        // 加载原本的卡片布局
-        View cardView = LayoutInflater.from(context).inflate(R.layout.item_transaction_detail, wrapper, false);
-
-        wrapper.addView(tvHeader);
-        wrapper.addView(cardView);
-
-        return new ViewHolder(wrapper, tvHeader, cardView);
+    public GroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_transaction_group, parent, false);
+        return new GroupViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        if (position < 0 || position >= transactions.size()) return;
+    public void onBindViewHolder(@NonNull GroupViewHolder holder, int position) {
+        if (position < 0 || position >= groups.size()) return;
 
-        Transaction current = transactions.get(position);
-
+        TransactionGroup group = groups.get(position);
         Context context = holder.itemView.getContext();
         SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
         boolean isCustomBg = prefs.getInt("theme_mode", -1) == 3;
         boolean showCurrency = prefs.getBoolean("enable_currency", false);
 
-        // ================= 1. 动态头部逻辑 =================
-        Transaction previous = position > 0 ? transactions.get(position - 1) : null;
-        Transaction next = position < getItemCount() - 1 ? transactions.get(position + 1) : null;
+        // 1. 日期标题
+        holder.tvGroupDate.setText(group.displayDate);
 
-        String currentDateStr = DateUtils.formatCompareDate(current.date);
-        String previousDateStr = previous != null ? DateUtils.formatCompareDate(previous.date) : "";
-        String nextDateStr = next != null ? DateUtils.formatCompareDate(next.date) : "";
-
-        // 判断当前元素是否处于一天的顶部或底部
-        boolean isTop = (previous == null || !currentDateStr.equals(previousDateStr));
-        boolean isBottom = (next == null || !currentDateStr.equals(nextDateStr));
-
-        if (isTop) {
-            holder.tvHeader.setVisibility(View.VISIBLE);
-            holder.tvHeader.setText(DateUtils.formatDisplayDate(current.date));
-        } else {
-            holder.tvHeader.setVisibility(View.GONE);
-        }
-
-        // ================= 2. 完美还原动态圆角与间距 =================
-        reusableShape.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        // 2. 分组容器背景：每次绑定独立创建 GradientDrawable，彻底避免共享 drawable 导致的复用异常
+        android.graphics.drawable.GradientDrawable groupBg = new android.graphics.drawable.GradientDrawable();
+        groupBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         float radius = dpToPx(context, 16);
-
-        if (isTop && isBottom) reusableShape.setCornerRadii(new float[]{radius, radius, radius, radius, radius, radius, radius, radius});
-        else if (isTop) reusableShape.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
-        else if (isBottom) reusableShape.setCornerRadii(new float[]{0, 0, 0, 0, radius, radius, radius, radius});
-        else reusableShape.setCornerRadii(new float[]{0, 0, 0, 0, 0, 0, 0, 0});
-
+        groupBg.setCornerRadii(new float[]{radius, radius, radius, radius, radius, radius, radius, radius});
         int surfaceColor = ContextCompat.getColor(context, R.color.white);
-        if (isCustomBg) surfaceColor = androidx.core.graphics.ColorUtils.setAlphaComponent(surfaceColor, 230);
-        reusableShape.setColor(surfaceColor);
-        holder.cardView.setBackground(reusableShape);
+        if (isCustomBg) {
+            surfaceColor = androidx.core.graphics.ColorUtils.setAlphaComponent(surfaceColor, 230);
+        }
+        groupBg.setColor(surfaceColor);
+        holder.groupContainer.setBackground(groupBg);
 
-        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.cardView.getLayoutParams();
-        params.setMargins(dpToPx(context, 16), isTop ? dpToPx(context, 4) : 0, dpToPx(context, 16), isBottom ? dpToPx(context, 12) : 0);
-        holder.cardView.setLayoutParams(params);
+        // 3. 清空并重建内部交易列表
+        holder.llTransactions.removeAllViews();
 
-        // ================= 3. 数据绑定 =================
+        for (int i = 0; i < group.transactions.size(); i++) {
+            Transaction current = group.transactions.get(i);
+            View itemView = LayoutInflater.from(context)
+                    .inflate(R.layout.item_transaction_detail, holder.llTransactions, false);
+            bindTransactionItem(context, itemView, current, showCurrency);
+
+            itemView.setOnClickListener(v -> {
+                AnimUtils.pressFeedback(v, 0.97f, 60);
+                if (listener != null) listener.onTransactionClick(current);
+            });
+
+            holder.llTransactions.addView(itemView);
+
+            // 非最后一项添加底部分割线，使同一容器内的记录分隔清晰
+            if (i < group.transactions.size() - 1) {
+                View divider = new View(context);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(context, 1));
+                params.setMargins(dpToPx(context, 16), 0, dpToPx(context, 16), 0);
+                divider.setLayoutParams(params);
+                divider.setBackgroundColor(ContextCompat.getColor(context, R.color.divider));
+                holder.llTransactions.addView(divider);
+            }
+        }
+    }
+
+    private void bindTransactionItem(Context context, View itemView, Transaction current, boolean showCurrency) {
+        TextView tvDate = itemView.findViewById(R.id.tv_detail_date);
+        TextView tvSubCategory = itemView.findViewById(R.id.tv_detail_sub_category);
+        TextView tvTime = itemView.findViewById(R.id.tv_detail_time);
+        TextView tvAmount = itemView.findViewById(R.id.tv_detail_amount);
+        TextView tvNote = itemView.findViewById(R.id.tv_detail_note);
+
         String symbol = (current.currencySymbol != null && !current.currencySymbol.isEmpty()) ? current.currencySymbol : "¥";
         String amountStr = String.format(Locale.CHINA, "%.2f", current.amount);
         String displayAmount = showCurrency ? (symbol + " " + amountStr) : amountStr;
 
         if (current.type == TransactionType.INCOME.getValue()) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.income_red));
-            holder.tvAmount.setText("+" + displayAmount);
+            tvAmount.setTextColor(context.getColor(R.color.income_red));
+            tvAmount.setText("+" + displayAmount);
         } else if (current.type == TransactionType.LIABILITY.getValue()) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.liability_orange));
-            holder.tvAmount.setText("+" + displayAmount);
+            tvAmount.setTextColor(context.getColor(R.color.liability_orange));
+            tvAmount.setText("+" + displayAmount);
         } else if (current.type == TransactionType.LEND.getValue()) {
-            holder.tvAmount.setTextColor(context.getColor(R.color.lend_purple));
-            holder.tvAmount.setText("-" + displayAmount);
+            tvAmount.setTextColor(context.getColor(R.color.lend_purple));
+            tvAmount.setText("-" + displayAmount);
         } else {
-            holder.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.expense_green));
-            holder.tvAmount.setText("-" + displayAmount);
+            tvAmount.setTextColor(ContextCompat.getColor(context, R.color.expense_green));
+            tvAmount.setText("-" + displayAmount);
         }
 
-        holder.tvDate.setText(current.category); // 注意原XML中ID是tv_detail_date，但存的是分类名
+        tvDate.setText(current.category);
 
         if (!TextUtils.isEmpty(current.subCategory)) {
-            holder.tvSubCategory.setText(current.subCategory);
-            holder.tvSubCategory.setVisibility(View.VISIBLE);
+            tvSubCategory.setText(current.subCategory);
+            tvSubCategory.setVisibility(View.VISIBLE);
         } else {
-            holder.tvSubCategory.setVisibility(View.GONE);
+            tvSubCategory.setVisibility(View.GONE);
         }
 
-        // 创建时间显示（current.note字段包含创建时间）
         if (!TextUtils.isEmpty(current.note)) {
-            holder.tvTime.setVisibility(View.VISIBLE);
-            holder.tvTime.setText(current.note);
+            tvTime.setVisibility(View.VISIBLE);
+            tvTime.setText(current.note);
         } else {
-            holder.tvTime.setVisibility(View.GONE);
+            tvTime.setVisibility(View.GONE);
         }
 
-        // 备注显示
         if (!TextUtils.isEmpty(current.remark)) {
-            holder.tvNote.setVisibility(View.VISIBLE);
-            holder.tvNote.setText(current.remark);
+            tvNote.setVisibility(View.VISIBLE);
+            tvNote.setText(current.remark);
         } else {
-            holder.tvNote.setVisibility(View.GONE);
+            tvNote.setVisibility(View.GONE);
         }
-
-        holder.cardView.setOnClickListener(v -> {
-            // 按压反馈
-            AnimUtils.pressFeedback(v, 0.97f, 60);
-            if (listener != null) listener.onTransactionClick(current);
-        });
     }
-
 
     @Override
     public int getItemCount() {
-        return transactions.size();
+        return groups.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvHeader;
-        View cardView;
-        TextView tvDate, tvTime, tvSubCategory, tvAmount, tvNote;
+    static class GroupViewHolder extends RecyclerView.ViewHolder {
+        TextView tvGroupDate;
+        LinearLayout groupContainer;
+        LinearLayout llTransactions;
 
-        ViewHolder(View wrapper, TextView header, View card) {
-            super(wrapper);
-            tvHeader = header;
-            cardView = card;
-            tvDate = card.findViewById(R.id.tv_detail_date);
-            tvSubCategory = card.findViewById(R.id.tv_detail_sub_category);
-            tvTime = card.findViewById(R.id.tv_detail_time);
-            tvAmount = card.findViewById(R.id.tv_detail_amount);
-            tvNote = card.findViewById(R.id.tv_detail_note);
+        GroupViewHolder(View itemView) {
+            super(itemView);
+            tvGroupDate = itemView.findViewById(R.id.tv_group_date);
+            groupContainer = itemView.findViewById(R.id.group_container);
+            llTransactions = itemView.findViewById(R.id.ll_transactions);
         }
     }
 }

@@ -32,6 +32,9 @@ public class Transaction {
     // 借入/借出对象
     public String targetObject;
 
+    // 关联账户ID，null 表示未关联账户
+    public Integer accountId;
+
 
     public Transaction() {
     }
@@ -57,5 +60,6 @@ public class Transaction {
         this.currencySymbol = "¥";
         this.subCategory = ""; // 默认为空
         this.photoPath = "";
+        this.accountId = null;
     }
 }

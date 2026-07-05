@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.view.MotionEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.FrameLayout;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
@@ -42,6 +43,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.widget.TodaySummaryWidget;
 import com.example.budgetapp.ui.SettingsActivity;
+import com.example.budgetapp.ui.SpotlightGuideView;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
 import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -58,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TransactionViewModel transactionViewModel;
     private eightbitlab.com.blurview.BlurView blurTabBar;
+    private View rootLayout;
     // 【修复】移除全量数据缓存，改为导出时按需读取，避免内存占用过大
 
     // 双击返回退出功能
@@ -159,14 +162,14 @@ public class MainActivity extends AppCompatActivity {
         
         // 【修复】移除全量数据观察，避免内存占用过大
 
-        View rootLayout = findViewById(R.id.root_layout);
+        this.rootLayout = findViewById(R.id.root_layout);
         View contentLayout = findViewById(R.id.content_layout);
         SmoothBottomBar bottomBar = findViewById(R.id.bottomBar);
 
         BlurView blurTabBar = findViewById(R.id.blur_tab_bar);
         this.blurTabBar = blurTabBar;
         @SuppressWarnings("deprecation")
-        var ignored = blurTabBar.setupWith((ViewGroup) rootLayout, new RenderScriptBlur(this));
+        var ignored = blurTabBar.setupWith((ViewGroup) this.rootLayout, new RenderScriptBlur(this));
         blurTabBar.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
         blurTabBar.setClipToOutline(true);
 
@@ -176,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         applyCustomBackground();
 
         // 显示首次打开引导提示
-        showLongPressHintIfNeeded();
+        showSpotlightGuideIfNeeded();
 
         // 【修改】将WindowInsets监听器设置在content_layout上，避免影响遮罩层的覆盖范围
         ViewCompat.setOnApplyWindowInsetsListener(contentLayout, (v, windowInsets) -> {
@@ -448,42 +451,55 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 显示首次打开引导提示（非阻塞式气泡）
-    private void showLongPressHintIfNeeded() {
+    // 显示首次打开聚光灯引导
+    private void showSpotlightGuideIfNeeded() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        boolean hasShownHint = prefs.getBoolean("has_shown_long_press_hint", false);
+        boolean hasShownGuide = prefs.getBoolean("has_shown_spotlight_guide", false);
+        if (hasShownGuide) return;
 
-        if (!hasShownHint) {
-            TextView tooltip = findViewById(R.id.tv_fab_tooltip);
-            if (tooltip == null) return;
+        // 延迟显示，确保 Fragment 与按钮已完成布局
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            View quickRecord = findViewById(R.id.btn_quick_record);
+            View batchRecord = findViewById(R.id.btn_batch_record);
+            if (quickRecord == null || batchRecord == null) return;
 
-            // 延迟显示，确保界面已经完全加载
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                tooltip.setVisibility(View.VISIBLE);
-                tooltip.setAlpha(0f);
-                tooltip.animate()
-                        .alpha(1f)
-                        .setDuration(300)
-                        .start();
+            runSpotlightStage(quickRecord, getString(R.string.spotlight_quick_record_hint), () ->
+                    runSpotlightStage(batchRecord, getString(R.string.spotlight_batch_record_hint), () ->
+                            prefs.edit().putBoolean("has_shown_spotlight_guide", true).apply()));
+        }, 800);
+    }
 
-                // 4秒后自动淡出
-                tooltip.postDelayed(() -> {
-                    tooltip.animate()
-                            .alpha(0f)
-                            .setDuration(300)
-                            .withEndAction(() -> tooltip.setVisibility(View.GONE))
-                            .start();
-                    prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
-                }, 4000);
+    private void runSpotlightStage(View target, String hint, Runnable onDismiss) {
+        if (rootLayout == null) return;
 
-                // 点击任意位置也可关闭
-                tooltip.setOnClickListener(v -> {
-                    tooltip.animate().cancel();
-                    tooltip.setVisibility(View.GONE);
-                    prefs.edit().putBoolean("has_shown_long_press_hint", true).apply();
-                });
-            }, 800);
-        }
+        int[] location = new int[2];
+        target.getLocationOnScreen(location);
+        android.graphics.Rect targetRect = new android.graphics.Rect(
+                location[0], location[1],
+                location[0] + target.getWidth(), location[1] + target.getHeight());
+
+        SpotlightGuideView guide = new SpotlightGuideView(this);
+        guide.setTarget(targetRect, hint);
+        guide.setAlpha(0f);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        ((ViewGroup) rootLayout).addView(guide, params);
+
+        guide.animate()
+                .alpha(1f)
+                .setDuration(250)
+                .start();
+
+        guide.setOnClickListener(v -> guide.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    ((ViewGroup) rootLayout).removeView(guide);
+                    onDismiss.run();
+                })
+                .start());
     }
     // ==============================================================================
 

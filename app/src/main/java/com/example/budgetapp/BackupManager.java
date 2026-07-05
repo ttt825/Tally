@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.example.budgetapp.database.Account;
 import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
@@ -79,7 +80,10 @@ public class BackupManager {
         if (transactions == null) transactions = new ArrayList<>();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         BackupData data = new BackupData(transactions);
-        
+
+        // 导出账户数据
+        data.accounts = AppDatabase.getDatabase(context).accountDao().getAllAccountsSync();
+
         List<String> expenseCats = CategoryManager.getExpenseCategories(context);
         List<String> incomeCats = CategoryManager.getIncomeCategories(context);
         data.expenseCategories = expenseCats;
@@ -352,9 +356,12 @@ public class BackupManager {
     }
 
     /**
-     * 更新 BackupData 中的分类和偏好设置
+     * 更新 BackupData 中的账户、分类和偏好设置
      */
     private static void updateCategoriesAndPreferences(Context context, BackupData data) {
+        // 更新账户数据
+        data.accounts = AppDatabase.getDatabase(context).accountDao().getAllAccountsSync();
+
         List<String> expenseCats = CategoryManager.getExpenseCategories(context);
         List<String> incomeCats = CategoryManager.getIncomeCategories(context);
         data.expenseCategories = expenseCats;
@@ -519,6 +526,9 @@ public class BackupManager {
             CategoryManager.setSubCategoryEnabled(context, data.subCategoryEnabled);
             CategoryManager.setDetailedCategoryEnabled(context, data.detailedCategoryEnabled);
 
+            // 导入账户数据并重新映射ID
+            Map<Integer, Integer> accountIdMap = importAccountsAndRemapIds(context, data);
+
             if (data.appPreferences != null) {
                 SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
 
@@ -583,6 +593,41 @@ public class BackupManager {
         }
     }
 
+    /**
+     * 导入账户数据并重新映射账户ID
+     */
+    private static Map<Integer, Integer> importAccountsAndRemapIds(Context context, BackupData data) {
+        Map<Integer, Integer> idMap = new HashMap<>();
+        if (data.accounts == null || data.accounts.isEmpty()) {
+            return idMap;
+        }
+
+        AppDatabase db = AppDatabase.getDatabase(context);
+        db.runInTransaction(() -> {
+            db.accountDao().deleteAll();
+            for (Account account : data.accounts) {
+                int oldId = account.id;
+                account.id = 0;
+                long newId = db.accountDao().insert(account);
+                if (oldId != 0) {
+                    idMap.put(oldId, (int) newId);
+                }
+            }
+        });
+
+        // 重新映射交易记录中的 accountId
+        if (data.records != null) {
+            for (Transaction transaction : data.records) {
+                if (transaction.accountId != null && transaction.accountId != 0) {
+                    Integer newId = idMap.get(transaction.accountId);
+                    transaction.accountId = newId;
+                }
+            }
+        }
+
+        return idMap;
+    }
+
     // ============================================================================================
     // CSV 导出/导入（仅交易记录）
     // ============================================================================================
@@ -597,7 +642,9 @@ public class BackupManager {
         StringBuilder csvBuilder = new StringBuilder();
         csvBuilder.append('\ufeff');
 
-        csvBuilder.append("交易ID,时间,类型,分类,金额,记录标识,备注,二级分类,币种,对象\n");
+        csvBuilder.append("交易ID,时间,类型,分类,金额,记录标识,备注,二级分类,币种,对象,账户\n");
+
+        Map<Integer, String> accountNameMap = buildAccountNameMap(context);
 
         for (Transaction t : transactions) {
             csvBuilder.append(t.id).append(",");
@@ -610,7 +657,12 @@ public class BackupManager {
             csvBuilder.append(escapeCsv(t.subCategory)).append(",");
             String currency = (t.currencySymbol == null) ? "¥" : t.currencySymbol;
             csvBuilder.append(escapeCsv(currency)).append(",");
-            csvBuilder.append(escapeCsv(t.targetObject != null ? t.targetObject : "")).append("\n");
+            csvBuilder.append(escapeCsv(t.targetObject != null ? t.targetObject : "")).append(",");
+            String accountName = "";
+            if (t.accountId != null && t.accountId != 0) {
+                accountName = accountNameMap.getOrDefault(t.accountId, "");
+            }
+            csvBuilder.append(escapeCsv(accountName)).append("\n");
         }
 
         try (OutputStream outputStream = context.getContentResolver().openOutputStream(uri)) {
@@ -666,6 +718,7 @@ public class BackupManager {
                     t.currencySymbol = "¥";
                 }
                 t.targetObject = (tokens.size() > 9) ? tokens.get(9).trim() : "";
+                t.accountId = null; // CSV 导入不恢复账户关联
 
                 transactions.add(t);
             } catch (Exception e) {
@@ -887,6 +940,17 @@ public class BackupManager {
         data.expenseCategories = expCats;
         data.incomeCategories = incCats;
         return data;
+    }
+
+    private static Map<Integer, String> buildAccountNameMap(Context context) {
+        Map<Integer, String> map = new HashMap<>();
+        List<Account> accounts = AppDatabase.getDatabase(context).accountDao().getAllAccountsSync();
+        if (accounts != null) {
+            for (Account account : accounts) {
+                map.put(account.id, account.name);
+            }
+        }
+        return map;
     }
 
     private static String joinSet(Set<String> set) {

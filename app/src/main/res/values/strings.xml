@@ -56,8 +56,26 @@
     <string name="notice_contact">联系我</string>
 
     <!-- 对话框 -->
-    <string name="dialog_add_record">记一笔</string>
     <string name="dialog_split">拆单</string>
+    <string name="dialog_add_record">记一笔</string>
+    <string name="account_title">账户管理</string>
+    <string name="account_add">+ 添加</string>
+    <string name="account_empty_hint">暂无账户，点击右上角添加</string>
+    <string name="account_name_hint">账户名称</string>
+    <string name="account_balance_hint">当前余额</string>
+    <string name="account_remark_hint">备注（可选）</string>
+    <string name="account_enabled">启用该账户</string>
+    <string name="account_add_title">添加账户</string>
+    <string name="account_edit_title">编辑账户</string>
+    <string name="account_name_required">账户名称不能为空</string>
+    <string name="account_delete_title">删除账户</string>
+    <string name="account_delete_message">删除后，该账户下的历史交易将不再关联此账户。是否继续？</string>
+    <string name="account_balance_format">%1$s [余额：%2$.2f 元]</string>
+    <string name="account_balance_disabled_format">%1$s [余额：%2$.2f 元] [已禁用]</string>
+    <string name="account_card_balance_format">余额：%1$.2f 元</string>
+    <string name="account_card_balance_disabled_format">余额：%1$.2f 元 [已禁用]</string>
+    <string name="account_no_account">不关联账户</string>
+    <string name="account_link_label">关联账户</string>
     <string name="btn_reset">重 置</string>
     <string name="btn_confirm">确 认</string>
     <string name="dialog_advanced_filter">高级筛选</string>
@@ -66,6 +84,7 @@
     <string name="label_category_keyword">分类关键字</string>
     <string name="label_remark_contains">备注包含</string>
     <string name="btn_delete">删除</string>
+    <string name="btn_cancel">取消</string>
     <string name="btn_save_changes">保存修改</string>
 
     <!-- 其他 -->
@@ -80,6 +99,8 @@
     <string name="empty_details_title">暂无明细</string>
     <string name="empty_details_hint">记账后可在此查看和筛选所有账单</string>
     <string name="fab_tooltip_hint">点此记一笔，长按进入设置</string>
+    <string name="spotlight_quick_record_hint">点击此记一笔，长按进入设置</string>
+    <string name="spotlight_batch_record_hint">点此一次记多笔，长按进入账户管理</string>
 
     <!-- 星期 -->
     <string name="weekday_mon">一</string>

@@ -64,10 +64,10 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /**
-     * 添加交易记录（触发自动备份计数）
+     * 添加交易记录并调整账户余额（触发自动备份计数）
      */
     public void addTransaction(Transaction transaction) {
-        repository.insert(transaction, id -> {
+        repository.insertWithAccountBalance(transaction, id -> {
             notifyWidgetUpdate();
             BackupManager.markTransactionDirty(getApplication(), transaction.id);
             triggerAutoBackup();
@@ -75,10 +75,10 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /**
-     * 更新交易记录（触发自动备份计数）
+     * 更新交易记录并调整账户余额（触发自动备份计数）
      */
     public void updateTransaction(Transaction transaction) {
-        repository.update(transaction, result -> {
+        repository.updateWithAccountBalance(transaction, result -> {
             notifyWidgetUpdate();
             BackupManager.markTransactionDirty(getApplication(), transaction.id);
             triggerAutoBackup();
@@ -86,11 +86,11 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /**
-     * 删除交易记录（触发自动备份计数）
+     * 删除交易记录并调整账户余额（触发自动备份计数）
      */
     public void deleteTransaction(Transaction transaction) {
         int deletedId = transaction.id;
-        repository.delete(transaction, result -> {
+        repository.deleteWithAccountBalance(transaction, result -> {
             notifyWidgetUpdate();
             BackupManager.markTransactionDeleted(getApplication(), deletedId);
             triggerAutoBackup();
@@ -100,10 +100,10 @@ public class TransactionViewModel extends AndroidViewModel {
     // ================= 批量操作 =================
 
     /**
-     * 批量添加交易记录（用于"记多笔"）- 只触发一次自动备份计数
+     * 批量添加交易记录并调整账户余额（用于"记多笔"）- 只触发一次自动备份计数
      */
     public void addBatchTransactions(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
-        repository.insertAll(transactions, count -> {
+        repository.insertAllWithAccountBalance(transactions, count -> {
             notifyWidgetUpdate();
             for (Transaction t : transactions) {
                 BackupManager.markTransactionDirty(getApplication(), t.id);
@@ -116,11 +116,11 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /**
-     * 拆单操作：删除原始账单并批量插入拆分账单 - 只触发一次自动备份计数
+     * 拆单操作：删除原始账单并批量插入拆分账单并调整账户余额 - 只触发一次自动备份计数
      */
     public void splitTransaction(Transaction original, List<Transaction> splitList, RepositoryCallback<Integer> callback) {
         int deletedId = original.id;
-        repository.deleteAndInsertAll(original, splitList, count -> {
+        repository.deleteAndInsertAllWithAccountBalance(original, splitList, count -> {
             notifyWidgetUpdate();
             BackupManager.markTransactionDeleted(getApplication(), deletedId);
             for (Transaction t : splitList) {

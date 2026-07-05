@@ -110,16 +110,19 @@ public class RecordFragment extends Fragment {
 
     /**
      * 核心跟手引擎：接管日历的水平方向滑动
+     * 注意：SwipeHelper.setup 在滑动超过阈值时已自动调用 finishSwipeAnimation 完成动画，
+     * 因此回调中只需更新数据，不能再触发二次动画。
      */
     private void setupFollowHandSwipe(RecyclerView recyclerView) {
         SwipeHelper.setup(recyclerView, direction -> {
             if (direction == -1) {
                 // 右滑 → 上个月
-                changeCalendarPage(0, -1);
+                currentMonth = currentMonth.minusMonths(1);
             } else {
                 // 左滑 → 下个月
-                changeCalendarPage(0, 1);
+                currentMonth = currentMonth.plusMonths(1);
             }
+            updateCalendar(0);
         });
     }
 
@@ -230,6 +233,7 @@ public class RecordFragment extends Fragment {
 
         if (dailyTransactionsRecycler != null) {
             dailyTransactionsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+            dailyTransactionsRecycler.setNestedScrollingEnabled(false);
             FadeInItemAnimator recordAnimator = new FadeInItemAnimator();
             recordAnimator.setReduceMotion(AnimUtils.shouldReduceAnimations(getContext()));
             dailyTransactionsRecycler.setItemAnimator(recordAnimator);
@@ -290,6 +294,12 @@ public class RecordFragment extends Fragment {
                 showBatchDialog();
             });
 
+            btnBatchRecord.setOnLongClickListener(v -> {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                startActivity(new Intent(requireContext(), AccountSettingsActivity.class));
+                return true;
+            });
+
             btnBatchRecord.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
@@ -316,6 +326,7 @@ public class RecordFragment extends Fragment {
         };
         calendarRecycler.setLayoutManager(layoutManager);
         calendarRecycler.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        calendarRecycler.setNestedScrollingEnabled(false);
 
         // 🌟 新增 1：关闭日历刷新时的自带闪烁动画
         calendarRecycler.setItemAnimator(null);

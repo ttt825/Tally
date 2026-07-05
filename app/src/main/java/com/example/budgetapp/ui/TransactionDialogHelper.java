@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import android.text.InputFilter;
 import android.view.LayoutInflater;
+import android.widget.ArrayAdapter;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -21,6 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,6 +33,8 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.budgetapp.R;
+import com.example.budgetapp.database.Account;
+import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
 import com.example.budgetapp.utils.CategoryManager;
@@ -46,6 +50,7 @@ import com.google.android.material.chip.ChipGroup;
 
 import com.example.budgetapp.utils.DateUtils;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +98,7 @@ public class TransactionDialogHelper {
         MaterialButton btnTakePhoto = dialogView.findViewById(R.id.btn_take_photo);
         MaterialButton btnViewPhoto = dialogView.findViewById(R.id.btn_view_photo);
         TextView tvAmountError = dialogView.findViewById(R.id.tv_amount_error);
+        Spinner spinnerAccount = dialogView.findViewById(R.id.spinner_account);
 
         // 根据是否编辑模式设置标题
         TextView tvDialogTitle = dialogView.findViewById(R.id.tv_dialog_title);
@@ -327,6 +333,9 @@ public class TransactionDialogHelper {
             }
         });
 
+        final Integer[] selectedAccountIdHolder = new Integer[1];
+        selectedAccountIdHolder[0] = existingTransaction != null ? existingTransaction.accountId : null;
+
         if (existingTransaction != null) {
             btnSave.setText("保存修改");
             etAmount.setText(String.valueOf(existingTransaction.amount));
@@ -376,6 +385,10 @@ public class TransactionDialogHelper {
             }
 
             btnDelete.setVisibility(View.VISIBLE);
+
+            setupAccountSpinner(context, spinnerAccount, selectedAccountIdHolder[0],
+                    selectedAccountIdHolder[0], accountId -> selectedAccountIdHolder[0] = accountId);
+
             btnDelete.setOnClickListener(v -> {
                 AlertDialog.Builder delBuilder = new AlertDialog.Builder(context);
                 View delView = LayoutInflater.from(context).inflate(R.layout.dialog_confirm_delete, null);
@@ -403,6 +416,8 @@ public class TransactionDialogHelper {
             btnSave.setText("保 存");
             btnDelete.setVisibility(View.GONE);
             etNote.setText(DateUtils.formatNoteTime(calendar.getTimeInMillis()));
+            setupAccountSpinner(context, spinnerAccount, null, null,
+                    accountId -> selectedAccountIdHolder[0] = accountId);
         }
 
         // 表单实时验证：金额为空时禁用保存按钮
@@ -507,10 +522,12 @@ public class TransactionDialogHelper {
             String currencySymbol = isCurrencyEnabled ? btnCurrency.getText().toString() : "¥";
 
             boolean isEdit = existingTransaction != null;
+            Integer selectedAccountId = selectedAccountIdHolder[0];
+
             if (isEdit) {
                 if (isTransactionUnchanged(existingTransaction, ts, type, amount, category,
                         selectedSubCategory[0], noteContent, userRemark, currencySymbol,
-                        currentPhotoPath[0], targetObj)) {
+                        currentPhotoPath[0], targetObj, selectedAccountId)) {
                     dialog.dismiss();
                     Toast.makeText(context, "未做任何修改", Toast.LENGTH_SHORT).show();
                     return;
@@ -531,6 +548,7 @@ public class TransactionDialogHelper {
             transaction.subCategory = selectedSubCategory[0];
             transaction.photoPath = currentPhotoPath[0];
             transaction.targetObject = targetObj;
+            transaction.accountId = selectedAccountId;
 
             listener.onTransactionSaved(transaction, isEdit);
 
@@ -562,6 +580,7 @@ public class TransactionDialogHelper {
             currentTransaction.subCategory = selectedSubCategory[0];
             currentTransaction.photoPath = currentPhotoPath[0];
             currentTransaction.targetObject = etTargetObject.getText().toString().trim();
+            currentTransaction.accountId = selectedAccountIdHolder[0];
 
             // 检测是否有未保存的修改
             boolean hasChanges = !isTransactionUnchanged(existingTransaction,
@@ -569,7 +588,7 @@ public class TransactionDialogHelper {
                     currentTransaction.category, currentTransaction.subCategory,
                     currentTransaction.note, currentTransaction.remark,
                     currentTransaction.currencySymbol, currentTransaction.photoPath,
-                    currentTransaction.targetObject);
+                    currentTransaction.targetObject, currentTransaction.accountId);
 
             if (hasChanges) {
                 // 自动保存修改后再进入拆单
@@ -604,7 +623,8 @@ public class TransactionDialogHelper {
     private static boolean isTransactionUnchanged(Transaction existing, long date, int type,
                                                    double amount, String category, String subCategory,
                                                    String note, String remark, String currencySymbol,
-                                                   String photoPath, String targetObject) {
+                                                   String photoPath, String targetObject,
+                                                   Integer accountId) {
         return existing.date == date
                 && existing.type == type
                 && Math.round(existing.amount * 100) == Math.round(amount * 100)
@@ -614,7 +634,8 @@ public class TransactionDialogHelper {
                 && Objects.equals(existing.remark, remark)
                 && Objects.equals(existing.currencySymbol, currencySymbol)
                 && Objects.equals(existing.photoPath, photoPath)
-                && Objects.equals(existing.targetObject, targetObject);
+                && Objects.equals(existing.targetObject, targetObject)
+                && Objects.equals(existing.accountId, accountId);
     }
 
     private static double parseAmountSafe(String amountStr) {
@@ -716,6 +737,105 @@ public class TransactionDialogHelper {
 
     private static String formatDate(long timestamp) {
         return DateUtils.formatDateShort(timestamp);
+    }
+
+    interface OnAccountSelectedListener {
+        void onSelected(Integer accountId);
+    }
+
+    /**
+     * 异步加载账户并设置下拉框，避免在主线程执行数据库查询。
+     */
+    static void setupAccountSpinner(
+            Context context, Spinner spinner, @Nullable Integer selectedAccountId,
+            @Nullable Integer existingAccountId, OnAccountSelectedListener listener) {
+
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            List<Account> enabledAccounts = AppDatabase.getDatabase(context).accountDao().getEnabledAccountsSync();
+            Account existingAccount = null;
+            if (existingAccountId != null && existingAccountId != 0) {
+                boolean foundInEnabled = false;
+                for (Account acc : enabledAccounts) {
+                    if (acc.id == existingAccountId) {
+                        foundInEnabled = true;
+                        break;
+                    }
+                }
+                if (!foundInEnabled) {
+                    existingAccount = AppDatabase.getDatabase(context).accountDao().getAccountByIdSync(existingAccountId);
+                }
+            }
+            final Account finalExistingAccount = existingAccount;
+            new Handler(Looper.getMainLooper()).post(() ->
+                    populateAccountSpinner(context, spinner, selectedAccountId,
+                            enabledAccounts, finalExistingAccount, listener));
+        });
+    }
+
+    private static void populateAccountSpinner(
+            Context context, Spinner spinner, @Nullable Integer selectedAccountId,
+            List<Account> enabledAccounts, @Nullable Account existingAccount,
+            OnAccountSelectedListener listener) {
+
+        List<AccountSpinnerItem> items = new ArrayList<>();
+        items.add(new AccountSpinnerItem(null, context.getString(R.string.account_no_account)));
+
+        int selectedPosition = 0;
+        for (Account account : enabledAccounts) {
+            items.add(new AccountSpinnerItem(account.id,
+                    String.format(Locale.getDefault(), context.getString(R.string.account_balance_format),
+                            account.name, account.balance)));
+            if (selectedAccountId != null && selectedAccountId.equals(account.id)) {
+                selectedPosition = items.size() - 1;
+            }
+        }
+
+        // 编辑时若原账户已禁用，仍显示在列表末尾
+        if (existingAccount != null && !existingAccount.enabled) {
+            items.add(new AccountSpinnerItem(existingAccount.id,
+                    String.format(Locale.getDefault(), context.getString(R.string.account_balance_disabled_format),
+                            existingAccount.name, existingAccount.balance)));
+            if (selectedAccountId != null && selectedAccountId.equals(existingAccount.id)) {
+                selectedPosition = items.size() - 1;
+            }
+        }
+
+        ArrayAdapter<AccountSpinnerItem> adapter = new ArrayAdapter<>(context,
+                R.layout.item_spinner_dropdown, items);
+        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(selectedPosition);
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                AccountSpinnerItem item = (AccountSpinnerItem) parent.getItemAtPosition(position);
+                if (listener != null) {
+                    listener.onSelected(item != null ? item.accountId : null);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                if (listener != null) {
+                    listener.onSelected(null);
+                }
+            }
+        });
+    }
+
+    static class AccountSpinnerItem {
+        final Integer accountId;
+        final String displayText;
+
+        AccountSpinnerItem(Integer accountId, String displayText) {
+            this.accountId = accountId;
+            this.displayText = displayText;
+        }
+
+        @Override
+        public String toString() {
+            return displayText;
+        }
     }
 
     public static class DecimalDigitsInputFilter implements InputFilter {

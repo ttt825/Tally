@@ -51,6 +51,7 @@ import com.example.budgetapp.model.TransactionType;
 import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
 import com.example.budgetapp.utils.SwipeHelper;
+import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
@@ -94,10 +95,17 @@ public class DetailsFragment extends Fragment {
 
     /**
      * 核心跟手引擎：接管列表的水平方向滑动
+     * 注意：SwipeHelper.setup 在滑动超过阈值时已自动调用 finishSwipeAnimation 完成动画，
+     * 因此回调中只需更新数据，不能再触发二次动画。
      */
     private void setupFollowHandSwipe(RecyclerView recyclerView) {
         SwipeHelper.setup(recyclerView, direction -> {
-            finishSwipeAnimation(recyclerView, direction > 0 ? -recyclerView.getWidth() : recyclerView.getWidth(), direction);
+            int offset = direction; // -1=上一页, 1=下一页
+            if (currentMode == 0) selectedDate = selectedDate.plusYears(offset);
+            else if (currentMode == 1) selectedDate = selectedDate.plusMonths(offset);
+            else selectedDate = selectedDate.plusWeeks(offset);
+            updateDateRangeDisplay();
+            processAndDisplayData(0);
         });
     }
 
@@ -116,20 +124,24 @@ public class DetailsFragment extends Fragment {
             new ActivityResultContracts.CreateDocument("text/csv"),
             uri -> {
                 if (uri != null) {
-                    try {
-                        // 获取当前筛选后的数据
-                        List<Transaction> currentTransactions = adapter.getCurrentTransactions();
-                        if (currentTransactions == null || currentTransactions.isEmpty()) {
-                            Toast.makeText(getContext(), "当前没有数据可导出", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        // 只导出交易记录，不包含配置信息
-                        BackupManager.exportTransactionsOnly(requireContext(), uri, currentTransactions);
-                        Toast.makeText(getContext(), "CSV导出成功", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Log.e("Tally", "Error", e);
-                        Toast.makeText(getContext(), "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    // 获取当前筛选后的数据
+                    List<Transaction> currentTransactions = adapter.getCurrentTransactions();
+                    if (currentTransactions == null || currentTransactions.isEmpty()) {
+                        Toast.makeText(getContext(), "当前没有数据可导出", Toast.LENGTH_SHORT).show();
+                        return;
                     }
+                    // 导出操作涉及数据库查询，放到后台线程执行
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
+                        try {
+                            BackupManager.exportTransactionsOnly(requireContext(), uri, currentTransactions);
+                            requireActivity().runOnUiThread(() ->
+                                    Toast.makeText(getContext(), "CSV导出成功", Toast.LENGTH_SHORT).show());
+                        } catch (Exception e) {
+                            Log.e("Tally", "Error", e);
+                            requireActivity().runOnUiThread(() ->
+                                    Toast.makeText(getContext(), "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        }
+                    });
                 }
             }
     );
@@ -394,7 +406,7 @@ public class DetailsFragment extends Fragment {
                     list.add(0, transaction);
                     Toast.makeText(getContext(), "已添加记录", Toast.LENGTH_SHORT).show();
                 }
-                adapter.notifyDataSetChanged();
+                adapter.setTransactions(adapter.getCurrentTransactions());
             }
 
             @Override
@@ -407,7 +419,7 @@ public class DetailsFragment extends Fragment {
                         break;
                     }
                 }
-                adapter.notifyDataSetChanged();
+                adapter.setTransactions(adapter.getCurrentTransactions());
                 Toast.makeText(getContext(), "已删除记录", Toast.LENGTH_SHORT).show();
             }
 
@@ -424,7 +436,7 @@ public class DetailsFragment extends Fragment {
                         viewModel.splitTransaction(originalTransaction, splitTransactions, count -> {
                             if (getActivity() != null) {
                                 getActivity().runOnUiThread(() -> {
-                                    adapter.notifyDataSetChanged();
+                                    adapter.setTransactions(adapter.getCurrentTransactions());
                                 });
                             }
                         });

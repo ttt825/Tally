@@ -54,9 +54,15 @@ public class BatchTransactionDialogHelper {
         RadioGroup rgType = dialogView.findViewById(R.id.rg_batch_type);
         LinearLayout layoutRows = dialogView.findViewById(R.id.layout_batch_rows);
         ImageButton btnAddRow = dialogView.findViewById(R.id.btn_add_row);
+        Spinner spinnerBatchAccount = dialogView.findViewById(R.id.spinner_batch_account);
         EditText etRecordId = dialogView.findViewById(R.id.et_batch_record_id);
         TextView btnSave = dialogView.findViewById(R.id.btn_batch_save);
         TextView tvCol2Label = dialogView.findViewById(R.id.tv_batch_col2_label);
+
+        final Integer[] sharedAccountIdHolder = new Integer[1];
+        sharedAccountIdHolder[0] = null;
+        TransactionDialogHelper.setupAccountSpinner(context, spinnerBatchAccount, null, null,
+                accountId -> sharedAccountIdHolder[0] = accountId);
 
         Calendar calendar = Calendar.getInstance();
 
@@ -114,7 +120,7 @@ public class BatchTransactionDialogHelper {
             List<String> categories = currentType[0] == TransactionType.INCOME.getValue()
                     ? incomeCategories : expenseCategories;
             addRow(context, layoutRows, rowHolders, categories, currentType[0]);
-            updateDeleteButtons(rowHolders);
+            updateDeleteButtons(rowHolders, layoutRows);
         });
 
         btnSave.setOnClickListener(v -> {
@@ -127,6 +133,7 @@ public class BatchTransactionDialogHelper {
 
             List<Transaction> transactions = new ArrayList<>();
             String batchRecordId = etRecordId.getText().toString().trim();
+            Integer accountId = sharedAccountIdHolder[0];
 
             for (int i = 0; i < rowHolders.size(); i++) {
                 BatchRowHolder holder = rowHolders.get(i);
@@ -186,6 +193,7 @@ public class BatchTransactionDialogHelper {
                 transaction.subCategory = "";
                 transaction.photoPath = "";
                 transaction.targetObject = targetObject;
+                transaction.accountId = accountId;
 
                 transactions.add(transaction);
             }
@@ -200,7 +208,7 @@ public class BatchTransactionDialogHelper {
             Toast.makeText(context, "已保存" + transactions.size() + "笔记录", Toast.LENGTH_SHORT).show();
         });
 
-        updateDeleteButtons(rowHolders);
+        updateDeleteButtons(rowHolders, layoutRows);
 
         dialog.show();
         return dialog;
@@ -221,10 +229,11 @@ public class BatchTransactionDialogHelper {
 
         holder.etAmount.setFilters(new InputFilter[]{new TransactionDialogHelper.DecimalDigitsInputFilter(2)});
 
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(context,
-                android.R.layout.simple_spinner_item, categories);
-        spinnerAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
-        holder.spinnerCategory.setAdapter(spinnerAdapter);
+        holder.currentCategories = new ArrayList<>(categories);
+        holder.categoryAdapter = new ArrayAdapter<>(context,
+                R.layout.item_spinner_selected, holder.currentCategories);
+        holder.categoryAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+        holder.spinnerCategory.setAdapter(holder.categoryAdapter);
 
         updateRowForType(holder, currentType, categories, context);
 
@@ -232,12 +241,12 @@ public class BatchTransactionDialogHelper {
             v.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
             rowHolders.remove(holder);
             layoutRows.removeView(rowView);
-            updateDeleteButtons(rowHolders);
+            updateDeleteButtons(rowHolders, layoutRows);
         });
 
         rowHolders.add(holder);
         layoutRows.addView(rowView);
-        updateDeleteButtons(rowHolders);
+        updateDeleteButtons(rowHolders, layoutRows);
     }
 
     private static void updateRowForType(BatchRowHolder holder, int currentType,
@@ -256,18 +265,45 @@ public class BatchTransactionDialogHelper {
         } else {
             holder.spinnerCategory.setVisibility(View.VISIBLE);
             holder.etTarget.setVisibility(View.GONE);
-            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(context,
-                    android.R.layout.simple_spinner_item, categories);
-            spinnerAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
-            holder.spinnerCategory.setAdapter(spinnerAdapter);
+
+            String selectedCategory = null;
+            if (holder.spinnerCategory.getSelectedItem() != null) {
+                selectedCategory = holder.spinnerCategory.getSelectedItem().toString();
+            }
+
+            if (holder.categoryAdapter == null || !holder.currentCategories.equals(categories)) {
+                holder.currentCategories = new ArrayList<>(categories);
+                holder.categoryAdapter = new ArrayAdapter<>(context,
+                        R.layout.item_spinner_selected, holder.currentCategories);
+                holder.categoryAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+                holder.spinnerCategory.setAdapter(holder.categoryAdapter);
+            }
+
+            int newPosition = 0;
+            if (selectedCategory != null) {
+                int index = categories.indexOf(selectedCategory);
+                if (index >= 0) {
+                    newPosition = index;
+                }
+            }
+            holder.spinnerCategory.setSelection(newPosition, false);
+            holder.spinnerCategory.post(() -> {
+                holder.spinnerCategory.requestLayout();
+                holder.spinnerCategory.invalidate();
+            });
         }
     }
 
-    private static void updateDeleteButtons(List<BatchRowHolder> rowHolders) {
+    private static void updateDeleteButtons(List<BatchRowHolder> rowHolders,
+                                            LinearLayout layoutRows) {
         boolean canDelete = rowHolders.size() > 2;
         for (BatchRowHolder holder : rowHolders) {
             holder.btnDelete.setVisibility(canDelete ? View.VISIBLE : View.GONE);
+            holder.spinnerCategory.requestLayout();
+            holder.spinnerCategory.invalidate();
         }
+        layoutRows.requestLayout();
+        layoutRows.invalidate();
     }
 
     static class BatchRowHolder {
@@ -278,5 +314,7 @@ public class BatchTransactionDialogHelper {
         EditText etRemark;
         ImageButton btnDelete;
         View layoutCol2;
+        ArrayAdapter<String> categoryAdapter;
+        List<String> currentCategories;
     }
 }

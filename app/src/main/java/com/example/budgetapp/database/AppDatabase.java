@@ -11,14 +11,22 @@ import androidx.annotation.NonNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {Transaction.class}, version = 20, exportSchema = false)
+@Database(entities = {Transaction.class, Account.class}, version = 21, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract TransactionDao transactionDao();
+    public abstract AccountDao accountDao();
 
     private static volatile AppDatabase INSTANCE;
     private static final int NUMBER_OF_THREADS = 4;
     public static final ExecutorService databaseWriteExecutor = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+
+    /**
+     * 仅供测试使用，用于注入内存数据库实例
+     */
+    public static void setInstanceForTest(AppDatabase testDatabase) {
+        INSTANCE = testDatabase;
+    }
     public static volatile boolean downgradeDetected = false;
 
     // ... 保持之前的 MIGRATION
@@ -134,7 +142,27 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
-    private static final int CURRENT_VERSION = 20;
+    static final Migration MIGRATION_20_21 = new Migration(20, 21) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // 1. 创建账户表
+            database.execSQL("CREATE TABLE IF NOT EXISTS `accounts` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`balance` REAL NOT NULL, " +
+                    "`enabled` INTEGER NOT NULL, " +
+                    "`remark` TEXT NOT NULL, " +
+                    "`createTime` INTEGER NOT NULL)");
+            // 2. 创建账户名称唯一索引
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_accounts_name` ON `accounts` (`name`)");
+            // 3. 为交易表增加账户关联列
+            database.execSQL("ALTER TABLE transactions ADD COLUMN accountId INTEGER");
+            // 4. 创建账户ID索引
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `transactions` (`accountId`)");
+        }
+    };
+
+    private static final int CURRENT_VERSION = 21;
 
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
@@ -150,7 +178,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                                     MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-                                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
+                                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
+                                    MIGRATION_20_21
                             )
                             .fallbackToDestructiveMigration()
                             .build();

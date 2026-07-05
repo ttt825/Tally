@@ -2,12 +2,14 @@ package com.example.budgetapp.data.repository;
 
 import androidx.lifecycle.LiveData;
 
+import com.example.budgetapp.database.Account;
 import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.database.TransactionDao;
 import com.example.budgetapp.database.TransactionForDuplicate;
 import com.example.budgetapp.database.TransactionStats;
 import com.example.budgetapp.model.TransactionType;
+import com.example.budgetapp.utils.AccountBalanceHelper;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -92,6 +94,151 @@ public class TransactionRepository {
                 List<Long> ids = transactionDao.insertAll(splitList);
                 for (int i = 0; i < splitList.size() && i < ids.size(); i++) {
                     splitList.get(i).id = ids.get(i).intValue();
+                }
+            });
+            if (callback != null) {
+                callback.onComplete(splitList.size());
+            }
+        });
+    }
+
+    // ================= 账户余额联动操作 =================
+
+    /**
+     * 插入交易并同步调整账户余额（原子操作）
+     */
+    public void insertWithAccountBalance(Transaction transaction, RepositoryCallback<Void> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                transactionDao.insert(transaction);
+                if (transaction.accountId != null && transaction.accountId != 0) {
+                    Account account = database.accountDao().getAccountByIdSync(transaction.accountId);
+                    if (account != null) {
+                        AccountBalanceHelper.applyTransactionToAccount(account, transaction);
+                        database.accountDao().update(account);
+                    }
+                }
+            });
+            if (callback != null) {
+                callback.onComplete(null);
+            }
+        });
+    }
+
+    /**
+     * 更新交易并同步调整账户余额（原子操作）
+     */
+    public void updateWithAccountBalance(Transaction transaction, RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                Transaction oldTransaction = transactionDao.getTransactionsByIds(
+                        java.util.Collections.singletonList(transaction.id)).get(0);
+                transactionDao.update(transaction);
+
+                // 原账户与新账户不同，需要分别处理
+                Integer oldAccountId = oldTransaction.accountId;
+                Integer newAccountId = transaction.accountId;
+
+                if (oldAccountId != null && oldAccountId != 0 &&
+                        (newAccountId == null || !newAccountId.equals(oldAccountId))) {
+                    Account oldAccount = database.accountDao().getAccountByIdSync(oldAccountId);
+                    if (oldAccount != null) {
+                        AccountBalanceHelper.revertTransactionFromAccount(oldAccount, oldTransaction);
+                        database.accountDao().update(oldAccount);
+                    }
+                }
+
+                if (newAccountId != null && newAccountId != 0) {
+                    Account newAccount = database.accountDao().getAccountByIdSync(newAccountId);
+                    if (newAccount != null) {
+                        if (newAccountId.equals(oldAccountId)) {
+                            AccountBalanceHelper.revertTransactionFromAccount(newAccount, oldTransaction);
+                        }
+                        AccountBalanceHelper.applyTransactionToAccount(newAccount, transaction);
+                        database.accountDao().update(newAccount);
+                    }
+                }
+            });
+            if (callback != null) {
+                callback.onComplete(1);
+            }
+        });
+    }
+
+    /**
+     * 删除交易并同步调整账户余额（原子操作）
+     */
+    public void deleteWithAccountBalance(Transaction transaction, RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                if (transaction.accountId != null && transaction.accountId != 0) {
+                    Account account = database.accountDao().getAccountByIdSync(transaction.accountId);
+                    if (account != null) {
+                        AccountBalanceHelper.revertTransactionFromAccount(account, transaction);
+                        database.accountDao().update(account);
+                    }
+                }
+                transactionDao.delete(transaction);
+            });
+            if (callback != null) {
+                callback.onComplete(1);
+            }
+        });
+    }
+
+    /**
+     * 批量插入交易并同步调整账户余额（原子操作）
+     */
+    public void insertAllWithAccountBalance(List<Transaction> transactions, RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                List<Long> ids = transactionDao.insertAll(transactions);
+                for (int i = 0; i < transactions.size() && i < ids.size(); i++) {
+                    transactions.get(i).id = ids.get(i).intValue();
+                }
+                for (Transaction transaction : transactions) {
+                    if (transaction.accountId != null && transaction.accountId != 0) {
+                        Account account = database.accountDao().getAccountByIdSync(transaction.accountId);
+                        if (account != null) {
+                            AccountBalanceHelper.applyTransactionToAccount(account, transaction);
+                            database.accountDao().update(account);
+                        }
+                    }
+                }
+            });
+            if (callback != null) {
+                callback.onComplete(transactions.size());
+            }
+        });
+    }
+
+    /**
+     * 拆单操作并同步调整账户余额（原子操作）
+     */
+    public void deleteAndInsertAllWithAccountBalance(Transaction original, List<Transaction> splitList,
+                                                      RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                if (original.accountId != null && original.accountId != 0) {
+                    Account account = database.accountDao().getAccountByIdSync(original.accountId);
+                    if (account != null) {
+                        AccountBalanceHelper.revertTransactionFromAccount(account, original);
+                        database.accountDao().update(account);
+                    }
+                }
+                transactionDao.delete(original);
+                List<Long> ids = transactionDao.insertAll(splitList);
+                for (int i = 0; i < splitList.size() && i < ids.size(); i++) {
+                    splitList.get(i).id = ids.get(i).intValue();
+                }
+                for (Transaction transaction : splitList) {
+                    if (transaction.accountId != null && transaction.accountId != 0) {
+                        Account account = database.accountDao().getAccountByIdSync(transaction.accountId);
+                        if (account != null) {
+                            AccountBalanceHelper.applyTransactionToAccount(account, transaction);
+                            database.accountDao().update(account);
+                        }
+                    }
                 }
             });
             if (callback != null) {

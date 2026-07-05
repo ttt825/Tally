@@ -1,5 +1,6 @@
 package com.example.budgetapp;
 
+import com.example.budgetapp.database.Account;
 import com.example.budgetapp.database.Transaction;
 import com.google.gson.annotations.SerializedName;
 
@@ -9,7 +10,7 @@ import java.util.Set;
 
 public class BackupData {
     @SerializedName("version")
-    public int version = 5;
+    public int version = 6;
 
     @SerializedName("createTime")
     public long createTime;
@@ -34,6 +35,9 @@ public class BackupData {
 
     @SerializedName("appPreferences")
     public Map<String, PrefItem> appPreferences;
+
+    @SerializedName("accounts")
+    public List<Account> accounts;
 
     @SerializedName("records")
     public List<Transaction> records;

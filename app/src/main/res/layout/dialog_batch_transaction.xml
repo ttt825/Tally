@@ -121,12 +121,13 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginBottom="8dp"
-                    android:paddingHorizontal="4dp">
+                    android:paddingHorizontal="8dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
                         android:text="金额"
                         android:textSize="12sp"
                         android:textColor="?android:attr/textColorSecondary"
@@ -137,6 +138,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginHorizontal="4dp"
                         android:text="类型"
                         android:textSize="12sp"
                         android:textColor="?android:attr/textColorSecondary"
@@ -146,10 +148,17 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="4dp"
                         android:text="备注"
                         android:textSize="12sp"
                         android:textColor="?android:attr/textColorSecondary"
                         android:gravity="center"/>
+
+                    <View
+                        android:layout_width="32dp"
+                        android:layout_height="0dp"
+                        android:layout_marginStart="4dp"
+                        android:visibility="invisible"/>
                 </LinearLayout>
 
                 <LinearLayout
@@ -169,6 +178,17 @@
                     android:contentDescription="新增一行"
                     app:tint="@color/app_accent"
                     android:scaleType="center"/>
+
+                <Spinner
+                    android:id="@+id/spinner_batch_account"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/bg_input_field"
+                    android:popupBackground="@drawable/bg_input_field"
+                    android:paddingHorizontal="16dp"
+                    android:spinnerMode="dropdown"
+                    android:dropDownVerticalOffset="52dp" />
 
                 <EditText
                     android:id="@+id/et_batch_record_id"

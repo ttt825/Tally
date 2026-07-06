@@ -57,11 +57,12 @@ public interface TransactionDao {
     // 使用普通的 LiveData<List<Transaction>> 返回类型，并加上金额筛选条件
     @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate " +
             "AND (:type IS NULL OR type = :type) " +
+            "AND (:accountId IS NULL OR accountId = :accountId) " +
             "AND (:minAmount IS NULL OR amount >= :minAmount) " +
             "AND (:maxAmount IS NULL OR amount <= :maxAmount) " +
             "AND (:keyword IS NULL OR category LIKE '%' || :keyword || '%' OR note LIKE '%' || :keyword || '%') " +
             "ORDER BY date DESC")
-    LiveData<List<Transaction>> getFilteredTransactions(long startDate, long endDate, Integer type, Float minAmount, Float maxAmount, String keyword);
+    LiveData<List<Transaction>> getFilteredTransactions(long startDate, long endDate, Integer type, Integer accountId, Float minAmount, Float maxAmount, String keyword);
 
     // 【新增】供桌面小组件使用：同步聚合查询指定时间的收入或支出总和
     @Query("SELECT SUM(amount) FROM transactions WHERE date >= :start AND date <= :end AND type = :type")

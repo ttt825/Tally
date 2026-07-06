@@ -67,10 +67,10 @@ public class AboutActivity extends AppCompatActivity {
         financeViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
         loadStatistics();
 
-        findViewById(R.id.btn_user_notice).setOnClickListener(v -> 
+        findViewById(R.id.btn_user_notice).setOnClickListener(v ->
             startActivity(new Intent(this, UserNoticeActivity.class)));
-        findViewById(R.id.btn_donate).setOnClickListener(v -> 
-            startActivity(new Intent(this, DonateActivity.class)));
+        findViewById(R.id.btn_open_source).setOnClickListener(v ->
+            startActivity(new Intent(this, OpenSourceLicensesActivity.class)));
     }
 
     private void loadStatistics() {

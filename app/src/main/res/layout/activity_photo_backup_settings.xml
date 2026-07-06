@@ -18,7 +18,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="照片备份设置"
+            android:text="照片备注设置"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"/>
@@ -47,7 +47,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="开启照片备份"
+                    android:text="开启照片备注"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="?android:attr/textColorPrimary"/>
@@ -109,7 +109,7 @@
                 android:id="@+id/btn_select_path"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="设置照片路径"
+                android:text="设置照片存储路径"
                 android:backgroundTint="@color/app_accent"
                 app:cornerRadius="16dp"
                 android:textColor="@color/real_white"/>

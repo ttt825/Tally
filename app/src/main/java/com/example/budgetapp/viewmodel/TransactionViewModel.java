@@ -216,8 +216,8 @@ public class TransactionViewModel extends AndroidViewModel {
      * 高级筛选查询
      */
     public LiveData<List<Transaction>> getFilteredTransactions(
-            long start, long end, Integer type, Float minAmount, Float maxAmount, String keyword) {
-        return repository.getFilteredTransactions(start, end, type, minAmount, maxAmount, keyword);
+            long start, long end, Integer type, Integer accountId, Float minAmount, Float maxAmount, String keyword) {
+        return repository.getFilteredTransactions(start, end, type, accountId, minAmount, maxAmount, keyword);
     }
 
     // ================= 分类操作 =================

@@ -18,7 +18,7 @@
     <string name="settings_theme">主题样式设置</string>
     <string name="settings_currency">货币单位设置</string>
     <string name="settings_amount_display">金额显示设置</string>
-    <string name="settings_photo_backup">照片备份设置</string>
+    <string name="settings_photo_backup">照片备注设置</string>
     <string name="settings_auto_backup">自动备份设置</string>
     <string name="settings_security">安全密码设置</string>
     <string name="settings_tab_bg">Tab背景设置</string>
@@ -38,16 +38,10 @@
     <string name="label_income">收入</string>
     <string name="label_expense">支出</string>
 
-    <!-- 捐赠 -->
-    <string name="donate_title">捐赠支持</string>
-    <string name="donate_subtitle">请作者喝杯咖啡</string>
-    <string name="donate_wechat">微信支付</string>
-    <string name="donate_alipay">支付宝</string>
-    <string name="donate_save_qr">点击二维码保存到相册</string>
-    <string name="click_to_copy">点击后复制到剪切板</string>
-
     <!-- 用户须知 -->
     <string name="user_notice_title">用户须知</string>
+    <string name="open_source_title">开源组件声明</string>
+    <string name="open_source_description">本应用使用了以下开源组件，感谢各开源项目的贡献。</string>
     <string name="notice_project_intro">项目简介</string>
     <string name="notice_defaults">功能默认情况</string>
     <string name="notice_permissions">项目权限清单</string>
@@ -80,6 +74,7 @@
     <string name="btn_confirm">确 认</string>
     <string name="dialog_advanced_filter">高级筛选</string>
     <string name="label_transaction_type">账单类型</string>
+    <string name="label_account_type">账户类型</string>
     <string name="label_amount_range">金额区间</string>
     <string name="label_category_keyword">分类关键字</string>
     <string name="label_remark_contains">备注包含</string>

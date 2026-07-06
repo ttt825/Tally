@@ -40,7 +40,7 @@
         </provider>
 
         <activity android:name=".ui.PhotoBackupSettingsActivity"
-            android:label="照片备份设置"
+            android:label="照片备注设置"
             android:theme="@style/Theme.BudgetApp"/>
 
         <activity android:name=".ui.AutoBackupSettingsActivity"
@@ -64,12 +64,6 @@
         <activity
             android:name=".ui.SettingsActivity"
             android:label="设置"
-            android:theme="@style/Theme.BudgetApp"
-            android:exported="false"/>
-
-        <activity
-            android:name=".ui.DonateActivity"
-            android:label="捐赠支持"
             android:theme="@style/Theme.BudgetApp"
             android:exported="false"/>
 
@@ -104,6 +98,12 @@
             android:exported="false"/>
 
         <activity android:name=".ui.UserNoticeActivity" />
+
+        <activity
+            android:name=".ui.OpenSourceLicensesActivity"
+            android:label="@string/open_source_title"
+            android:theme="@style/Theme.BudgetApp"
+            android:exported="false" />
 
         <activity
             android:name=".ui.CurrencySettingsActivity"

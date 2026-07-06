@@ -30,18 +30,11 @@ public class UserNoticeActivity extends AppCompatActivity {
             return WindowInsetsCompat.CONSUMED;
         });
 
-        // Github 链接复制逻辑
+        // GitHub 链接复制逻辑
         findViewById(R.id.btn_copy_github).setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://github.com/cypressincloud/Tally"));
-            Toast.makeText(this, "链接已复制到剪切板", Toast.LENGTH_SHORT).show();
-        });
-
-        // 新增：123盘链接复制逻辑
-        findViewById(R.id.btn_copy_123pan).setOnClickListener(v -> {
-            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://www.123pan.com/s/Ih5uVv-nYapd.html"));
-            Toast.makeText(this, "链接已复制到剪切板", Toast.LENGTH_SHORT).show();
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("link", "https://github.com/ttt825/Tally"));
+            Toast.makeText(this, "链接已复制到剪贴板", Toast.LENGTH_SHORT).show();
         });
 
         // 隐藏彩蛋：长按标题取消激活高级设置

@@ -46,6 +46,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.budgetapp.R;
 import com.example.budgetapp.BackupManager;
+import com.example.budgetapp.database.Account;
+import com.example.budgetapp.database.AppDatabase;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.model.TransactionType;
 import com.example.budgetapp.utils.CategoryManager;
@@ -150,12 +152,14 @@ public class DetailsFragment extends Fragment {
         Float minAmount, maxAmount;
         String category, assetName;
         Integer type;
+        Integer accountId;
         void clear() {
             minAmount = null;
             maxAmount = null;
             category = null;
             assetName = null;
             type = null;
+            accountId = null;
         }
     }
     private final FilterCriteria currentFilter = new FilterCriteria();
@@ -346,6 +350,7 @@ public class DetailsFragment extends Fragment {
         currentFilteredDataLive = viewModel.getFilteredTransactions(
                 range[0], range[1],
                 currentFilter.type,
+                currentFilter.accountId,
                 currentFilter.minAmount,
                 currentFilter.maxAmount,
                 keyword
@@ -446,7 +451,7 @@ public class DetailsFragment extends Fragment {
         });
     }
 
-        private void showFilterDialog() {
+    private void showFilterDialog() {
         View v = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_details_filter, null);
         AlertDialog dialog = new AlertDialog.Builder(getContext()).setView(v).create();
         if (dialog.getWindow() != null) {
@@ -458,8 +463,9 @@ public class DetailsFragment extends Fragment {
         EditText etMax = v.findViewById(R.id.et_max_amount);
         EditText etCategory = v.findViewById(R.id.et_category);
         EditText etAsset = v.findViewById(R.id.et_asset);
-
         Spinner spType = v.findViewById(R.id.sp_filter_type);
+        Spinner spAccount = v.findViewById(R.id.sp_filter_account);
+
         String[] types = {"全部", "支出", "收入", "借入", "借出"};
         ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(requireContext(), R.layout.item_spinner_dropdown, types);
         typeAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
@@ -491,44 +497,76 @@ public class DetailsFragment extends Fragment {
             spType.setSelection(4);
         }
 
-        v.findViewById(R.id.btn_apply).setOnClickListener(view -> {
-            String minStr = etMin.getText().toString();
-            String maxStr = etMax.getText().toString();
+        ThreadPoolManager.getInstance().executeBackground(() -> {
+            List<Account> accounts = AppDatabase.getDatabase(requireContext()).accountDao().getAllAccountsSync();
+            requireActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
 
-            try {
-                currentFilter.minAmount = minStr.isEmpty() ? null : Float.parseFloat(minStr);
-                currentFilter.maxAmount = maxStr.isEmpty() ? null : Float.parseFloat(maxStr);
-            } catch (NumberFormatException e) {
-                Toast.makeText(getContext(), "请输入有效的金额", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            currentFilter.category = etCategory.getText().toString().trim();
-            currentFilter.assetName = etAsset.getText().toString().trim();
+                List<String> accountNames = new ArrayList<>();
+                List<Integer> accountIds = new ArrayList<>();
+                accountNames.add("全部");
+                accountIds.add(null);
+                for (Account account : accounts) {
+                    accountNames.add(account.name);
+                    accountIds.add(account.id);
+                }
 
-            int selectedPos = spType.getSelectedItemPosition();
-            if (selectedPos == 1) {
-                currentFilter.type = TransactionType.EXPENSE.getValue();
-            } else if (selectedPos == 2) {
-                currentFilter.type = TransactionType.INCOME.getValue();
-            } else if (selectedPos == 3) {
-                currentFilter.type = TransactionType.LIABILITY.getValue();
-            } else if (selectedPos == 4) {
-                currentFilter.type = TransactionType.LEND.getValue();
-            } else {
-                currentFilter.type = null;
-            }
+                ArrayAdapter<String> accountAdapter = new ArrayAdapter<>(requireContext(),
+                        R.layout.item_spinner_dropdown, accountNames);
+                accountAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+                spAccount.setAdapter(accountAdapter);
 
-            processAndDisplayData(0);
-            dialog.dismiss();
+                if (currentFilter.accountId != null) {
+                    int index = accountIds.indexOf(currentFilter.accountId);
+                    if (index >= 0) {
+                        spAccount.setSelection(index);
+                    }
+                }
+
+                v.findViewById(R.id.btn_apply).setOnClickListener(view -> {
+                    String minStr = etMin.getText().toString();
+                    String maxStr = etMax.getText().toString();
+
+                    try {
+                        currentFilter.minAmount = minStr.isEmpty() ? null : Float.parseFloat(minStr);
+                        currentFilter.maxAmount = maxStr.isEmpty() ? null : Float.parseFloat(maxStr);
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(getContext(), "请输入有效的金额", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    currentFilter.category = etCategory.getText().toString().trim();
+                    currentFilter.assetName = etAsset.getText().toString().trim();
+
+                    int selectedPos = spType.getSelectedItemPosition();
+                    if (selectedPos == 1) {
+                        currentFilter.type = TransactionType.EXPENSE.getValue();
+                    } else if (selectedPos == 2) {
+                        currentFilter.type = TransactionType.INCOME.getValue();
+                    } else if (selectedPos == 3) {
+                        currentFilter.type = TransactionType.LIABILITY.getValue();
+                    } else if (selectedPos == 4) {
+                        currentFilter.type = TransactionType.LEND.getValue();
+                    } else {
+                        currentFilter.type = null;
+                    }
+
+                    int accountPos = spAccount.getSelectedItemPosition();
+                    currentFilter.accountId = (accountPos > 0 && accountPos < accountIds.size())
+                            ? accountIds.get(accountPos) : null;
+
+                    processAndDisplayData(0);
+                    dialog.dismiss();
+                });
+
+                v.findViewById(R.id.btn_reset).setOnClickListener(view -> {
+                    currentFilter.clear();
+                    processAndDisplayData(0);
+                    dialog.dismiss();
+                });
+
+                dialog.show();
+            });
         });
-
-        v.findViewById(R.id.btn_reset).setOnClickListener(view -> {
-            currentFilter.clear();
-            processAndDisplayData(0);
-            dialog.dismiss();
-        });
-
-        dialog.show();
     }
 
     class DecimalDigitsInputFilter implements InputFilter {

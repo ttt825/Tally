@@ -56,4 +56,8 @@ public class AccountViewModel extends AndroidViewModel {
     public void deleteAndClearReferences(Account account, AccountRepository.RepositoryCallback<Void> callback) {
         repository.deleteAndClearReferences(account, callback);
     }
+
+    public void updateSortOrders(List<Account> accounts, AccountRepository.RepositoryCallback<Void> callback) {
+        repository.updateSortOrders(accounts, callback);
+    }
 }

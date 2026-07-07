@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -69,7 +71,10 @@ public class MainActivity extends AppCompatActivity {
 
     // 用于跟踪当前被按下的Tab，避免与选中动画冲突
 
-
+    private final Handler spotlightHandler = new Handler(Looper.getMainLooper());
+    private SpotlightGuideView currentSpotlightGuide;
+    private final android.util.LruCache<String, android.graphics.drawable.Drawable> backgroundDrawableCache =
+            new android.util.LruCache<>(2);
 
     // 导出功能保留在此处作为备份逻辑
     private final ActivityResultLauncher<String> exportLauncher = registerForActivityResult(
@@ -79,11 +84,11 @@ public class MainActivity extends AppCompatActivity {
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
-                            BackupManager.exportToJson(this, uri, transactions);
-                            runOnUiThread(() -> Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show());
+                            BackupManager.exportToJson(MainActivity.this, uri, transactions);
+                            runOnUiThreadSafe(() -> Toast.makeText(MainActivity.this, "导出成功", Toast.LENGTH_SHORT).show());
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(MainActivity.this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
@@ -98,34 +103,39 @@ public class MainActivity extends AppCompatActivity {
                     // 【修复】导入使用批量插入，避免逐条触发备份计数
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
-                            BackupData data = BackupManager.importFromJson(this, uri);
+                            BackupData data = BackupManager.importFromJson(MainActivity.this, uri);
 
                             if (data.records != null && !data.records.isEmpty()) {
                                 for (Transaction t : data.records) {
                                     t.id = 0;
                                 }
                                 transactionViewModel.insertTransactionsSync(data.records, count -> {
-                                    runOnUiThread(() -> {
+                                    runOnUiThreadSafe(() -> {
                                         if (count > 0) {
-                                            Toast.makeText(this,
+                                            Toast.makeText(MainActivity.this,
                                                 String.format("成功导入: %d条账单", count),
                                                 Toast.LENGTH_LONG).show();
                                         } else {
-                                            Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show();
+                                            Toast.makeText(MainActivity.this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show();
                                         }
                                     });
                                 });
                             } else {
-                                runOnUiThread(() -> Toast.makeText(this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show());
+                                runOnUiThreadSafe(() -> Toast.makeText(MainActivity.this, "备份文件中未发现数据", Toast.LENGTH_SHORT).show());
                             }
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(MainActivity.this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
             }
     );
+
+    private void runOnUiThreadSafe(Runnable action) {
+        if (isFinishing() || isDestroyed()) return;
+        runOnUiThread(action);
+    }
 
     @Override
     @SuppressWarnings("deprecation")
@@ -246,6 +256,16 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        spotlightHandler.removeCallbacksAndMessages(null);
+        if (currentSpotlightGuide != null && currentSpotlightGuide.getParent() != null) {
+            ((ViewGroup) currentSpotlightGuide.getParent()).removeView(currentSpotlightGuide);
+            currentSpotlightGuide = null;
+        }
+    }
+
     private void applyTabBackgroundSettings(eightbitlab.com.blurview.BlurView blurTabBar) {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         int blurLevel = prefs.getInt("tab_blur_level", 5);
@@ -343,32 +363,33 @@ public class MainActivity extends AppCompatActivity {
             // 🌟 【修改部分结束】
 
             if (targetUriStr != null) {
-                try {
-                    android.net.Uri uri = android.net.Uri.parse(targetUriStr);
-                    java.io.InputStream inputStream = getContentResolver().openInputStream(uri);
-                    android.graphics.drawable.Drawable drawable =
-                            android.graphics.drawable.Drawable.createFromStream(inputStream, uri.toString());
-
-                    // 设置为根布局背景
-                    rootLayout.setBackground(drawable);
-
-                    // 【动态透明】：保留你原本的逻辑，把顶层容器的透明度调成 100% (完全透明)
-                    if (navHostFragment != null) {
-                        navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                    }
-
-                    // 🌟 【保留原有】：底栏设置透明度 (Alpha: 230)
-                    if (bottomBar != null && bottomBar.getBackground() != null) {
-                        bottomBar.getBackground().mutate().setAlpha(230);
-                    }
-
-                    if (inputStream != null) inputStream.close();
-                } catch (Exception e) {
-                    Log.e("Tally", "Error", e);
-                    rootLayout.setBackgroundResource(R.color.bar_background);
-                    if (navHostFragment != null) navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                    // 异常时恢复底栏透明度
-                    if (bottomBar != null && bottomBar.getBackground() != null) bottomBar.getBackground().mutate().setAlpha(255);
+                final String cacheKey = targetUriStr;
+                android.graphics.drawable.Drawable cached = backgroundDrawableCache.get(cacheKey);
+                if (cached != null) {
+                    applyCustomBackgroundDrawable(rootLayout, navHostFragment, bottomBar, cached);
+                } else {
+                    final View rootLayoutRef = rootLayout;
+                    final View navHostFragmentRef = navHostFragment;
+                    final View bottomBarRef = bottomBar;
+                    ThreadPoolManager.getInstance().executeBackground(() -> {
+                        try {
+                            android.net.Uri uri = android.net.Uri.parse(cacheKey);
+                            try (java.io.InputStream inputStream = getContentResolver().openInputStream(uri)) {
+                                android.graphics.drawable.Drawable drawable =
+                                        android.graphics.drawable.Drawable.createFromStream(inputStream, uri.toString());
+                                if (drawable != null) {
+                                    backgroundDrawableCache.put(cacheKey, drawable);
+                                }
+                                final android.graphics.drawable.Drawable result = drawable;
+                                runOnUiThreadSafe(() -> applyCustomBackgroundDrawable(
+                                        rootLayoutRef, navHostFragmentRef, bottomBarRef, result));
+                            }
+                        } catch (Exception e) {
+                            Log.e("Tally", "Error", e);
+                            runOnUiThreadSafe(() -> applyCustomBackgroundFallback(
+                                    rootLayoutRef, navHostFragmentRef, bottomBarRef));
+                        }
+                    });
                 }
             } else {
                 // 如果开启了自定义背景，但用户把两张图都"清除"了，则恢复系统默认背景，但FragmentContainerView保持透明
@@ -391,6 +412,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 已移除旧的 toggleNightMode 方法，因为现在由 SettingsActivity 统一管理
+
+    private void applyCustomBackgroundDrawable(View rootLayout, View navHostFragment, View bottomBar,
+                                                android.graphics.drawable.Drawable drawable) {
+        if (drawable != null) {
+            rootLayout.setBackground(drawable);
+        } else {
+            rootLayout.setBackgroundResource(R.color.bar_background);
+        }
+        if (navHostFragment != null) {
+            navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        }
+        if (bottomBar != null && bottomBar.getBackground() != null) {
+            bottomBar.getBackground().mutate().setAlpha(230);
+        }
+    }
+
+    private void applyCustomBackgroundFallback(View rootLayout, View navHostFragment, View bottomBar) {
+        rootLayout.setBackgroundResource(R.color.bar_background);
+        if (navHostFragment != null) {
+            navHostFragment.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        }
+        if (bottomBar != null && bottomBar.getBackground() != null) {
+            bottomBar.getBackground().mutate().setAlpha(255);
+        }
+    }
 
     private void showBackupOptions() {
         String[] options = {"导出数据", "导入数据"};
@@ -458,7 +504,8 @@ public class MainActivity extends AppCompatActivity {
         if (hasShownGuide) return;
 
         // 延迟显示，确保 Fragment 与按钮已完成布局
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+        spotlightHandler.postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) return;
             View quickRecord = findViewById(R.id.btn_quick_record);
             View batchRecord = findViewById(R.id.btn_batch_record);
             if (quickRecord == null || batchRecord == null) return;
@@ -470,7 +517,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runSpotlightStage(View target, String hint, Runnable onDismiss) {
-        if (rootLayout == null) return;
+        if (rootLayout == null || isFinishing() || isDestroyed()) return;
 
         int[] location = new int[2];
         target.getLocationOnScreen(location);
@@ -479,6 +526,7 @@ public class MainActivity extends AppCompatActivity {
                 location[0] + target.getWidth(), location[1] + target.getHeight());
 
         SpotlightGuideView guide = new SpotlightGuideView(this);
+        this.currentSpotlightGuide = guide;
         guide.setTarget(targetRect, hint);
         guide.setAlpha(0f);
 
@@ -496,8 +544,13 @@ public class MainActivity extends AppCompatActivity {
                 .alpha(0f)
                 .setDuration(200)
                 .withEndAction(() -> {
-                    ((ViewGroup) rootLayout).removeView(guide);
-                    onDismiss.run();
+                    currentSpotlightGuide = null;
+                    if (rootLayout != null) {
+                        ((ViewGroup) rootLayout).removeView(guide);
+                    }
+                    if (!isFinishing() && !isDestroyed()) {
+                        onDismiss.run();
+                    }
                 })
                 .start());
     }

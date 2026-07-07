@@ -74,20 +74,28 @@ public class SettingsActivity extends AppCompatActivity {
 
 
 
-    private boolean isDuplicateTransaction(Transaction newTx, List<TransactionForDuplicate> existingList) {
-        if (existingList == null || existingList.isEmpty()) return false;
+    private static String duplicateKey(long date, int type, double amount, String category,
+                                        String subCategory, String note, String remark) {
+        return date + "|" + type + "|" + Math.round(amount * 100) + "|"
+                + Objects.toString(category, "") + "|"
+                + Objects.toString(subCategory, "") + "|"
+                + Objects.toString(note, "") + "|"
+                + Objects.toString(remark, "");
+    }
+
+    private static java.util.Set<String> buildDuplicateKeySet(List<TransactionForDuplicate> existingList) {
+        java.util.Set<String> set = new java.util.HashSet<>();
+        if (existingList == null) return set;
         for (TransactionForDuplicate ext : existingList) {
-            if (ext.date == newTx.date &&
-                    ext.type == newTx.type &&
-                    Math.abs(ext.amount - newTx.amount) < 0.01 &&
-                    Objects.equals(ext.category, newTx.category) &&
-                    Objects.equals(ext.subCategory, newTx.subCategory) &&
-                    Objects.equals(ext.note, newTx.note) &&
-                    Objects.equals(ext.remark, newTx.remark)) {
-                return true;
-            }
+            set.add(duplicateKey(ext.date, ext.type, ext.amount, ext.category,
+                    ext.subCategory, ext.note, ext.remark));
         }
-        return false;
+        return set;
+    }
+
+    private boolean isDuplicateTransaction(Transaction newTx, java.util.Set<String> existingKeySet) {
+        return existingKeySet.contains(duplicateKey(newTx.date, newTx.type, newTx.amount, newTx.category,
+                newTx.subCategory, newTx.note, newTx.remark));
     }
     // --- 查重辅助方法 结束 ---
 
@@ -98,11 +106,11 @@ public class SettingsActivity extends AppCompatActivity {
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
-                            BackupManager.exportToJson(this, uri, transactions);
-                            runOnUiThread(() -> Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show());
+                            BackupManager.exportToJson(SettingsActivity.this, uri, transactions);
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "导出成功", Toast.LENGTH_SHORT).show());
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
@@ -118,11 +126,11 @@ public class SettingsActivity extends AppCompatActivity {
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
                             List<Transaction> transactions = transactionViewModel.getAllTransactionsSync();
-                            BackupManager.exportTransactionsOnly(this, uri, transactions);
-                            runOnUiThread(() -> Toast.makeText(this, "账单导出成功", Toast.LENGTH_SHORT).show());
+                            BackupManager.exportTransactionsOnly(SettingsActivity.this, uri, transactions);
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "账单导出成功", Toast.LENGTH_SHORT).show());
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
@@ -135,11 +143,11 @@ public class SettingsActivity extends AppCompatActivity {
                 if (uri != null) {
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
-                            BackupData data = BackupManager.importFromJson(this, uri);
+                            BackupData data = BackupManager.importFromJson(SettingsActivity.this, uri);
                             handleImportData(data, "导入");
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
@@ -152,16 +160,21 @@ public class SettingsActivity extends AppCompatActivity {
                 if (uri != null) {
                     ThreadPoolManager.getInstance().executeBackground(() -> {
                         try {
-                            BackupData data = BackupManager.importTransactionsCsv(this, uri);
+                            BackupData data = BackupManager.importTransactionsCsv(SettingsActivity.this, uri);
                             handleImportTransactions(data, "CSV导入");
                         } catch (Exception e) {
                             Log.e("Tally", "Error", e);
-                            runOnUiThread(() -> Toast.makeText(this, "CSV导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            runOnUiThreadSafe(() -> Toast.makeText(SettingsActivity.this, "CSV导入失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
                     });
                 }
             }
     );
+
+    private void runOnUiThreadSafe(Runnable action) {
+        if (isFinishing() || isDestroyed()) return;
+        runOnUiThread(action);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -295,10 +308,10 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         List<Transaction> newTransactions = new ArrayList<>();
-        List<TransactionForDuplicate> currentTransactions = transactionViewModel.getTransactionsForDuplicateSync();
+        java.util.Set<String> existingKeys = buildDuplicateKeySet(transactionViewModel.getTransactionsForDuplicateSync());
         if (data.records != null && !data.records.isEmpty()) {
             for (Transaction t : data.records) {
-                if (!isDuplicateTransaction(t, currentTransactions)) {
+                if (!isDuplicateTransaction(t, existingKeys)) {
                     t.id = 0;
                     newTransactions.add(t);
                     recordCount++;
@@ -323,10 +336,10 @@ public class SettingsActivity extends AppCompatActivity {
     private void handleImportTransactions(BackupData data, String sourceName) {
         int recordCount = 0;
         List<Transaction> newTransactions = new ArrayList<>();
-        List<TransactionForDuplicate> currentTransactions = transactionViewModel.getTransactionsForDuplicateSync();
+        java.util.Set<String> existingKeys = buildDuplicateKeySet(transactionViewModel.getTransactionsForDuplicateSync());
         if (data.records != null && !data.records.isEmpty()) {
             for (Transaction t : data.records) {
-                if (!isDuplicateTransaction(t, currentTransactions)) {
+                if (!isDuplicateTransaction(t, existingKeys)) {
                     t.id = 0;
                     newTransactions.add(t);
                     recordCount++;

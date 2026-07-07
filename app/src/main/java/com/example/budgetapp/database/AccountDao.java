@@ -21,16 +21,16 @@ public interface AccountDao {
     @Delete
     void delete(Account account);
 
-    @Query("SELECT * FROM accounts ORDER BY enabled DESC, createTime ASC")
+    @Query("SELECT * FROM accounts ORDER BY enabled DESC, sortOrder ASC, createTime ASC")
     LiveData<List<Account>> getAllAccounts();
 
-    @Query("SELECT * FROM accounts WHERE enabled = 1 ORDER BY createTime ASC")
+    @Query("SELECT * FROM accounts WHERE enabled = 1 ORDER BY sortOrder ASC, createTime ASC")
     LiveData<List<Account>> getEnabledAccounts();
 
-    @Query("SELECT * FROM accounts WHERE enabled = 1 ORDER BY createTime ASC")
+    @Query("SELECT * FROM accounts WHERE enabled = 1 ORDER BY sortOrder ASC, createTime ASC")
     List<Account> getEnabledAccountsSync();
 
-    @Query("SELECT * FROM accounts ORDER BY enabled DESC, createTime ASC")
+    @Query("SELECT * FROM accounts ORDER BY enabled DESC, sortOrder ASC, createTime ASC")
     List<Account> getAllAccountsSync();
 
     @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")

@@ -16,6 +16,7 @@ public class Account {
     public boolean enabled;
     public String remark;
     public long createTime;
+    public long sortOrder;
 
     public Account() {
     }
@@ -27,5 +28,6 @@ public class Account {
         this.enabled = enabled;
         this.remark = remark;
         this.createTime = System.currentTimeMillis();
+        this.sortOrder = System.currentTimeMillis();
     }
 }

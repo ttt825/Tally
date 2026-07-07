@@ -159,25 +159,38 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.GroupVie
         groupBg.setColor(surfaceColor);
         holder.groupContainer.setBackground(groupBg);
 
-        // 3. 清空并重建内部交易列表
+        // 3. 复用缓存的 itemView，避免每次绑定都重新 inflate
         holder.llTransactions.removeAllViews();
 
         for (int i = 0; i < group.transactions.size(); i++) {
             Transaction current = group.transactions.get(i);
-            View itemView = LayoutInflater.from(context)
-                    .inflate(R.layout.item_transaction_detail, holder.llTransactions, false);
+            final View itemView;
+            if (i < holder.cachedItemViews.size()) {
+                itemView = holder.cachedItemViews.get(i);
+            } else {
+                itemView = LayoutInflater.from(context)
+                        .inflate(R.layout.item_transaction_detail, holder.llTransactions, false);
+                holder.cachedItemViews.add(itemView);
+            }
             bindTransactionItem(context, itemView, current, showCurrency);
 
+            final Transaction clicked = current;
             itemView.setOnClickListener(v -> {
                 AnimUtils.pressFeedback(v, 0.97f, 60);
-                if (listener != null) listener.onTransactionClick(current);
+                if (listener != null) listener.onTransactionClick(clicked);
             });
 
             holder.llTransactions.addView(itemView);
 
-            // 非最后一项添加底部分割线，使同一容器内的记录分隔清晰
+            // 非最后一项添加底部分割线
             if (i < group.transactions.size() - 1) {
-                View divider = new View(context);
+                final View divider;
+                if (i < holder.cachedDividers.size()) {
+                    divider = holder.cachedDividers.get(i);
+                } else {
+                    divider = new View(context);
+                    holder.cachedDividers.add(divider);
+                }
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(context, 1));
                 params.setMargins(dpToPx(context, 16), 0, dpToPx(context, 16), 0);
@@ -246,6 +259,8 @@ public class DetailsAdapter extends RecyclerView.Adapter<DetailsAdapter.GroupVie
         TextView tvGroupDate;
         LinearLayout groupContainer;
         LinearLayout llTransactions;
+        final List<View> cachedItemViews = new ArrayList<>();
+        final List<View> cachedDividers = new ArrayList<>();
 
         GroupViewHolder(View itemView) {
             super(itemView);

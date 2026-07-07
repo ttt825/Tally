@@ -3,13 +3,10 @@ package com.example.budgetapp.ui;
 import android.util.Log;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Spanned;
@@ -89,17 +86,11 @@ public class RecordFragment extends Fragment {
     private RecyclerView dailyTransactionsRecycler;
     private TransactionListAdapter dailyTransactionsAdapter;
 
-    private TransactionListAdapter currentDetailAdapter;
-
     // 手势检测器
     private GestureDetector gestureDetector;
 
     // Activity Result Launcher
     private ActivityResultLauncher<Intent> yearCalendarLauncher;
-
-    // 新增的成员变量
-    private AlertDialog currentDetailDialog;
-    private TextView currentDetailSummaryTextView;
 
     // 新增：记录当前的过滤模式
     private int currentFilterMode = 0;
@@ -361,9 +352,6 @@ public class RecordFragment extends Fragment {
         // 【优化】不再全量观察，只观察当前月份按需请求的数据
         viewModel.getRangeTransactions().observe(getViewLifecycleOwner(), list -> {
             updateCalendar(0);
-            if (currentDetailDialog != null && currentDetailDialog.isShowing() && selectedDate != null) {
-                updateDetailDialogData(selectedDate);
-            }
             if (selectedDate != null && layoutDailyTransactions != null && layoutDailyTransactions.getVisibility() == View.VISIBLE) {
                 showDailyTransactions(selectedDate);
             }
@@ -610,84 +598,6 @@ public class RecordFragment extends Fragment {
         }
     }
 
-    private void showDateDetailDialog(LocalDate date) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_transaction_list, null);
-        builder.setView(dialogView);
-        AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
-        }
-
-        currentDetailDialog = dialog;
-
-        TextView tvTitle = dialogView.findViewById(R.id.tv_dialog_title);
-        if (tvTitle != null) {
-            tvTitle.setText(date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日", Locale.CHINA)));
-        }
-
-        currentDetailSummaryTextView = dialogView.findViewById(R.id.tv_dialog_summary);
-
-        RecyclerView rvList = dialogView.findViewById(R.id.rv_detail_list);
-        rvList.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        TransactionListAdapter listAdapter = new TransactionListAdapter(transaction -> {
-            LocalDate transDate = Instant.ofEpochMilli(transaction.date).atZone(ZoneId.systemDefault()).toLocalDate();
-                showAddOrEditDialog(transaction, transDate);
-        });
-
-        currentDetailAdapter = listAdapter;
-        rvList.setAdapter(listAdapter);
-
-        updateDetailDialogData(date);
-
-        dialogView.findViewById(R.id.btn_add_transaction).setOnClickListener(v -> showAddOrEditDialog(null, date));
-        dialogView.findViewById(R.id.btn_close_dialog).setOnClickListener(v -> dialog.dismiss());
-        dialog.setOnDismissListener(d -> {
-            currentDetailAdapter = null;
-            currentDetailDialog = null;
-            currentDetailSummaryTextView = null;
-        });
-        dialog.show();
-    }
-
-    
-
-    private void updateDetailDialogData(LocalDate date) {
-        if (currentDetailAdapter == null) return;
-        List<Transaction> all = viewModel.getRangeTransactions().getValue();
-        List<Transaction> dayList = new ArrayList<>();
-        if (all != null) {
-            long start = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            long end = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            dayList = all.stream()
-                    .filter(t -> t.date >= start && t.date < end)
-                    .collect(Collectors.toList());
-        }
-
-        if (currentDetailSummaryTextView != null) {
-            double dayIncome = 0;
-            double dayExpense = 0;
-
-            for (Transaction t : dayList) {
-                if (t.type == 1) {
-                    dayIncome += t.amount;
-                } else if (t.type == 0) {
-                    dayExpense += t.amount;
-                }
-            }
-
-            if (dayIncome == 0 && dayExpense == 0) {
-                currentDetailSummaryTextView.setVisibility(View.GONE);
-            } else {
-                currentDetailSummaryTextView.setVisibility(View.VISIBLE);
-                currentDetailSummaryTextView.setText(buildIncomeExpenseSpan(getContext(), dayIncome, dayExpense));
-            }
-        }
-        currentDetailAdapter.setTransactions(dayList);
-    }
-
     private void showBatchDialog() {
         if (getContext() == null) return;
 
@@ -695,10 +605,14 @@ public class RecordFragment extends Fragment {
             @Override
             public void onBatchSaved(List<Transaction> transactions) {
                 viewModel.addBatchTransactions(transactions, count -> {
-                    requireActivity().runOnUiThread(() -> {
-                        viewModel.setDateRange(currentStartMillis, currentEndMillis);
-                        WidgetUtils.updateAllWidgets(getContext());
-                    });
+                    if (isAdded() && getActivity() != null && !getActivity().isFinishing() && !getActivity().isDestroyed()) {
+                        requireActivity().runOnUiThread(() -> {
+                            if (isAdded()) {
+                                viewModel.setDateRange(currentStartMillis, currentEndMillis);
+                                WidgetUtils.updateAllWidgets(getContext());
+                            }
+                        });
+                    }
                 });
             }
         });

@@ -9,10 +9,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -26,6 +28,7 @@ import com.example.budgetapp.database.Account;
 import com.example.budgetapp.viewmodel.AccountViewModel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class AccountSettingsActivity extends AppCompatActivity {
@@ -34,6 +37,7 @@ public class AccountSettingsActivity extends AppCompatActivity {
     private RecyclerView recyclerAccounts;
     private View emptyView;
     private AccountAdapter adapter;
+    private List<Account> currentAccounts = new ArrayList<>();
 
     @Override
     @SuppressWarnings("deprecation")
@@ -78,10 +82,12 @@ public class AccountSettingsActivity extends AppCompatActivity {
         recyclerAccounts.setAdapter(adapter);
 
         findViewById(R.id.btn_add_account).setOnClickListener(v -> showAccountFormDialog(null));
+        findViewById(R.id.btn_sort_accounts).setOnClickListener(v -> showSortDialog());
 
         viewModel.getAllAccounts().observe(this, accounts -> {
-            adapter.updateAccounts(accounts);
-            boolean isEmpty = accounts == null || accounts.isEmpty();
+            currentAccounts = accounts != null ? new ArrayList<>(accounts) : new ArrayList<>();
+            adapter.updateAccounts(currentAccounts);
+            boolean isEmpty = currentAccounts.isEmpty();
             emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
             recyclerAccounts.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
         });
@@ -181,5 +187,111 @@ public class AccountSettingsActivity extends AppCompatActivity {
         });
 
         delDialog.show();
+    }
+
+    private void showSortDialog() {
+        List<Account> enabledAccounts = new ArrayList<>();
+        for (Account account : currentAccounts) {
+            if (account.enabled) {
+                enabledAccounts.add(account);
+            }
+        }
+        if (enabledAccounts.isEmpty()) {
+            Toast.makeText(this, R.string.account_sort_empty, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_sort_categories, null);
+        builder.setView(view);
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setWindowAnimations(R.style.Animation_Dialog);
+        }
+
+        TextView tvTitle = view.findViewById(R.id.tv_dialog_title);
+        if (tvTitle != null) {
+            tvTitle.setText(R.string.account_sort_title);
+        }
+
+        LinearLayout container = view.findViewById(R.id.ll_sort_container);
+        buildSortList(container, enabledAccounts);
+
+        Button btnConfirm = view.findViewById(R.id.btn_confirm);
+        btnConfirm.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void buildSortList(LinearLayout container, List<Account> accounts) {
+        container.removeAllViews();
+
+        int marginV = (int) (6 * getResources().getDisplayMetrics().density);
+        int paddingContent = (int) (14 * getResources().getDisplayMetrics().density);
+
+        for (int i = 0; i < accounts.size(); i++) {
+            final int index = i;
+            Account account = accounts.get(i);
+
+            LinearLayout itemLayout = new LinearLayout(this);
+            LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            itemParams.setMargins(0, marginV, 0, marginV);
+            itemLayout.setLayoutParams(itemParams);
+            itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+            itemLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            itemLayout.setPadding(paddingContent, paddingContent, paddingContent, paddingContent);
+            itemLayout.setBackgroundResource(R.drawable.bg_input_field);
+
+            TextView tvName = new TextView(this);
+            tvName.setText(account.name);
+            tvName.setTextSize(15);
+            tvName.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+            LinearLayout.LayoutParams tvParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            itemLayout.addView(tvName, tvParams);
+
+            TextView btnUp = new TextView(this);
+            btnUp.setText("上移");
+            btnUp.setTextSize(13);
+            btnUp.setPadding(20, 10, 20, 10);
+            if (index > 0) {
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.app_accent));
+                btnUp.setOnClickListener(v -> {
+                    Collections.swap(accounts, index, index - 1);
+                    saveAccountSortOrder(accounts);
+                    buildSortList(container, accounts);
+                });
+            } else {
+                btnUp.setTextColor(ContextCompat.getColor(this, R.color.button_disabled_text));
+            }
+            itemLayout.addView(btnUp);
+
+            TextView btnDown = new TextView(this);
+            btnDown.setText("下移");
+            btnDown.setTextSize(13);
+            btnDown.setPadding(20, 10, 10, 10);
+            if (index < accounts.size() - 1) {
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.app_accent));
+                btnDown.setOnClickListener(v -> {
+                    Collections.swap(accounts, index, index + 1);
+                    saveAccountSortOrder(accounts);
+                    buildSortList(container, accounts);
+                });
+            } else {
+                btnDown.setTextColor(ContextCompat.getColor(this, R.color.button_disabled_text));
+            }
+            itemLayout.addView(btnDown);
+
+            container.addView(itemLayout);
+        }
+    }
+
+    private void saveAccountSortOrder(List<Account> accounts) {
+        for (int i = 0; i < accounts.size(); i++) {
+            accounts.get(i).sortOrder = i;
+        }
+        viewModel.updateSortOrders(accounts, null);
     }
 }

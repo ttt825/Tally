@@ -17,11 +17,14 @@ import com.example.budgetapp.database.Transaction;
 
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import com.nlf.calendar.Lunar;
 
 public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHolder> {
@@ -56,7 +59,6 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
     private static class DayCache {
         LocalDate date;
         double dailySum;
-        double dailyHours;
         // 【新增】分别存储收入和支出
         double dailyIncome;
         double dailyExpense;
@@ -141,80 +143,80 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
 
     /**
      * 预计算每日统计数据并缓存到 dayCacheList 中
+     * 优化：使用 HashMap 一次遍历 transactions，避免对每个日期线性扫描
      */
     private void buildDayCache() {
         dayCacheList = new ArrayList<>(days.size());
-        for (int i = 0; i < days.size(); i++) {
-            LocalDate date = days.get(i);
-            DayCache cache = new DayCache();
-            cache.date = date;
+        Map<LocalDate, DayCache> cacheMap = new HashMap<>();
+        ZoneId zone = ZoneId.systemDefault();
 
+        // 1. 一次遍历 transactions，按 LocalDate 聚合
+        for (Transaction t : transactions) {
+            LocalDate date = Instant.ofEpochMilli(t.date).atZone(zone).toLocalDate();
+            DayCache cache = cacheMap.get(date);
+            if (cache == null) {
+                cache = new DayCache();
+                cache.date = date;
+                cacheMap.put(date, cache);
+            }
+
+            if (t.type == 0) {
+                cache.dailyExpense += t.amount;
+            }
+            switch (filterMode) {
+                case 0: // 结余
+                    if (t.type == 1) {
+                        cache.dailySum += t.amount;
+                        cache.dailyIncome += t.amount;
+                    } else if (t.type == 0) {
+                        cache.dailySum -= t.amount;
+                    }
+                    break;
+                case 1: // 收入
+                    if (t.type == 1) {
+                        cache.dailySum += t.amount;
+                        cache.dailyIncome += t.amount;
+                    }
+                    break;
+                case 2: // 支出
+                    if (t.type == 0) cache.dailySum += t.amount;
+                    break;
+            }
+        }
+
+        // 2. 遍历 days 从 Map 取聚合结果，计算显示文本和颜色
+        for (LocalDate date : days) {
+            DayCache cache;
             if (date == null) {
+                cache = new DayCache();
+                cache.date = null;
                 dayCacheList.add(cache);
                 continue;
             }
 
-            double dailySum = 0;
-            double dailyHours = 0;
-            // 【新增】分别统计收入和支出
-            double dailyIncome = 0;
-            double dailyExpense = 0;
-            long start = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            long end = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
-            for (Transaction t : transactions) {
-                if (t.date >= start && t.date < end) {
-                    // 【新增】统计支出
-                    if (t.type == 0) {
-                        dailyExpense += t.amount;
-                    }
-
-                    switch (filterMode) {
-                        case 0: // 结余
-                            if (t.type == 1) {
-                                dailySum += t.amount;
-                                dailyIncome += t.amount;
-                            } else if (t.type == 0) {
-                                dailySum -= t.amount;
-                            }
-                            break;
-                        case 1: // 收入
-                            if (t.type == 1) {
-                                dailySum += t.amount;
-                                dailyIncome += t.amount;
-                            }
-                            break;
-                        case 2: // 支出
-                            if (t.type == 0) dailySum += t.amount;
-                            break;
-                    }
-                }
+            cache = cacheMap.get(date);
+            if (cache == null) {
+                cache = new DayCache();
+                cache.date = date;
             }
 
-            cache.dailySum = dailySum;
-            cache.dailyHours = dailyHours;
-            cache.dailyIncome = dailyIncome;
-            cache.dailyExpense = dailyExpense;
+            double dailySum = cache.dailySum;
+            double dailyIncome = cache.dailyIncome;
+            double dailyExpense = cache.dailyExpense;
 
-            // 判断是否有收支数据
             if (dailySum != 0 || (filterMode == 0 && (dailyIncome > 0 || dailyExpense > 0))) {
                 cache.hasData = true;
                 if (filterMode == 0) {
-                    // 【修改】结余模式：分别显示收入（红色）和支出（绿色）
-                    // 两者都有时显示差额（收入-支出）
                     boolean hasIncome = dailyIncome > 0;
                     boolean hasExpense = dailyExpense > 0;
                     if (hasIncome && hasExpense) {
-                        // 两者都有：显示差额
                         double balance = dailyIncome - dailyExpense;
                         cache.netText = String.format("%.2f", balance);
                         cache.netColor = balance > 0 ? cachedIncomeRed : cachedExpenseGreen;
                     } else if (hasIncome) {
-                        // 只有收入：红色
                         cache.netText = String.format("%.2f", dailyIncome);
                         cache.netColor = cachedIncomeRed;
                     } else {
-                        // 只有支出：绿色
                         cache.netText = String.format("%.2f", dailyExpense);
                         cache.netColor = cachedExpenseGreen;
                     }
@@ -230,7 +232,6 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
                 }
             } else {
                 cache.hasData = false;
-                // 无收支数据时，农历文本和颜色仍需在 onBindViewHolder 中计算（需要 Context）
                 cache.netText = null;
                 cache.netColor = 0;
             }

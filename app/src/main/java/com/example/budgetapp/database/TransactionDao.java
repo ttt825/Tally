@@ -5,7 +5,10 @@ import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.RawQuery;
 import androidx.room.Update;
+import androidx.sqlite.db.SimpleSQLiteQuery;
+import androidx.sqlite.db.SupportSQLiteQuery;
 
 import java.util.List;
 
@@ -54,15 +57,47 @@ public interface TransactionDao {
     LiveData<List<Transaction>> getTransactionsByRangeLive(long start, long end);
 
     // 2. 高级过滤：用于明细页 (DetailsFragment) 的高级筛选，null 表示该条件不限制
-    // 使用普通的 LiveData<List<Transaction>> 返回类型，并加上金额筛选条件
-    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate " +
-            "AND (:type IS NULL OR type = :type) " +
-            "AND (:accountId IS NULL OR accountId = :accountId) " +
-            "AND (:minAmount IS NULL OR amount >= :minAmount) " +
-            "AND (:maxAmount IS NULL OR amount <= :maxAmount) " +
-            "AND (:keyword IS NULL OR category LIKE '%' || :keyword || '%' OR note LIKE '%' || :keyword || '%') " +
-            "ORDER BY date DESC")
-    LiveData<List<Transaction>> getFilteredTransactions(long startDate, long endDate, Integer type, Integer accountId, Float minAmount, Float maxAmount, String keyword);
+    // 使用 RawQuery 动态拼接 SQL，避免 OR NULL 导致无法走索引
+    @RawQuery(observedEntities = Transaction.class)
+    LiveData<List<Transaction>> getFilteredTransactions(SupportSQLiteQuery query);
+
+    /**
+     * 构造动态筛选查询（仅包含有效条件，确保索引生效）
+     */
+    static SupportSQLiteQuery buildFilteredTransactionsQuery(
+            long startDate, long endDate, Integer type, Integer accountId,
+            Float minAmount, Float maxAmount, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM transactions WHERE date BETWEEN ? AND ?");
+        List<Object> args = new java.util.ArrayList<>();
+        args.add(startDate);
+        args.add(endDate);
+
+        if (type != null) {
+            sql.append(" AND type = ?");
+            args.add(type);
+        }
+        if (accountId != null) {
+            sql.append(" AND accountId = ?");
+            args.add(accountId);
+        }
+        if (minAmount != null) {
+            sql.append(" AND amount >= ?");
+            args.add(minAmount);
+        }
+        if (maxAmount != null) {
+            sql.append(" AND amount <= ?");
+            args.add(maxAmount);
+        }
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND (category LIKE ? OR note LIKE ?)");
+            String likeArg = "%" + keyword + "%";
+            args.add(likeArg);
+            args.add(likeArg);
+        }
+        sql.append(" ORDER BY date DESC");
+
+        return new SimpleSQLiteQuery(sql.toString(), args.toArray());
+    }
 
     // 【新增】供桌面小组件使用：同步聚合查询指定时间的收入或支出总和
     @Query("SELECT SUM(amount) FROM transactions WHERE date >= :start AND date <= :end AND type = :type")

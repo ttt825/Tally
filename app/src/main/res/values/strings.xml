@@ -54,6 +54,9 @@
     <string name="dialog_add_record">记一笔</string>
     <string name="account_title">账户管理</string>
     <string name="account_add">+ 添加</string>
+    <string name="account_sort">排序</string>
+    <string name="account_sort_title">账户排序</string>
+    <string name="account_sort_empty">暂无已启用账户可排序</string>
     <string name="account_empty_hint">暂无账户，点击右上角添加</string>
     <string name="account_name_hint">账户名称</string>
     <string name="account_balance_hint">当前余额</string>

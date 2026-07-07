@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/bar_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -20,17 +20,25 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="账户管理"
+            android:text="@string/account_title"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_sort_accounts"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/account_sort"
+            android:textColor="?attr/colorPrimary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_add_account"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="+ 添加"
+            android:text="@string/account_add"
             android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
@@ -66,7 +74,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="暂无账户，点击右上角添加"
+                android:text="@string/account_empty_hint"
                 android:textSize="14sp"
                 android:textColor="?android:attr/textColorSecondary" />
         </LinearLayout>

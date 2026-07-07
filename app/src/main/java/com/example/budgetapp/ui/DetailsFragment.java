@@ -66,8 +66,7 @@ import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import java.util.stream.Collectors;
 
 import android.widget.NumberPicker;
@@ -439,9 +438,11 @@ public class DetailsFragment extends Fragment {
                     @Override
                     public void onSplitSaved(Transaction originalTransaction, List<Transaction> splitTransactions) {
                         viewModel.splitTransaction(originalTransaction, splitTransactions, count -> {
-                            if (getActivity() != null) {
+                            if (isAdded() && getActivity() != null && !getActivity().isFinishing() && !getActivity().isDestroyed()) {
                                 getActivity().runOnUiThread(() -> {
-                                    adapter.setTransactions(adapter.getCurrentTransactions());
+                                    if (isAdded() && adapter != null) {
+                                        adapter.setTransactions(adapter.getCurrentTransactions());
+                                    }
                                 });
                             }
                         });
@@ -569,25 +570,7 @@ public class DetailsFragment extends Fragment {
         });
     }
 
-    class DecimalDigitsInputFilter implements InputFilter {
-        private final Pattern mPattern;
-        public DecimalDigitsInputFilter(int digitsAfterZero) {
-            mPattern = Pattern.compile("[0-9]*+((\\.[0-9]{0," + (digitsAfterZero - 1) + "})?)||(\\.)?");
-        }
-        @Override
-        public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-            String replacement = source.subSequence(start, end).toString();
-            String newVal = dest.subSequence(0, dstart).toString() + replacement + dest.subSequence(dend, dest.length()).toString();
-            Matcher matcher = mPattern.matcher(newVal);
-            if (!matcher.matches()) {
-                if (newVal.contains(".")) {
-                    int index = newVal.indexOf(".");
-                    if (newVal.length() - index - 1 > 2) return "";
-                }
-            }
-            return null;
-        }
-    }
+
 
     @Override
     public void onResume() {

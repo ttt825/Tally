@@ -288,11 +288,12 @@ public class TransactionRepository {
     }
 
     /**
-     * 高级筛选查询
+     * 高级筛选查询（使用动态 SQL 拼接，确保有效条件可走索引）
      */
     public LiveData<List<Transaction>> getFilteredTransactions(
             long start, long end, Integer type, Integer accountId, Float minAmount, Float maxAmount, String keyword) {
-        return transactionDao.getFilteredTransactions(start, end, type, accountId, minAmount, maxAmount, keyword);
+        return transactionDao.getFilteredTransactions(
+                TransactionDao.buildFilteredTransactionsQuery(start, end, type, accountId, minAmount, maxAmount, keyword));
     }
 
     // ================= 统计查询 =================

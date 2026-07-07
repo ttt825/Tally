@@ -92,6 +92,22 @@ public class AccountRepository {
     }
 
     /**
+     * 批量更新账户排序字段
+     */
+    public void updateSortOrders(List<Account> accounts, RepositoryCallback<Void> callback) {
+        executor.execute(() -> {
+            database.runInTransaction(() -> {
+                for (Account account : accounts) {
+                    accountDao.update(account);
+                }
+            });
+            if (callback != null) {
+                callback.onComplete(null);
+            }
+        });
+    }
+
+    /**
      * 同步获取所有账户
      */
     public List<Account> getAllAccountsSync() {

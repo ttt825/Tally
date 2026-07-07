@@ -76,8 +76,6 @@
     <color name="currency_name_text">#888888</color>
 
     <!-- 交易类型颜色 -->
-    <color name="expense_red">#FF5252</color>
-    <color name="income_green">#4CAF50</color>
     <color name="liability_orange">#FF9800</color>
     <color name="lend_purple">#9C27B0</color>
 

@@ -233,7 +233,7 @@ public class StatsFragment extends Fragment {
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_transaction_list, null);
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_stats_transaction_list, null);
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {

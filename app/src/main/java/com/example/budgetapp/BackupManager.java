@@ -289,7 +289,7 @@ public class BackupManager {
                 } catch (NumberFormatException ignored) {}
             }
 
-            // 4. 从数据库获取脏数据的最新版本并更新/添加
+            // 4. 从数据库获取脏数据的最新版本并更新/添加（分批查询避免 SQLite 参数上限）
             if (!dirtyIds.isEmpty()) {
                 List<Integer> idList = new ArrayList<>();
                 for (String idStr : dirtyIds) {
@@ -297,9 +297,11 @@ public class BackupManager {
                         idList.add(Integer.parseInt(idStr));
                     } catch (NumberFormatException ignored) {}
                 }
-                if (!idList.isEmpty()) {
+                final int batchSize = 500;
+                for (int i = 0; i < idList.size(); i += batchSize) {
+                    List<Integer> batch = idList.subList(i, Math.min(i + batchSize, idList.size()));
                     List<Transaction> dirtyRecords = AppDatabase.getDatabase(context)
-                            .transactionDao().getTransactionsByIds(idList);
+                            .transactionDao().getTransactionsByIds(batch);
                     for (Transaction t : dirtyRecords) {
                         recordMap.put(t.id, t);
                     }

@@ -67,6 +67,7 @@ public class OpenSourceLicensesActivity extends AppCompatActivity {
         list.add(new LicenseItem("lunar (6tail)", "农历、节气与节假日计算。", "https://github.com/6tail/lunar-java"));
         list.add(new LicenseItem("SmoothBottomBar", "底部导航栏动效组件。", "https://github.com/ibrahimsn98/SmoothBottomBar"));
         list.add(new LicenseItem("BlurView", "高斯模糊背景效果视图。", "https://github.com/Dimezis/BlurView"));
+        list.add(new LicenseItem("AndroidLiquidGlassView", "Android 液态玻璃效果视图组件，支持折射、色散与高光，为 Tab 栏提供液态玻璃质感。版本：1.0.1。", "https://github.com/QmDeve/AndroidLiquidGlassView"));
         return list;
     }
 

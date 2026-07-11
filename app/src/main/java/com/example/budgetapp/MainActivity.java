@@ -46,12 +46,16 @@ import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.widget.TodaySummaryWidget;
 import com.example.budgetapp.ui.SettingsActivity;
 import com.example.budgetapp.ui.SpotlightGuideView;
+import com.example.budgetapp.ui.TabEffectMode;
+import com.example.budgetapp.ui.TabPreferenceKeys;
+import com.example.budgetapp.drawable.TabShadowDrawable;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
 import com.example.budgetapp.utils.ThreadPoolManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import me.ibrahimsn.lib.SmoothBottomBar;
 import eightbitlab.com.blurview.BlurView;
 import eightbitlab.com.blurview.RenderScriptBlur;
+import com.qmdeve.liquidglass.widget.LiquidGlassView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +66,11 @@ public class MainActivity extends AppCompatActivity {
 
     private TransactionViewModel transactionViewModel;
     private eightbitlab.com.blurview.BlurView blurTabBar;
+    private LiquidGlassView liquidGlassTabBar;
+    private ViewGroup contentLayout;
     private View rootLayout;
+    private boolean liquidGlassBound;
+    private final TabSettingsSnapshot lastTabSettings = new TabSettingsSnapshot();
     // 【修复】移除全量数据缓存，改为导出时按需读取，避免内存占用过大
 
     // 双击返回退出功能
@@ -173,17 +181,18 @@ public class MainActivity extends AppCompatActivity {
         // 【修复】移除全量数据观察，避免内存占用过大
 
         this.rootLayout = findViewById(R.id.root_layout);
-        View contentLayout = findViewById(R.id.content_layout);
+        this.contentLayout = findViewById(R.id.content_layout);
         SmoothBottomBar bottomBar = findViewById(R.id.bottomBar);
 
         BlurView blurTabBar = findViewById(R.id.blur_tab_bar);
         this.blurTabBar = blurTabBar;
+        this.liquidGlassTabBar = findViewById(R.id.liquid_glass_tab_bar);
         @SuppressWarnings("deprecation")
         var ignored = blurTabBar.setupWith((ViewGroup) this.rootLayout, new RenderScriptBlur(this));
         blurTabBar.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
         blurTabBar.setClipToOutline(true);
 
-        applyTabBackgroundSettings(blurTabBar);
+        applyTabBackgroundSettings();
 
         // 初始化时应用背景
         applyCustomBackground();
@@ -192,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
         showSpotlightGuideIfNeeded();
 
         // 【修改】将WindowInsets监听器设置在content_layout上，避免影响遮罩层的覆盖范围
-        ViewCompat.setOnApplyWindowInsetsListener(contentLayout, (v, windowInsets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(this.contentLayout, (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(0, insets.top, 0, 0);
             return windowInsets;
@@ -266,41 +275,119 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void applyTabBackgroundSettings(eightbitlab.com.blurview.BlurView blurTabBar) {
+    private void applyTabBackgroundSettings() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        int blurLevel = prefs.getInt("tab_blur_level", 5);
-        int cornerRadius = prefs.getInt("tab_corner_radius", 50);
-        int opacity = prefs.getInt("tab_opacity", 80);
-        int shadowSize = prefs.getInt("tab_shadow_size", 1);
-        int shadowOpacity = prefs.getInt("tab_shadow_opacity", 25);
+        int effectMode = prefs.getInt(TabPreferenceKeys.TAB_EFFECT_MODE, TabEffectMode.NONE);
+        // 低版本系统不支持液态玻璃，自动回退为无效果
+        if (effectMode == TabEffectMode.LIQUID_GLASS && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+            effectMode = TabEffectMode.NONE;
+        }
+        int blurLevel = prefs.getInt(TabPreferenceKeys.TAB_BLUR_LEVEL, 5);
+        int cornerRadius = prefs.getInt(TabPreferenceKeys.TAB_CORNER_RADIUS, 50);
+        int opacity = prefs.getInt(TabPreferenceKeys.TAB_OPACITY, 80);
+        int shadowSize = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_SIZE, 1);
+        int shadowOpacity = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_OPACITY, 25);
+        int refractionHeight = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_REFRACTION_HEIGHT, 15);
+        int dispersion = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_DISPERSION, 50);
 
-        float actualRadius = blurLevel;
-        blurTabBar.setBlurRadius(actualRadius);
+        // 参数未变化时跳过，避免 onResume 重复创建 Drawable
+        if (lastTabSettings.equals(effectMode, blurLevel, cornerRadius, opacity,
+                shadowSize, shadowOpacity, refractionHeight, dispersion)) {
+            return;
+        }
 
-        int alphaInt = (int) (opacity / 100f * 255);
-        android.graphics.drawable.GradientDrawable roundedBg = new android.graphics.drawable.GradientDrawable();
-        roundedBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        roundedBg.setCornerRadius(cornerRadius);
-        roundedBg.setColor((alphaInt << 24) | 0x00FFFFFF);
-        blurTabBar.setBackground(roundedBg);
+        float density = getResources().getDisplayMetrics().density;
+
+        if (effectMode == TabEffectMode.LIQUID_GLASS) {
+            // 液态玻璃效果：使用 LiquidGlassView，隐藏 BlurView
+            blurTabBar.setVisibility(View.GONE);
+            liquidGlassTabBar.setVisibility(View.VISIBLE);
+            // 绑定内容布局（不包含 Tab 栏自身），避免自采样导致渲染异常
+            if (!liquidGlassBound && contentLayout != null) {
+                try {
+                    liquidGlassTabBar.bind(contentLayout);
+                    liquidGlassBound = true;
+                } catch (Exception e) {
+                    Log.e("MainActivity", "Failed to bind LiquidGlassView", e);
+                }
+            }
+            liquidGlassTabBar.setCornerRadius(cornerRadius * density);
+            liquidGlassTabBar.setBlurRadius(blurLevel * 2.5f);
+            liquidGlassTabBar.setRefractionHeight(refractionHeight * density);
+            liquidGlassTabBar.setRefractionOffset(70f * density);
+            liquidGlassTabBar.setDispersion(dispersion / 100f);
+            liquidGlassTabBar.setTintAlpha((opacity / 100f) * 0.3f);
+            liquidGlassTabBar.setDraggableEnabled(false);
+            liquidGlassTabBar.setElasticEnabled(false);
+            liquidGlassTabBar.setTouchEffectEnabled(false);
+        } else {
+            // 无效果 / 模糊效果：使用 BlurView
+            blurTabBar.setVisibility(View.VISIBLE);
+            liquidGlassTabBar.setVisibility(View.GONE);
+
+            blurTabBar.setBlurEnabled(effectMode == TabEffectMode.BLUR);
+            if (effectMode == TabEffectMode.BLUR) {
+                blurTabBar.setBlurRadius(blurLevel);
+            }
+
+            int alphaInt = (int) (opacity / 100f * 255);
+            android.graphics.drawable.GradientDrawable roundedBg = new android.graphics.drawable.GradientDrawable();
+            roundedBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            roundedBg.setCornerRadius(cornerRadius);
+            roundedBg.setColor((alphaInt << 24) | 0x00FFFFFF);
+            blurTabBar.setBackground(roundedBg);
+        }
 
         View container = findViewById(R.id.tab_bar_container);
         if (container != null) {
-            float density = getResources().getDisplayMetrics().density;
             float shadowSizeDp = shadowSize * 0.5f;
-            if (shadowSize > 0 && shadowOpacity > 0) {
+            // shadowSize 为 0 时彻底隐藏阴影图层；透明度仅控制阴影浓淡
+            if (shadowSize > 0) {
                 int shadowPx = (int) (shadowSizeDp * density);
                 int shadowAlpha = (int) (shadowOpacity / 100f * 255);
-                android.graphics.drawable.GradientDrawable shadowDrawable = new android.graphics.drawable.GradientDrawable();
-                shadowDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                shadowDrawable.setCornerRadius(cornerRadius + shadowSizeDp);
-                shadowDrawable.setColor((shadowAlpha << 24) | 0x000000);
-                container.setBackground(shadowDrawable);
-                container.setPadding(shadowPx, shadowPx / 2, shadowPx, shadowPx * 2);
+                container.setBackground(new TabShadowDrawable(cornerRadius, shadowPx, shadowAlpha));
+                container.setPadding(shadowPx, shadowPx, shadowPx, shadowPx);
             } else {
                 container.setBackground(null);
                 container.setPadding(0, 0, 0, 0);
             }
+        }
+
+        lastTabSettings.update(effectMode, blurLevel, cornerRadius, opacity,
+                shadowSize, shadowOpacity, refractionHeight, dispersion);
+    }
+
+    /**
+     * 缓存上次应用的 Tab 栏设置参数，避免 onResume 等场景重复创建 Drawable。
+     */
+    private static class TabSettingsSnapshot {
+        int effectMode;
+        int blurLevel;
+        int cornerRadius;
+        int opacity;
+        int shadowSize;
+        int shadowOpacity;
+        int refractionHeight;
+        int dispersion;
+
+        boolean equals(int effectMode, int blurLevel, int cornerRadius, int opacity,
+                       int shadowSize, int shadowOpacity, int refractionHeight, int dispersion) {
+            return this.effectMode == effectMode && this.blurLevel == blurLevel
+                    && this.cornerRadius == cornerRadius && this.opacity == opacity
+                    && this.shadowSize == shadowSize && this.shadowOpacity == shadowOpacity
+                    && this.refractionHeight == refractionHeight && this.dispersion == dispersion;
+        }
+
+        void update(int effectMode, int blurLevel, int cornerRadius, int opacity,
+                    int shadowSize, int shadowOpacity, int refractionHeight, int dispersion) {
+            this.effectMode = effectMode;
+            this.blurLevel = blurLevel;
+            this.cornerRadius = cornerRadius;
+            this.opacity = opacity;
+            this.shadowSize = shadowSize;
+            this.shadowOpacity = shadowOpacity;
+            this.refractionHeight = refractionHeight;
+            this.dispersion = dispersion;
         }
     }
 
@@ -308,7 +395,6 @@ public class MainActivity extends AppCompatActivity {
     private void applyCustomBackground() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         int themeMode = getSafeInt(prefs, "theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        View rootLayout = findViewById(R.id.root_layout);
         View navHostFragment = findViewById(R.id.nav_host_fragment); // 获取碎片容器
         View maskOverlay = findViewById(R.id.view_mask_overlay); // 获取遮罩图层
 
@@ -460,9 +546,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
         applyCustomBackground();
-        if (blurTabBar != null) {
-            applyTabBackgroundSettings(blurTabBar);
-        }
+        applyTabBackgroundSettings();
     }
 	
 	

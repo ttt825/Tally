@@ -71,6 +71,10 @@ public class BackupManager {
         EXCLUDED_PREF_KEYS.add("auto_backup_dirty_ids");
         EXCLUDED_PREF_KEYS.add("auto_backup_deleted_ids");
         EXCLUDED_PREF_KEYS.add("auto_backup_last_record_count");
+        // 数据库版本号与设备相关，无需导出
+        EXCLUDED_PREF_KEYS.add("last_db_version");
+        // 旧版自定义背景 URI 已废弃，新版使用 custom_bg_day_uri / custom_bg_night_uri
+        EXCLUDED_PREF_KEYS.add("custom_bg_uri");
     }
 
     // ============================================================================================

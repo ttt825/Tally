@@ -21,7 +21,7 @@
     <string name="settings_photo_backup">照片备注设置</string>
     <string name="settings_auto_backup">自动备份设置</string>
     <string name="settings_security">安全密码设置</string>
-    <string name="settings_tab_bg">Tab背景设置</string>
+    <string name="settings_tab_bg">Tab栏效果设置</string>
     <string name="settings_about">关于</string>
 
     <!-- Widget -->

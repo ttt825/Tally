@@ -10,6 +10,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,30 +52,6 @@ public class SettingsActivity extends AppCompatActivity {
     private TransactionViewModel transactionViewModel;
 
     // --- 查重辅助方法 开始 ---
-    private final ActivityResultLauncher<String[]> pickCustomBgLauncher = registerForActivityResult(
-            new ActivityResultContracts.OpenDocument(),
-            uri -> {
-                if (uri != null) {
-                    try {
-                        // 获取持久化读取权限，保证应用重启后依然可以读取该图片
-                        getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-                        prefs.edit()
-                                .putInt("theme_mode", 3) // 使用 3 代表自定义背景模式
-                                .putString("custom_bg_uri", uri.toString())
-                                .apply();
-
-                        Toast.makeText(this, "自定义背景已保存，请返回主页查看", Toast.LENGTH_SHORT).show();
-                    } catch (SecurityException e) {
-                        Log.e("Tally", "Error", e);
-                        Toast.makeText(this, "获取图片权限失败", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-    );
-
-
 
     private static String duplicateKey(long date, int type, double amount, String category,
                                         String subCategory, String note, String remark) {
@@ -512,12 +491,33 @@ public class SettingsActivity extends AppCompatActivity {
 
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
 
-        int defaultBlur = prefs.getInt("tab_blur_level", 5);
-        int defaultCorner = prefs.getInt("tab_corner_radius", 50);
-        int defaultOpacity = prefs.getInt("tab_opacity", 80);
-        int defaultShadowSize = prefs.getInt("tab_shadow_size", 1);
-        int defaultShadowOpacity = prefs.getInt("tab_shadow_opacity", 25);
+        // SeekBar 真实值与 progress 的偏移常量
+        final int blurMin = 1;
+        final int refractionMin = 5;
+        final float shadowSizeStep = 0.5f;
 
+        boolean supportLiquidGlass = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU;
+        int defaultEffectMode = prefs.getInt(TabPreferenceKeys.TAB_EFFECT_MODE, TabEffectMode.NONE);
+        if (!supportLiquidGlass && defaultEffectMode == TabEffectMode.LIQUID_GLASS) {
+            defaultEffectMode = TabEffectMode.NONE;
+        }
+        int defaultBlur = prefs.getInt(TabPreferenceKeys.TAB_BLUR_LEVEL, 5);
+        int defaultCorner = prefs.getInt(TabPreferenceKeys.TAB_CORNER_RADIUS, 50);
+        int defaultOpacity = prefs.getInt(TabPreferenceKeys.TAB_OPACITY, 80);
+        int defaultShadowSize = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_SIZE, 1);
+        int defaultShadowOpacity = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_OPACITY, 25);
+        int defaultRefractionHeight = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_REFRACTION_HEIGHT, 15);
+        int defaultDispersion = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_DISPERSION, 50);
+
+        RadioGroup rgTabEffect = view.findViewById(R.id.rg_tab_effect);
+        RadioButton rbEffectNone = view.findViewById(R.id.rb_effect_none);
+        RadioButton rbEffectBlur = view.findViewById(R.id.rb_effect_blur);
+        RadioButton rbEffectLiquidGlass = view.findViewById(R.id.rb_effect_liquid_glass);
+        if (!supportLiquidGlass) {
+            rgTabEffect.removeView(rbEffectLiquidGlass);
+        }
+        LinearLayout layoutBlurSection = view.findViewById(R.id.layout_blur_section);
+        LinearLayout layoutLiquidGlassSection = view.findViewById(R.id.layout_liquid_glass_section);
         SeekBar seekBlur = view.findViewById(R.id.seek_blur);
         TextView tvBlurValue = view.findViewById(R.id.tv_blur_value);
         SeekBar seekCorner = view.findViewById(R.id.seek_corner);
@@ -528,85 +528,113 @@ public class SettingsActivity extends AppCompatActivity {
         TextView tvShadowSizeValue = view.findViewById(R.id.tv_shadow_size_value);
         SeekBar seekShadowOpacity = view.findViewById(R.id.seek_shadow_opacity);
         TextView tvShadowOpacityValue = view.findViewById(R.id.tv_shadow_opacity_value);
+        SeekBar seekRefractionHeight = view.findViewById(R.id.seek_refraction_height);
+        TextView tvRefractionHeightValue = view.findViewById(R.id.tv_refraction_height_value);
+        SeekBar seekDispersion = view.findViewById(R.id.seek_dispersion);
+        TextView tvDispersionValue = view.findViewById(R.id.tv_dispersion_value);
 
-        seekBlur.setProgress(defaultBlur - 1);
+        if (defaultEffectMode == TabEffectMode.NONE) {
+            rbEffectNone.setChecked(true);
+        } else if (defaultEffectMode == TabEffectMode.BLUR) {
+            rbEffectBlur.setChecked(true);
+        } else {
+            rbEffectLiquidGlass.setChecked(true);
+        }
+        updateTabEffectSections(defaultEffectMode, layoutBlurSection, layoutLiquidGlassSection);
+
+        rgTabEffect.setOnCheckedChangeListener((group, checkedId) -> {
+            int mode;
+            if (checkedId == R.id.rb_effect_blur) {
+                mode = TabEffectMode.BLUR;
+            } else if (checkedId == R.id.rb_effect_liquid_glass) {
+                mode = TabEffectMode.LIQUID_GLASS;
+            } else {
+                mode = TabEffectMode.NONE;
+            }
+            updateTabEffectSections(mode, layoutBlurSection, layoutLiquidGlassSection);
+        });
+
+        seekBlur.setProgress(Math.max(0, defaultBlur - blurMin));
         tvBlurValue.setText(String.valueOf(defaultBlur));
         seekCorner.setProgress(defaultCorner);
         tvCornerValue.setText(defaultCorner + "dp");
         seekOpacity.setProgress(defaultOpacity);
         tvOpacityValue.setText(defaultOpacity + "%");
         seekShadowSize.setProgress(defaultShadowSize);
-        tvShadowSizeValue.setText(String.format("%.1f", defaultShadowSize * 0.5f) + "dp");
+        tvShadowSizeValue.setText(String.format(Locale.getDefault(), "%.1f", defaultShadowSize * shadowSizeStep) + "dp");
         seekShadowOpacity.setProgress(defaultShadowOpacity);
         tvShadowOpacityValue.setText(defaultShadowOpacity + "%");
+        seekRefractionHeight.setProgress(Math.max(0, defaultRefractionHeight - refractionMin));
+        tvRefractionHeightValue.setText(defaultRefractionHeight + "px");
+        seekDispersion.setProgress(defaultDispersion);
+        tvDispersionValue.setText(defaultDispersion + "%");
 
-        seekBlur.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tvBlurValue.setText(String.valueOf(progress + 1));
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekCorner.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tvCornerValue.setText(progress + "dp");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tvOpacityValue.setText(progress + "%");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekShadowSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tvShadowSizeValue.setText(String.format("%.1f", progress * 0.5f) + "dp");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekShadowOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tvShadowOpacityValue.setText(progress + "%");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
+        bindSeekBar(seekBlur, value -> String.valueOf(value + blurMin), tvBlurValue);
+        bindSeekBar(seekCorner, value -> value + "dp", tvCornerValue);
+        bindSeekBar(seekOpacity, value -> value + "%", tvOpacityValue);
+        bindSeekBar(seekShadowSize, value -> String.format(Locale.getDefault(), "%.1f", value * shadowSizeStep) + "dp", tvShadowSizeValue);
+        bindSeekBar(seekShadowOpacity, value -> value + "%", tvShadowOpacityValue);
+        bindSeekBar(seekRefractionHeight, value -> (value + refractionMin) + "px", tvRefractionHeightValue);
+        bindSeekBar(seekDispersion, value -> value + "%", tvDispersionValue);
 
         view.findViewById(R.id.btn_confirm).setOnClickListener(v -> {
-            int blurLevel = seekBlur.getProgress() + 1;
+            int effectMode;
+            int checkedEffectId = rgTabEffect.getCheckedRadioButtonId();
+            if (checkedEffectId == R.id.rb_effect_blur) {
+                effectMode = TabEffectMode.BLUR;
+            } else if (checkedEffectId == R.id.rb_effect_liquid_glass) {
+                effectMode = TabEffectMode.LIQUID_GLASS;
+            } else {
+                effectMode = TabEffectMode.NONE;
+            }
+            int blurLevel = seekBlur.getProgress() + blurMin;
             int cornerRadius = seekCorner.getProgress();
             int opacity = seekOpacity.getProgress();
             int shadowSize = seekShadowSize.getProgress();
             int shadowOpacity = seekShadowOpacity.getProgress();
+            int refractionHeight = seekRefractionHeight.getProgress() + refractionMin;
+            int dispersion = seekDispersion.getProgress();
 
             prefs.edit()
-                    .putInt("tab_blur_level", blurLevel)
-                    .putInt("tab_corner_radius", cornerRadius)
-                    .putInt("tab_opacity", opacity)
-                    .putInt("tab_shadow_size", shadowSize)
-                    .putInt("tab_shadow_opacity", shadowOpacity)
+                    .putInt(TabPreferenceKeys.TAB_EFFECT_MODE, effectMode)
+                    .putInt(TabPreferenceKeys.TAB_BLUR_LEVEL, blurLevel)
+                    .putInt(TabPreferenceKeys.TAB_CORNER_RADIUS, cornerRadius)
+                    .putInt(TabPreferenceKeys.TAB_OPACITY, opacity)
+                    .putInt(TabPreferenceKeys.TAB_SHADOW_SIZE, shadowSize)
+                    .putInt(TabPreferenceKeys.TAB_SHADOW_OPACITY, shadowOpacity)
+                    .putInt(TabPreferenceKeys.TAB_LIQUID_REFRACTION_HEIGHT, refractionHeight)
+                    .putInt(TabPreferenceKeys.TAB_LIQUID_DISPERSION, dispersion)
                     .apply();
 
-            Toast.makeText(this, "Tab背景设置已保存", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Tab栏效果设置已保存", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         view.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
+    }
+
+    private void bindSeekBar(SeekBar seekBar, SeekBarValueFormatter formatter, TextView valueView) {
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                valueView.setText(formatter.format(progress));
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void updateTabEffectSections(int effectMode, LinearLayout layoutBlurSection,
+                                         LinearLayout layoutLiquidGlassSection) {
+        layoutBlurSection.setVisibility(effectMode == TabEffectMode.BLUR ? View.VISIBLE : View.GONE);
+        layoutLiquidGlassSection.setVisibility(effectMode == TabEffectMode.LIQUID_GLASS ? View.VISIBLE : View.GONE);
+    }
+
+    @FunctionalInterface
+    private interface SeekBarValueFormatter {
+        String format(int value);
     }
 
 }

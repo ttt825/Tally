@@ -9,8 +9,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -18,8 +16,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.MotionEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.FrameLayout;
 import android.widget.PopupMenu;
 import android.widget.Toast;
@@ -33,6 +29,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -45,7 +43,6 @@ import androidx.navigation.ui.NavigationUI;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.widget.TodaySummaryWidget;
 import com.example.budgetapp.ui.SettingsActivity;
-import com.example.budgetapp.ui.SpotlightGuideView;
 import com.example.budgetapp.ui.TabEffectMode;
 import com.example.budgetapp.ui.TabPreferenceKeys;
 import com.example.budgetapp.drawable.TabShadowDrawable;
@@ -79,8 +76,6 @@ public class MainActivity extends AppCompatActivity {
 
     // 用于跟踪当前被按下的Tab，避免与选中动画冲突
 
-    private final Handler spotlightHandler = new Handler(Looper.getMainLooper());
-    private SpotlightGuideView currentSpotlightGuide;
     private final android.util.LruCache<String, android.graphics.drawable.Drawable> backgroundDrawableCache =
             new android.util.LruCache<>(2);
 
@@ -197,9 +192,6 @@ public class MainActivity extends AppCompatActivity {
         // 初始化时应用背景
         applyCustomBackground();
 
-        // 显示首次打开引导提示
-        showSpotlightGuideIfNeeded();
-
         // 【修改】将WindowInsets监听器设置在content_layout上，避免影响遮罩层的覆盖范围
         ViewCompat.setOnApplyWindowInsetsListener(this.contentLayout, (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -223,14 +215,6 @@ public class MainActivity extends AppCompatActivity {
             PopupMenu popupMenu = new PopupMenu(this, null);
             popupMenu.getMenuInflater().inflate(R.menu.bottom_menu, popupMenu.getMenu());
             bottomBar.setupWithNavController(popupMenu.getMenu(), navController);
-
-            // 获取菜单并根据配置隐藏明细页面（如果需要的话）
-            Menu menu = popupMenu.getMenu();
-            MenuItem detailsItem = menu.findItem(R.id.nav_details);
-            
-            if (detailsItem != null) {
-                detailsItem.setVisible(true);
-            }
 
             // 【新增】拦截返回手势逻辑
             getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -268,11 +252,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        spotlightHandler.removeCallbacksAndMessages(null);
-        if (currentSpotlightGuide != null && currentSpotlightGuide.getParent() != null) {
-            ((ViewGroup) currentSpotlightGuide.getParent()).removeView(currentSpotlightGuide);
-            currentSpotlightGuide = null;
-        }
     }
 
     private void applyTabBackgroundSettings() {
@@ -311,15 +290,22 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("MainActivity", "Failed to bind LiquidGlassView", e);
                 }
             }
-            liquidGlassTabBar.setCornerRadius(cornerRadius * density);
-            liquidGlassTabBar.setBlurRadius(blurLevel * 2.5f);
-            liquidGlassTabBar.setRefractionHeight(refractionHeight * density);
-            liquidGlassTabBar.setRefractionOffset(70f * density);
-            liquidGlassTabBar.setDispersion(dispersion / 100f);
-            liquidGlassTabBar.setTintAlpha((opacity / 100f) * 0.3f);
-            liquidGlassTabBar.setDraggableEnabled(false);
-            liquidGlassTabBar.setElasticEnabled(false);
-            liquidGlassTabBar.setTouchEffectEnabled(false);
+            // 将 setter 延迟到消息队列后，确保 onAttachedToWindow/ensureGlass 已创建 glass。
+            liquidGlassTabBar.post(() -> {
+                try {
+                    liquidGlassTabBar.setCornerRadius(cornerRadius * density);
+                    liquidGlassTabBar.setBlurRadius(blurLevel * 2.5f);
+                    liquidGlassTabBar.setRefractionHeight(refractionHeight * density);
+                    liquidGlassTabBar.setRefractionOffset(70f * density);
+                    liquidGlassTabBar.setDispersion(dispersion / 100f);
+                    liquidGlassTabBar.setTintAlpha((opacity / 100f) * 0.3f);
+                    liquidGlassTabBar.setDraggableEnabled(false);
+                    liquidGlassTabBar.setElasticEnabled(false);
+                    liquidGlassTabBar.setTouchEffectEnabled(false);
+                } catch (Exception e) {
+                    Log.e("MainActivity", "Failed to configure LiquidGlassView", e);
+                }
+            });
         } else {
             // 无效果 / 模糊效果：使用 BlurView
             blurTabBar.setVisibility(View.VISIBLE);
@@ -333,8 +319,9 @@ public class MainActivity extends AppCompatActivity {
             int alphaInt = (int) (opacity / 100f * 255);
             android.graphics.drawable.GradientDrawable roundedBg = new android.graphics.drawable.GradientDrawable();
             roundedBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            roundedBg.setCornerRadius(cornerRadius);
-            roundedBg.setColor((alphaInt << 24) | 0x00FFFFFF);
+            roundedBg.setCornerRadius(cornerRadius * density);
+            int bgColor = ContextCompat.getColor(this, R.color.bottom_bar_background);
+            roundedBg.setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(bgColor, alphaInt));
             blurTabBar.setBackground(roundedBg);
         }
 
@@ -546,6 +533,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
         applyCustomBackground();
+
         applyTabBackgroundSettings();
     }
 	
@@ -580,66 +568,5 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    // 显示首次打开聚光灯引导
-    private void showSpotlightGuideIfNeeded() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        boolean hasShownGuide = prefs.getBoolean("has_shown_spotlight_guide", false);
-        if (hasShownGuide) return;
-
-        // 延迟显示，确保 Fragment 与按钮已完成布局
-        spotlightHandler.postDelayed(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            View quickRecord = findViewById(R.id.btn_quick_record);
-            View batchRecord = findViewById(R.id.btn_batch_record);
-            if (quickRecord == null || batchRecord == null) return;
-
-            runSpotlightStage(quickRecord, getString(R.string.spotlight_quick_record_hint), () ->
-                    runSpotlightStage(batchRecord, getString(R.string.spotlight_batch_record_hint), () ->
-                            prefs.edit().putBoolean("has_shown_spotlight_guide", true).apply()));
-        }, 800);
-    }
-
-    private void runSpotlightStage(View target, String hint, Runnable onDismiss) {
-        if (rootLayout == null || isFinishing() || isDestroyed()) return;
-
-        int[] location = new int[2];
-        target.getLocationOnScreen(location);
-        android.graphics.Rect targetRect = new android.graphics.Rect(
-                location[0], location[1],
-                location[0] + target.getWidth(), location[1] + target.getHeight());
-
-        SpotlightGuideView guide = new SpotlightGuideView(this);
-        this.currentSpotlightGuide = guide;
-        guide.setTarget(targetRect, hint);
-        guide.setAlpha(0f);
-
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT);
-        ((ViewGroup) rootLayout).addView(guide, params);
-
-        guide.animate()
-                .alpha(1f)
-                .setDuration(250)
-                .start();
-
-        guide.setOnClickListener(v -> guide.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction(() -> {
-                    currentSpotlightGuide = null;
-                    if (rootLayout != null) {
-                        ((ViewGroup) rootLayout).removeView(guide);
-                    }
-                    if (!isFinishing() && !isDestroyed()) {
-                        onDismiss.run();
-                    }
-                })
-                .start());
-    }
-    // ==============================================================================
-
-
 
 }

@@ -221,39 +221,83 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn_batch_record"
+    <FrameLayout
+        android:id="@+id/fab_container_batch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toStartOf="@+id/btn_quick_record"
-        android:layout_alignBottom="@+id/btn_quick_record"
+        android:layout_toStartOf="@+id/fab_container_quick"
+        android:layout_alignBottom="@+id/fab_container_quick"
         android:layout_marginEnd="16dp"
-        android:src="@drawable/ic_batch"
-        android:contentDescription="记多笔"
-        app:backgroundTint="@color/app_accent"
-        app:tint="@color/real_white"
-        android:elevation="4dp"
-        app:pressedTranslationZ="0dp"
-        android:stateListAnimator="@null"
-        app:fabSize="normal"
-        app:shapeAppearanceOverlay="@style/CircularFabShape" />
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn_quick_record"
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/blur_fab_batch"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+
+        <com.example.budgetapp.ui.SafeLiquidGlassView
+            android:id="@+id/liquid_fab_batch"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btn_batch_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_batch"
+            android:contentDescription="记多笔"
+            app:backgroundTint="@color/bottom_bar_background"
+            app:tint="@color/app_accent"
+            app:pressedTranslationZ="0dp"
+            android:stateListAnimator="@null"
+            app:fabSize="normal"
+            app:maxImageSize="32dp"
+            app:shapeAppearanceOverlay="@style/CircularFabShape" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fab_container_quick"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="125dp"
-        android:src="@drawable/ic_add"
-        android:contentDescription="记一笔"
-        app:backgroundTint="@color/app_accent"
-        app:tint="@color/real_white"
-        android:elevation="4dp"
-        app:pressedTranslationZ="0dp"
-        android:stateListAnimator="@null"
-        app:fabSize="normal"
-        app:shapeAppearanceOverlay="@style/CircularFabShape" />
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/blur_fab_quick"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+
+        <com.example.budgetapp.ui.SafeLiquidGlassView
+            android:id="@+id/liquid_fab_quick"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btn_quick_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_add"
+            android:contentDescription="记一笔"
+            app:backgroundTint="@color/bottom_bar_background"
+            app:tint="@color/app_accent"
+            app:pressedTranslationZ="0dp"
+            android:stateListAnimator="@null"
+            app:fabSize="normal"
+            app:maxImageSize="32dp"
+            app:shapeAppearanceOverlay="@style/CircularFabShape" />
+    </FrameLayout>
 
 </RelativeLayout>

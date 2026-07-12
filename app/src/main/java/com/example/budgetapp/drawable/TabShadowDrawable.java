@@ -12,15 +12,22 @@ import android.graphics.drawable.Drawable;
 
 /**
  * 真实外发散阴影 Drawable：使用 BlurMaskFilter 在 Tab 栏边缘外侧绘制高斯模糊阴影。
+ * 支持矩形圆角（Tab 栏）和圆形（FAB）两种形状。
  */
 public class TabShadowDrawable extends Drawable {
     private final Paint paint;
     private final float cornerRadius;
     private final float shadowSize;
+    private final boolean isOval;
 
     public TabShadowDrawable(float cornerRadius, float shadowSize, int shadowAlpha) {
+        this(cornerRadius, shadowSize, shadowAlpha, false);
+    }
+
+    public TabShadowDrawable(float cornerRadius, float shadowSize, int shadowAlpha, boolean isOval) {
         this.cornerRadius = cornerRadius;
         this.shadowSize = shadowSize;
+        this.isOval = isOval;
         this.paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.paint.setColor(Color.BLACK);
         this.paint.setAlpha(shadowAlpha);
@@ -37,7 +44,11 @@ public class TabShadowDrawable extends Drawable {
                 bounds.right - shadowSize,
                 bounds.bottom - shadowSize
         );
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        if (isOval) {
+            canvas.drawOval(rect, paint);
+        } else {
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        }
     }
 
     @Override

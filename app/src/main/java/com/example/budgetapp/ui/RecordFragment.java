@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Spanned;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
@@ -19,6 +21,7 @@ import android.view.ViewOutlineProvider;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
@@ -44,6 +47,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.budgetapp.R;
 
+import com.example.budgetapp.drawable.TabShadowDrawable;
 import com.example.budgetapp.database.Transaction;
 import com.example.budgetapp.utils.CategoryManager;
 import com.example.budgetapp.viewmodel.TransactionViewModel;
@@ -52,6 +56,7 @@ import com.example.budgetapp.widget.WidgetUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import eightbitlab.com.blurview.BlurView;
 import eightbitlab.com.blurview.RenderScriptBlur;
+import com.qmdeve.liquidglass.widget.LiquidGlassView;
 
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
@@ -98,6 +103,23 @@ public class RecordFragment extends Fragment {
     // 新增：用于记录当前请求的时间范围，防止无限循环查询
     private long currentStartMillis = 0;
     private long currentEndMillis = 0;
+
+    // FAB 材质效果相关字段
+    private FrameLayout fabContainerQuick;
+    private FrameLayout fabContainerBatch;
+    private BlurView blurFabQuick;
+    private BlurView blurFabBatch;
+    private LiquidGlassView liquidFabQuick;
+    private LiquidGlassView liquidFabBatch;
+    private boolean fabLiquidGlassBound = false;
+    private boolean fabBlurSetupDone = false;
+    @SuppressWarnings("deprecation")
+    private RenderScriptBlur fabRenderScriptBlur;
+    private final FabSettingsSnapshot lastFabSettings = new FabSettingsSnapshot();
+
+    // 聚光灯引导相关
+    private final Handler spotlightHandler = new Handler(Looper.getMainLooper());
+    private SpotlightGuideView currentSpotlightGuide;
 
     /**
      * 核心跟手引擎：接管日历的水平方向滑动
@@ -235,6 +257,14 @@ public class RecordFragment extends Fragment {
             dailyTransactionsRecycler.setAdapter(dailyTransactionsAdapter);
         }
 
+        // 绑定 FAB 材质效果容器
+        fabContainerQuick = view.findViewById(R.id.fab_container_quick);
+        fabContainerBatch = view.findViewById(R.id.fab_container_batch);
+        blurFabQuick = view.findViewById(R.id.blur_fab_quick);
+        blurFabBatch = view.findViewById(R.id.blur_fab_batch);
+        liquidFabQuick = view.findViewById(R.id.liquid_fab_quick);
+        liquidFabBatch = view.findViewById(R.id.liquid_fab_batch);
+
         FloatingActionButton btnQuickRecord = view.findViewById(R.id.btn_quick_record);
         if (btnQuickRecord != null) {
             btnQuickRecord.setOnClickListener(v -> {
@@ -250,14 +280,14 @@ public class RecordFragment extends Fragment {
                 return true;
             });
 
-            // 添加触摸反馈动画
+            // 触摸反馈动画作用于外层容器，使材质层同步缩放
             btnQuickRecord.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
+                    View container = fabContainerQuick != null ? fabContainerQuick : v;
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
-                            // 按下时缩小动画
-                            v.animate()
+                            container.animate()
                                     .scaleX(0.9f)
                                     .scaleY(0.9f)
                                     .setDuration(100)
@@ -265,15 +295,14 @@ public class RecordFragment extends Fragment {
                             break;
                         case MotionEvent.ACTION_UP:
                         case MotionEvent.ACTION_CANCEL:
-                            // 抬起或取消时恢复原状
-                            v.animate()
+                            container.animate()
                                     .scaleX(1.0f)
                                     .scaleY(1.0f)
                                     .setDuration(100)
                                     .start();
                             break;
                     }
-                    return false; // 返回false以确保点击事件仍会被处理
+                    return false;
                 }
             });
         }
@@ -294,13 +323,14 @@ public class RecordFragment extends Fragment {
             btnBatchRecord.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
+                    View container = fabContainerBatch != null ? fabContainerBatch : v;
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
-                            v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).start();
+                            container.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).start();
                             break;
                         case MotionEvent.ACTION_UP:
                         case MotionEvent.ACTION_CANCEL:
-                            v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
+                            container.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
                             break;
                     }
                     return false;
@@ -308,7 +338,8 @@ public class RecordFragment extends Fragment {
             });
         }
 
-        // BlurView 已移除，FAB 直接使用半透明背景色
+        // 首次应用 FAB 材质效果
+        applyFabEffectSettings(view);
 
         calendarRecycler = view.findViewById(R.id.calendar_recycler);
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 7) {
@@ -368,17 +399,23 @@ public class RecordFragment extends Fragment {
     }
 
     @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        // 延迟显示首次使用引导，确保 Fragment 与按钮已完成布局
+        view.postDelayed(this::showSpotlightGuideIfNeeded, 800);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
-        View view = getView();
-        if (view != null) {
-            // BlurView 已移除
-        }
 
         // 【新增】：根据模式动态调整本界面透明度
         SharedPreferences prefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
         int themeMode = prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         updateFragmentTransparency(themeMode == 3);
+
+        // 应用 FAB 材质效果（与 TAB 栏同步）
+        applyFabEffectSettings(getView());
 
         // 【新增】：自动选中当日并显示当天的账单信息
         if (selectedDate == null) {
@@ -395,8 +432,397 @@ public class RecordFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 重置 LiquidGlassView 绑定标志，避免下次进入时重复 bind 导致崩溃
+        fabLiquidGlassBound = false;
+        fabBlurSetupDone = false;
+        // 释放 RenderScript 资源
+        if (fabRenderScriptBlur != null) {
+            fabRenderScriptBlur.destroy();
+            fabRenderScriptBlur = null;
+        }
+        // 移除聚光灯引导回调与视图
+        spotlightHandler.removeCallbacksAndMessages(null);
+        if (currentSpotlightGuide != null && currentSpotlightGuide.getParent() != null) {
+            ((ViewGroup) currentSpotlightGuide.getParent()).removeView(currentSpotlightGuide);
+            currentSpotlightGuide = null;
+        }
+        // 清空控件引用，防止内存泄漏
+        fabContainerQuick = null;
+        fabContainerBatch = null;
+        blurFabQuick = null;
+        blurFabBatch = null;
+        liquidFabQuick = null;
+        liquidFabBatch = null;
+        lastFabSettings.reset();
+    }
+
+    /**
+     * 应用 FAB 材质效果，与 TAB 栏风格同步。
+     * 防御性设计：
+     * 1. LiquidGlassView 绑定 scroll_container（不含 FAB 自身）避免自采样闪退
+     * 2. bind() 使用 post 延迟到布局完成
+     * 3. FabSettingsSnapshot 缓存参数避免 onResume 重复创建 Drawable
+     * 4. 圆形裁剪使用匿名内部类 outline.setOval()，不使用 OVAL 常量
+     */
+    @SuppressWarnings("deprecation")
+    private void applyFabEffectSettings(View view) {
+        if (view == null) view = getView();
+        if (view == null) return;
+        if (blurFabQuick == null || blurFabBatch == null
+                || liquidFabQuick == null || liquidFabBatch == null) return;
+
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        SharedPreferences prefs = ctx.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        int effectMode = prefs.getInt(TabPreferenceKeys.TAB_EFFECT_MODE, TabEffectMode.NONE);
+        // 低版本系统不支持液态玻璃，自动回退为无效果
+        if (effectMode == TabEffectMode.LIQUID_GLASS
+                && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+            effectMode = TabEffectMode.NONE;
+        }
+        int blurLevel = prefs.getInt(TabPreferenceKeys.TAB_BLUR_LEVEL, 5);
+        int opacity = prefs.getInt(TabPreferenceKeys.TAB_OPACITY, 80);
+        int refractionHeight = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_REFRACTION_HEIGHT, 15);
+        int dispersion = prefs.getInt(TabPreferenceKeys.TAB_LIQUID_DISPERSION, 50);
+        int shadowSize = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_SIZE, 1);
+        int shadowOpacity = prefs.getInt(TabPreferenceKeys.TAB_SHADOW_OPACITY, 25);
+
+        // FAB 背景色统一管理（每次都执行，确保与材质层状态一致，消除闪烁）
+        // 非 NONE 模式：设为透明让材质层显示
+        // NONE 模式：设为 bottom_bar_background，与 Tab 栏背景色一致
+        FloatingActionButton fabQuick = view.findViewById(R.id.btn_quick_record);
+        FloatingActionButton fabBatch = view.findViewById(R.id.btn_batch_record);
+        int fabColor = (effectMode != TabEffectMode.NONE)
+                ? android.graphics.Color.TRANSPARENT
+                : ContextCompat.getColor(ctx, R.color.bottom_bar_background);
+        if (fabQuick != null) {
+            fabQuick.setBackgroundTintList(ColorStateList.valueOf(fabColor));
+            fabQuick.setCompatElevation(0f);
+        }
+        if (fabBatch != null) {
+            fabBatch.setBackgroundTintList(ColorStateList.valueOf(fabColor));
+            fabBatch.setCompatElevation(0f);
+        }
+
+        // 参数未变化时跳过材质层配置，避免 onResume 重复创建 Drawable
+        if (lastFabSettings.equals(effectMode, blurLevel, opacity, refractionHeight, dispersion,
+                shadowSize, shadowOpacity)) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+        // view 本身就是 root_layout_record（inflate 的根布局），findViewById 不搜索自身，直接用 view
+        ViewGroup rootLayoutRecord = (view.getId() == R.id.root_layout_record)
+                ? (ViewGroup) view : (ViewGroup) view.findViewById(R.id.root_layout_record);
+        ViewGroup scrollView = (ViewGroup) view.findViewById(R.id.scroll_container);
+        // 【关键修复】采样源使用 scroll_container 的直接子元素（LinearLayout）而非 NestedScrollView 本身。
+        // 原因：NestedScrollView 只负责滚动其子视图，本身不渲染内容像素；
+        // LiquidGlassView.bind() 需要真正渲染内容的 ViewGroup 才能采样到画面，否则呈现透明背景。
+        ViewGroup liquidSampleSource = scrollView;
+        if (scrollView != null && scrollView.getChildCount() > 0
+                && scrollView.getChildAt(0) instanceof ViewGroup) {
+            liquidSampleSource = (ViewGroup) scrollView.getChildAt(0);
+        }
+
+        if (effectMode == TabEffectMode.LIQUID_GLASS) {
+            // 液态玻璃效果：BlurView（模糊背景）+ LiquidGlassView（液态玻璃质感）叠加
+            // 与 Tab 栏一致：底层模糊 + 上层液态玻璃，形成"模糊+透明液态玻璃"的叠加质感
+            blurFabQuick.setVisibility(View.VISIBLE);
+            blurFabBatch.setVisibility(View.VISIBLE);
+            liquidFabQuick.setVisibility(View.VISIBLE);
+            liquidFabBatch.setVisibility(View.VISIBLE);
+
+            // 初始化 BlurView（首次调用 setupWith，复用 RenderScript）
+            if (!fabBlurSetupDone && rootLayoutRecord != null) {
+                if (fabRenderScriptBlur == null) {
+                    fabRenderScriptBlur = new RenderScriptBlur(ctx);
+                }
+                blurFabQuick.setupWith(rootLayoutRecord, fabRenderScriptBlur);
+                blurFabBatch.setupWith(rootLayoutRecord, fabRenderScriptBlur);
+                applyOvalOutline(blurFabQuick);
+                applyOvalOutline(blurFabBatch);
+                fabBlurSetupDone = true;
+            }
+            blurFabQuick.setBlurEnabled(true);
+            blurFabQuick.setBlurRadius(blurLevel);
+            blurFabBatch.setBlurEnabled(true);
+            blurFabBatch.setBlurRadius(blurLevel);
+            // 液态玻璃模式下 BlurView 使用透明覆盖色，仅提供模糊采样
+            blurFabQuick.setBackground(createOvalBackground(0));
+            blurFabBatch.setBackground(createOvalBackground(0));
+
+            // 绑定内容容器（LinearLayout）作为采样源，确保采样到真实渲染像素
+            if (!fabLiquidGlassBound && liquidSampleSource != null) {
+                bindLiquidGlassSafely(liquidFabQuick, liquidSampleSource, true);
+                bindLiquidGlassSafely(liquidFabBatch, liquidSampleSource, false);
+            }
+
+            // 将 setter 延迟到消息队列后，确保 bind/ensureGlass 已创建 glass。
+            liquidFabQuick.post(() -> {
+                try {
+                    configureLiquidGlassFab(liquidFabQuick, blurLevel, opacity, refractionHeight, dispersion, density);
+                    configureLiquidGlassFab(liquidFabBatch, blurLevel, opacity, refractionHeight, dispersion, density);
+                } catch (Exception e) {
+                    Log.e("RecordFragment", "Failed to configure LiquidGlassView for FAB", e);
+                }
+            });
+        } else if (effectMode == TabEffectMode.BLUR) {
+            // 模糊效果：仅使用 BlurView
+            liquidFabQuick.setVisibility(View.GONE);
+            liquidFabBatch.setVisibility(View.GONE);
+            blurFabQuick.setVisibility(View.VISIBLE);
+            blurFabBatch.setVisibility(View.VISIBLE);
+
+            // 首次初始化 BlurView（setupWith 只调用一次，避免重复创建 RenderScript）
+            if (!fabBlurSetupDone && rootLayoutRecord != null) {
+                if (fabRenderScriptBlur == null) {
+                    fabRenderScriptBlur = new RenderScriptBlur(ctx);
+                }
+                blurFabQuick.setupWith(rootLayoutRecord, fabRenderScriptBlur);
+                blurFabBatch.setupWith(rootLayoutRecord, fabRenderScriptBlur);
+                applyOvalOutline(blurFabQuick);
+                applyOvalOutline(blurFabBatch);
+                fabBlurSetupDone = true;
+            }
+
+            blurFabQuick.setBlurEnabled(true);
+            blurFabQuick.setBlurRadius(blurLevel);
+            blurFabBatch.setBlurEnabled(true);
+            blurFabBatch.setBlurRadius(blurLevel);
+
+            // BlurView 只提供模糊采样，背景透明
+            blurFabQuick.setBackground(createOvalBackground(0));
+            blurFabBatch.setBackground(createOvalBackground(0));
+
+            // 在 FAB 上叠加白色半透明背景层，确保白色半透明层在最上层、不被阴影压住
+            int alphaInt = (int) (opacity / 100f * 255);
+            int overlayColor = (alphaInt << 24) | 0x00FFFFFF;
+            if (fabQuick != null) fabQuick.setBackgroundTintList(ColorStateList.valueOf(overlayColor));
+            if (fabBatch != null) fabBatch.setBackgroundTintList(ColorStateList.valueOf(overlayColor));
+        } else {
+            // 无效果：隐藏所有材质层，FAB 显示纯色
+            blurFabQuick.setVisibility(View.GONE);
+            blurFabBatch.setVisibility(View.GONE);
+            liquidFabQuick.setVisibility(View.GONE);
+            liquidFabBatch.setVisibility(View.GONE);
+        }
+
+        // 【FAB 阴影】与 Tab 栏完全一致：使用 TabShadowDrawable（isOval=true）+ padding 外发散
+        // 阴影独立于材质效果模式，所有模式下都应用，确保视觉一致
+        applyFabShadow(shadowSize, shadowOpacity, density);
+
+        lastFabSettings.update(effectMode, blurLevel, opacity, refractionHeight, dispersion,
+                shadowSize, shadowOpacity);
+    }
+
+    /**
+     * 为两个 FAB 容器应用与 Tab 栏完全一致的阴影效果。
+     * 使用 TabShadowDrawable(isOval=true) 绘制圆形外发散阴影，通过 padding 让阴影向外发散。
+     * 参数与 Tab 栏完全一致：shadowSize 控制大小（shadowSizeDp = shadowSize * 0.5f），
+     * shadowOpacity 控制浓淡。shadowSize=0 时彻底隐藏阴影。
+     */
+    private void applyFabShadow(int shadowSize, int shadowOpacity, float density) {
+        if (fabContainerQuick == null || fabContainerBatch == null) return;
+
+        if (shadowSize > 0) {
+            float shadowSizeDp = shadowSize * 0.5f;
+            int shadowPx = (int) (shadowSizeDp * density);
+            int shadowAlpha = (int) (shadowOpacity / 100f * 255);
+            // FAB 为圆形，使用 isOval=true；cornerRadius 对圆形无意义，传 0
+            TabShadowDrawable shadowDrawable = new TabShadowDrawable(0, shadowPx, shadowAlpha, true);
+            fabContainerQuick.setBackground(shadowDrawable);
+            fabContainerQuick.setPadding(shadowPx, shadowPx, shadowPx, shadowPx);
+            fabContainerBatch.setBackground(new TabShadowDrawable(0, shadowPx, shadowAlpha, true));
+            fabContainerBatch.setPadding(shadowPx, shadowPx, shadowPx, shadowPx);
+        } else {
+            fabContainerQuick.setBackground(null);
+            fabContainerQuick.setPadding(0, 0, 0, 0);
+            fabContainerBatch.setBackground(null);
+            fabContainerBatch.setPadding(0, 0, 0, 0);
+        }
+    }
+
+    /**
+     * 安全绑定 LiquidGlassView 到采样源，使用 post 延迟到布局完成。
+     * 防御性设计：
+     * 1. 使用字段引用（liquidFabQuick/Batch）而非局部变量，确保 onDestroyView 置 null 后检查生效
+     * 2. 检查 isAttachedToWindow()，避免在已分离视图上 bind 导致崩溃
+     * 3. 检查 sampleSource.isAttachedToWindow()，确保采样源有效
+     * 4. try-catch 兜底，防止 LiquidGlassView 内部异常导致闪退
+     */
+    private void bindLiquidGlassSafely(LiquidGlassView liquidView, ViewGroup sampleSource, boolean isQuick) {
+        if (liquidView == null || sampleSource == null) return;
+        // 视图与采样源都已 attach 时直接 bind，确保在后续 layout/ensureGlass 之前 customSource 已设置；
+        // 否则延迟到 attach 后再执行。
+        if (liquidView.isAttachedToWindow() && sampleSource.isAttachedToWindow()) {
+            try {
+                liquidView.bind(sampleSource);
+                fabLiquidGlassBound = true;
+            } catch (Exception e) {
+                Log.e("RecordFragment", "Failed to bind LiquidGlassView for FAB", e);
+            }
+        } else {
+            liquidView.post(() -> {
+                try {
+                    // 双重检查：字段引用可能已在 onDestroyView 中被置 null
+                    LiquidGlassView target = isQuick ? liquidFabQuick : liquidFabBatch;
+                    if (target == null || target != liquidView) return; // 视图已销毁或已替换
+                    if (!target.isAttachedToWindow() || !sampleSource.isAttachedToWindow()) return;
+                    target.bind(sampleSource);
+                    fabLiquidGlassBound = true;
+                } catch (Exception e) {
+                    Log.e("RecordFragment", "Failed to bind LiquidGlassView for FAB", e);
+                }
+            });
+        }
+    }
+
+    /**
+     * 配置 LiquidGlassView 的圆形参数（FAB 为圆形，cornerRadius 设为半径）。
+     */
+    private void configureLiquidGlassFab(LiquidGlassView liquidView, int blurLevel, int opacity,
+                                         int refractionHeight, int dispersion, float density) {
+        liquidView.setCornerRadius(28 * density); // FAB normal 56dp，半径 28dp，强制圆形
+        liquidView.setBlurRadius(blurLevel * 2.5f);
+        liquidView.setRefractionHeight(refractionHeight * density);
+        liquidView.setRefractionOffset(0f); // FAB 尺寸小，不偏移折射避免渲染溢出
+        liquidView.setDispersion(dispersion / 100f);
+        liquidView.setTintAlpha((opacity / 100f) * 0.3f);
+        liquidView.setDraggableEnabled(false);
+        liquidView.setElasticEnabled(false);
+        liquidView.setTouchEffectEnabled(false);
+    }
+
+    /**
+     * 为 BlurView 应用圆形裁剪（使用匿名内部类 outline.setOval()，不使用 OVAL 常量）。
+     * 符合项目硬约束：ViewOutlineProvider.OVAL 不可用。
+     */
+    private void applyOvalOutline(View view) {
+        // 延迟到布局完成后执行，避免 onCreateView 阶段 getWidth()/getHeight() 为 0
+        view.post(() -> {
+            view.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View v, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, v.getWidth(), v.getHeight());
+                }
+            });
+            view.setClipToOutline(true);
+        });
+    }
+
+    /**
+     * 创建圆形半透明背景 Drawable（BlurView 模式下作为覆盖色）。
+     */
+    private android.graphics.drawable.Drawable createOvalBackground(int alphaInt) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        drawable.setColor((alphaInt << 24) | 0x00FFFFFF);
+        return drawable;
+    }
+
+    /**
+     * 缓存上次应用的 FAB 材质参数，避免 onResume 等场景重复创建 Drawable。
+     */
+    private static class FabSettingsSnapshot {
+        int effectMode = -1;
+        int blurLevel = -1;
+        int opacity = -1;
+        int refractionHeight = -1;
+        int dispersion = -1;
+        int shadowSize = -1;
+        int shadowOpacity = -1;
+
+        boolean equals(int effectMode, int blurLevel, int opacity, int refractionHeight, int dispersion,
+                       int shadowSize, int shadowOpacity) {
+            return this.effectMode == effectMode && this.blurLevel == blurLevel
+                    && this.opacity == opacity && this.refractionHeight == refractionHeight
+                    && this.dispersion == dispersion && this.shadowSize == shadowSize
+                    && this.shadowOpacity == shadowOpacity;
+        }
+
+        void update(int effectMode, int blurLevel, int opacity, int refractionHeight, int dispersion,
+                    int shadowSize, int shadowOpacity) {
+            this.effectMode = effectMode;
+            this.blurLevel = blurLevel;
+            this.opacity = opacity;
+            this.refractionHeight = refractionHeight;
+            this.dispersion = dispersion;
+            this.shadowSize = shadowSize;
+            this.shadowOpacity = shadowOpacity;
+        }
+
+        void reset() {
+            effectMode = -1;
+            blurLevel = -1;
+            opacity = -1;
+            refractionHeight = -1;
+            dispersion = -1;
+            shadowSize = -1;
+            shadowOpacity = -1;
+        }
+    }
+
+    // 显示首次打开聚光灯引导
+    private void showSpotlightGuideIfNeeded() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        boolean hasShownGuide = prefs.getBoolean("has_shown_spotlight_guide", false);
+        if (hasShownGuide) return;
+        if (getView() == null || isDetached()) return;
+
+        View quickRecord = getView().findViewById(R.id.btn_quick_record);
+        View batchRecord = getView().findViewById(R.id.btn_batch_record);
+        if (quickRecord == null || batchRecord == null) return;
+
+        runSpotlightStage(quickRecord, getString(R.string.spotlight_quick_record_hint), () ->
+                runSpotlightStage(batchRecord, getString(R.string.spotlight_batch_record_hint), () ->
+                        prefs.edit().putBoolean("has_shown_spotlight_guide", true).apply()));
+    }
+
+    private void runSpotlightStage(View target, String hint, Runnable onDismiss) {
+        if (getView() == null || isDetached()) return;
+
+        int[] location = new int[2];
+        target.getLocationOnScreen(location);
+        android.graphics.Rect targetRect = new android.graphics.Rect(
+                location[0], location[1],
+                location[0] + target.getWidth(), location[1] + target.getHeight());
+
+        SpotlightGuideView guide = new SpotlightGuideView(requireContext());
+        this.currentSpotlightGuide = guide;
+        guide.setTarget(targetRect, hint);
+        guide.setAlpha(0f);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        ((ViewGroup) getView()).addView(guide, params);
+
+        guide.animate()
+                .alpha(1f)
+                .setDuration(250)
+                .start();
+
+        guide.setOnClickListener(v -> guide.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    currentSpotlightGuide = null;
+                    if (getView() != null) {
+                        ((ViewGroup) getView()).removeView(guide);
+                    }
+                    if (isAdded() && !requireActivity().isFinishing() && !requireActivity().isDestroyed()) {
+                        onDismiss.run();
+                    }
+                })
+                .start());
+    }
+
     // 【新增方法】：动态控制界面透明度，不破坏 XML 默认结构
-    // 【修改或替换】现有的 updateFragmentTransparency 方法
+    // 【修改】FAB 背景色管理统一由 applyFabEffectSettings 负责，此方法只管理顶部栏/周栏透明度
     private void updateFragmentTransparency(boolean isCustomBg) {
         View view = getView();
         if (view == null) return;
@@ -404,46 +830,16 @@ public class RecordFragment extends Fragment {
         View topBar = view.findViewById(R.id.layout_top_bar);
         View weekHeader = view.findViewById(R.id.layout_week_header);
 
-        // 获取需要调整质感的按钮
-        com.google.android.material.floatingactionbutton.FloatingActionButton btnQuickRecord = view.findViewById(R.id.btn_quick_record);
-        com.google.android.material.floatingactionbutton.FloatingActionButton btnBatchRecord = view.findViewById(R.id.btn_batch_record);
-
         if (isCustomBg) {
-            // 1. 顶部基础框架全透明，让底层的图片完全透出来
+            // 自定义主题：顶部基础框架全透明，让底层的图片完全透出来
             view.setBackgroundColor(android.graphics.Color.TRANSPARENT);
             if (topBar != null) topBar.setBackgroundColor(android.graphics.Color.TRANSPARENT);
             if (weekHeader != null) weekHeader.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-
-            // 2. 快捷记账按钮：85%透明度 (216) + 去除阴影
-            if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
-                int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
-                btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
-                btnQuickRecord.setCompatElevation(0f);
-            }
-            if (btnBatchRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
-                int translucentFab = androidx.core.graphics.ColorUtils.setAlphaComponent(fabColor, 230);
-                btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(translucentFab));
-                btnBatchRecord.setCompatElevation(0f);
-            }
-
         } else {
-            // ================= 恢复普通系统/日间/夜间模式 =================
+            // 日间/夜间模式：使用资源文件中定义的背景色
             view.setBackgroundResource(R.color.bar_background);
             if (topBar != null) topBar.setBackgroundResource(R.color.bar_background);
             if (weekHeader != null) weekHeader.setBackgroundResource(R.color.bar_background);
-
-            if (btnQuickRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
-                btnQuickRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
-                btnQuickRecord.setCompatElevation(0f);
-            }
-            if (btnBatchRecord != null) {
-                int fabColor = ContextCompat.getColor(requireContext(), R.color.app_accent);
-                btnBatchRecord.setBackgroundTintList(ColorStateList.valueOf(fabColor));
-                btnBatchRecord.setCompatElevation(0f);
-            }
         }
     }
 

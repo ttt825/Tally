@@ -48,7 +48,7 @@
             android:visibility="visible"
             app:blurOverlayColor="@color/bottom_bar_background"/>
 
-        <com.qmdeve.liquidglass.widget.LiquidGlassView
+        <com.example.budgetapp.ui.SafeLiquidGlassView
             android:id="@+id/liquid_glass_tab_bar"
             android:layout_width="match_parent"
             android:layout_height="60dp"
@@ -70,22 +70,5 @@
             app:activeItem="0"
             app:duration="300" />
     </FrameLayout>
-
-    <!-- 首次使用引导气泡 -->
-    <TextView
-        android:id="@+id/tv_fab_tooltip"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="190dp"
-        android:background="@drawable/bg_tooltip_bubble"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp"
-        android:text="@string/fab_tooltip_hint"
-        android:textColor="@color/real_white"
-        android:textSize="13sp"
-        android:visibility="gone"
-        android:elevation="8dp" />
 
 </FrameLayout>
